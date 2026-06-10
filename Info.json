@@ -1,0 +1,23 @@
+{
+  "name": "YouTube (Safari Cookies)",
+  "identifier": "com.jarobinson.youtube-safari",
+  "version": "0.1.9",
+  "author": { "name": "jarobinson" },
+  "entry": "dist/index.js",
+  "globalEntry": "dist/global.js",
+  "permissions": ["show-osd", "file-system", "network-request"],
+  "allowedDomains": ["*"],
+  "preferencesPage": "pref.html",
+  "sidebarTab": { "name": "YouTube" },
+  "preferenceDefaults": {
+    "ytdl_path": "~/Library/Application Support/com.colliderli.iina/yt-dlp-iina",
+    "cookies_path": "~/.config/yt-dlp/cookies.txt",
+    "force_referer": "https://www.youtube.com/",
+    "quality_height": 0,
+    "last_watch_url": "",
+    "try_ytdl_first": true,
+    "resolve_script": "~/Projects/youtube-safari/scripts/resolve.sh",
+    "list_formats_script": "~/Projects/youtube-safari/scripts/list-formats.sh",
+    "refresh_script": "~/Projects/youtube-safari/scripts/refresh-cookies.sh"
+  }
+}

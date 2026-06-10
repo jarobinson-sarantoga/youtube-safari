@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube (Safari Cookies)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .pref-section { margin-bottom: 14px; }
+    .pref-help {
+      margin: 4px 0 6px;
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.55);
+    }
+    input[type="text"], select { width: 100%; margin-top: 4px; }
+    label { display: block; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="pref-section">
+    <strong>yt-dlp binary</strong>
+    <p class="pref-help">Use the IINA yt-dlp-iina wrapper so JSON output stays small.</p>
+    <input type="text" data-pref-key="ytdl_path" />
+  </div>
+
+  <div class="pref-section">
+    <strong>Cookies file</strong>
+    <p class="pref-help">Exported from Safari via Refresh Safari Cookies menu item.</p>
+    <input type="text" data-pref-key="cookies_path" />
+  </div>
+
+  <div class="pref-section">
+    <strong>Forced Referer</strong>
+    <p class="pref-help">Applied to every googlevideo.com stream (required for playback).</p>
+    <input type="text" data-pref-key="force_referer" />
+  </div>
+
+  <div class="pref-section">
+    <strong>Quality</strong>
+    <p class="pref-help">Maximum resolution. Codecs are chosen automatically (AV1 → VP9 → H.264).</p>
+    <select data-pref-key="quality_height">
+      <option value="0">Auto (up to 4K)</option>
+      <option value="2160">4K (2160p)</option>
+      <option value="1440">1440p</option>
+      <option value="1080">1080p</option>
+      <option value="720">720p</option>
+      <option value="480">480p</option>
+      <option value="360">360p</option>
+    </select>
+  </div>
+
+  <div class="pref-section">
+    <label>
+      <input type="checkbox" data-pref-key="try_ytdl_first" />
+      Resolve YouTube on load (priority 15 hook)
+    </label>
+    <p class="pref-help">When off, only runs on_load_fail instead of on_load.</p>
+  </div>
+</body>
+</html>

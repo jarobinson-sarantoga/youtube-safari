@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #1e1e1e;
+      color: #e8e8e8;
+      font: 13px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding: 12px 10px 16px;
+      gap: 12px;
+    }
+    .section {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+    .section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+      margin: 0 0 8px;
+    }
+    .video-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.9);
+      word-break: break-word;
+    }
+    .description {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.68);
+      word-break: break-word;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .description.empty {
+      color: rgba(255, 255, 255, 0.38);
+      font-style: italic;
+    }
+    .chapter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .chapter-list.empty {
+      color: rgba(255, 255, 255, 0.38);
+      font-style: italic;
+      font-size: 12px;
+    }
+    .chapter-btn {
+      appearance: none;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #5eb0ff;
+      text-align: left;
+      padding: 8px 10px;
+      font: inherit;
+      cursor: pointer;
+      transition: background 0.12s ease;
+      word-break: break-word;
+    }
+    .chapter-btn:hover {
+      background: rgba(94, 176, 255, 0.12);
+      text-decoration: underline;
+    }
+    .description .desc-line {
+      margin: 0 0 4px;
+    }
+    .description .desc-link {
+      color: #5eb0ff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .description .desc-link:hover {
+      text-decoration: underline;
+    }
+    .description .desc-tag {
+      color: #7eb8ff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .description .desc-tag:hover {
+      text-decoration: underline;
+    }
+    .description .desc-bullet {
+      color: rgba(255, 255, 255, 0.45);
+      padding-right: 2px;
+    }
+    .quality-status {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 4px 2px 8px;
+      display: none;
+    }
+    .quality-status.visible { display: block; }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .quality-btn {
+      appearance: none;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #e8e8e8;
+      text-align: left;
+      padding: 8px 10px;
+      font: inherit;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+    .quality-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .quality-btn.active {
+      background: rgba(64, 156, 255, 0.22);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .quality-btn.active::before {
+      content: "✓ ";
+      color: #5eb0ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="section" id="info-section">
+      <p class="section-title">Now Playing</p>
+      <p class="video-title" id="video-title">No YouTube video</p>
+    </div>
+
+    <div class="section" id="chapters-section">
+      <p class="section-title">Chapters</p>
+      <div class="chapter-list empty" id="chapter-list">Open a YouTube video to see chapters.</div>
+    </div>
+
+    <div class="section" id="description-section">
+      <p class="section-title">Description</p>
+      <div class="description empty" id="description">Open a YouTube video to see its description.</div>
+    </div>
+
+    <div class="section" id="quality-section">
+      <p class="section-title">Quality</p>
+      <div class="quality-status" id="quality-status">Updating qualities…</div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var DEFAULT_ITEMS = [
+        { height: 0, label: "Auto (up to 4K)" },
+        { height: 2160, label: "4K (2160p)" },
+        { height: 1440, label: "1440p" },
+        { height: 1080, label: "1080p" },
+        { height: 720, label: "720p" },
+        { height: 480, label: "480p" },
+        { height: 360, label: "360p" }
+      ];
+
+      var titleEl = document.getElementById("video-title");
+      var chapterListEl = document.getElementById("chapter-list");
+      var descriptionEl = document.getElementById("description");
+      var statusEl = document.getElementById("quality-status");
+      var listEl = document.getElementById("list");
+
+      function postToPlugin(name, data) {
+        if (typeof iina === "undefined" || !iina.postMessage) {
+          return;
+        }
+        try {
+          iina.postMessage(name, JSON.parse(JSON.stringify(data || {})));
+        } catch (err) {
+          iina.postMessage(name, data || {});
+        }
+      }
+
+      window.seekChapter = function (seconds) {
+        postToPlugin("descriptionSeek", { seconds: Number(seconds) });
+      };
+
+      function waitForIina(callback) {
+        if (typeof iina !== "undefined" && iina.postMessage && iina.onMessage) {
+          callback();
+          return;
+        }
+        setTimeout(function () {
+          waitForIina(callback);
+        }, 50);
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function escapeAttr(text) {
+        return escapeHtml(text).replace(/'/g, "&#39;");
+      }
+
+      function parseTimestampToSeconds(timestamp) {
+        var parts = timestamp.split(":").map(function (part) {
+          return parseInt(part, 10);
+        });
+        if (parts.some(function (n) { return isNaN(n); })) {
+          return null;
+        }
+        if (parts.length === 3) {
+          return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        }
+        if (parts.length === 2) {
+          return parts[0] * 60 + parts[1];
+        }
+        return null;
+      }
+
+      function trimUrlTrailingPunctuation(url) {
+        return url.replace(/[),.;:!?]+$/g, "");
+      }
+
+      function formatInlineRich(text) {
+        var out = "";
+        var re = /(https?:\/\/[^\s<]+)|(^|[^\w/])(#[\w\u00C0-\u024F\u0400-\u04FF]+)/g;
+        var last = 0;
+        var match;
+
+        while ((match = re.exec(text)) !== null) {
+          out += escapeHtml(text.slice(last, match.index));
+          if (match[1]) {
+            var rawUrl = trimUrlTrailingPunctuation(match[1]);
+            var trimmed = match[1].length - rawUrl.length;
+            if (trimmed > 0) {
+              re.lastIndex -= trimmed;
+            }
+            out +=
+              '<a class="desc-link" href="#" data-url="' +
+              escapeAttr(rawUrl) +
+              '">' +
+              escapeHtml(rawUrl) +
+              "</a>";
+          } else if (match[3]) {
+            var tagUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(match[3]);
+            out +=
+              escapeHtml(match[2]) +
+              '<a class="desc-tag desc-link" href="#" data-url="' +
+              escapeAttr(tagUrl) +
+              '">' +
+              escapeHtml(match[3]) +
+              "</a>";
+          }
+          last = re.lastIndex;
+        }
+
+        out += escapeHtml(text.slice(last));
+        return out;
+      }
+
+      function bindDescriptionLinks(root) {
+        var links = root.querySelectorAll(".desc-link");
+        for (var i = 0; i < links.length; i++) {
+          links[i].addEventListener("click", function (event) {
+            event.preventDefault();
+            var url = this.getAttribute("data-url") || "";
+            if (url) {
+              postToPlugin("openUrl", { url: url });
+            }
+          });
+        }
+      }
+
+      function renderChapters(chapters) {
+        chapterListEl.innerHTML = "";
+        chapterListEl.classList.remove("empty");
+
+        if (!chapters || !chapters.length) {
+          chapterListEl.textContent = "No chapters in this description.";
+          chapterListEl.classList.add("empty");
+          return;
+        }
+
+        for (var i = 0; i < chapters.length; i++) {
+          var chapter = chapters[i];
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "chapter-btn";
+          btn.textContent = chapter.timestamp + "  " + chapter.label;
+          btn.addEventListener("click", function () {
+            var value = parseInt(this.getAttribute("data-seconds") || "", 10);
+            if (!isNaN(value) && value >= 0) {
+              postToPlugin("descriptionSeek", { seconds: value });
+            }
+          });
+          btn.dataset.seconds = String(chapter.seconds);
+          chapterListEl.appendChild(btn);
+        }
+      }
+
+      function renderDescription(description) {
+        descriptionEl.innerHTML = "";
+
+        if (!description) {
+          descriptionEl.textContent = "Open a YouTube video to see its description.";
+          descriptionEl.classList.add("empty");
+          return;
+        }
+
+        descriptionEl.classList.remove("empty");
+        var lines = description.split(/\r?\n/);
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line.trim()) {
+            descriptionEl.appendChild(document.createElement("br"));
+            continue;
+          }
+
+          var lineEl = document.createElement("div");
+          lineEl.className = "desc-line";
+          lineEl.innerHTML = formatInlineRich(line);
+          descriptionEl.appendChild(lineEl);
+        }
+
+        bindDescriptionLinks(descriptionEl);
+      }
+
+      function renderQualities(items, selected) {
+        listEl.innerHTML = "";
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "quality-btn" + (item.height === selected ? " active" : "");
+          btn.textContent = item.label;
+          btn.dataset.height = String(item.height);
+          btn.addEventListener("click", function () {
+            var height = parseInt(this.dataset.height, 10);
+            if (!isNaN(height)) {
+              postToPlugin("selectQuality", { height: height });
+            }
+          });
+          listEl.appendChild(btn);
+        }
+      }
+
+      function renderPanel(data) {
+        var title = (data && data.title) || "";
+        var description = (data && data.description) || "";
+        var chapters = (data && data.chapters) ? data.chapters : [];
+        var items = (data && data.items && data.items.length) ? data.items : DEFAULT_ITEMS;
+        var selected = data && typeof data.selected === "number" ? data.selected : 0;
+        var loading = !!(data && data.loading);
+
+        titleEl.textContent = title || "No YouTube video";
+
+        renderChapters(chapters);
+
+        if (description) {
+          renderDescription(description);
+        } else if (title) {
+          descriptionEl.textContent = "No description available.";
+          descriptionEl.classList.add("empty");
+        } else {
+          descriptionEl.textContent = "Open a YouTube video to see its description.";
+          descriptionEl.classList.add("empty");
+        }
+
+        if (loading) {
+          statusEl.classList.add("visible");
+        } else {
+          statusEl.classList.remove("visible");
+        }
+
+        renderQualities(items, selected);
+      }
+
+      waitForIina(function () {
+        iina.onMessage("panel", renderPanel);
+        renderPanel({
+          items: DEFAULT_ITEMS,
+          selected: 0,
+          title: "",
+          description: "",
+          chapters: [],
+          loading: false
+        });
+        postToPlugin("sidebarReady", {});
+      });
+    })();
+  </script>
+</body>
+</html>
