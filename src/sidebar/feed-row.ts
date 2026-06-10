@@ -113,6 +113,7 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
 export function createSkeletonRows(count: number): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "skeleton-rows";
+  wrap.setAttribute("aria-hidden", "true");
 
   for (let i = 0; i < count; i++) {
     const row = document.createElement("div");

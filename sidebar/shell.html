@@ -46,8 +46,8 @@
       </div>
 
       <div class="subs-filter hidden" id="subs-filter" role="tablist" aria-label="Subscription filter">
-        <button type="button" class="subs-filter-btn active" data-subs-filter="all">All</button>
-        <button type="button" class="subs-filter-btn" data-subs-filter="shorts">Shorts</button>
+        <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="subs-filter-btn" data-subs-filter="shorts" role="tab" aria-selected="false">Shorts</button>
       </div>
 
       <div class="feed-status" id="feed-status" aria-live="polite"></div>
@@ -97,7 +97,7 @@
 
         <div class="section" id="related-preview-section">
           <p class="section-title">Related</p>
-          <div class="related-preview empty" id="related-preview">Open a video in IINA to see related videos.</div>
+          <div class="related-preview empty" id="related-preview" tabindex="0">Open a video in IINA to see related videos.</div>
         </div>
       </div>
     </section>

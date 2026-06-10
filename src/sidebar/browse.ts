@@ -45,14 +45,25 @@ function feedCacheKey(
   return tab;
 }
 
+function formatFeedCount(n: number): string {
+  return `${n} video${n === 1 ? "" : "s"}`;
+}
+
+function setFeedRefreshSpinning(spinning: boolean): void {
+  const btn = $("feed-refresh");
+  btn.classList.toggle("spinning", spinning);
+  if (spinning) {
+    btn.setAttribute("aria-busy", "true");
+  } else {
+    btn.removeAttribute("aria-busy");
+  }
+}
+
 function saveFeedSnapshot(tab: FeedTab, subsFilter: SubsFilter, query: string): void {
   const key = feedCacheKey(tab, subsFilter, query);
   feedSnapshots.set(key, {
     items: feedItems,
-    statusText:
-      feedItems.length > 0
-        ? `${feedItems.length} video${feedItems.length === 1 ? "" : "s"}`
-        : "",
+    statusText: feedItems.length > 0 ? formatFeedCount(feedItems.length) : "",
     emptyHint: feedEmptyHint,
   });
 }
@@ -154,7 +165,7 @@ function requestFeed(
     setStatus("Refreshing…");
     setFeedBusy(false);
     setSearchBusy(false);
-    $("feed-refresh").classList.add("spinning");
+    setFeedRefreshSpinning(true);
   } else if (snapshot) {
     feedItems = [...snapshot.items];
     feedEmptyHint = snapshot.emptyHint;
@@ -165,7 +176,7 @@ function requestFeed(
     setFeedBusy(false);
     setSearchBusy(false);
     renderFeedList();
-    $("feed-refresh").classList.add("spinning");
+    setFeedRefreshSpinning(true);
   } else {
     setStatus("Loading…");
     feedLoading = true;
@@ -176,7 +187,7 @@ function requestFeed(
     setFeedBusy(true);
     setSearchBusy(true);
     renderSkeleton();
-    $("feed-refresh").classList.add("spinning");
+    setFeedRefreshSpinning(true);
   }
 
   const requestId = ++feedRequestId;
@@ -211,7 +222,7 @@ function updateFeedSelection(): void {
 function renderFeedList(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
-  $("feed-refresh").classList.remove("spinning");
+  setFeedRefreshSpinning(false);
 
   if (!feedItems.length) {
     if (feedLoading) {
@@ -290,7 +301,7 @@ function handleFeedResult(data: NonNullable<ReturnType<typeof parseFeedResult>>)
   }
 
   feedLoading = false;
-  $("feed-refresh").classList.remove("spinning");
+  setFeedRefreshSpinning(false);
 
   if (data.error) {
     lastFeedError = data.error;
@@ -310,7 +321,7 @@ function handleFeedResult(data: NonNullable<ReturnType<typeof parseFeedResult>>)
   loadedTabs.add(feedCacheKey(data.tab, subsFilter, searchQuery));
 
   if (feedItems.length) {
-    setStatus(`${feedItems.length} video${feedItems.length === 1 ? "" : "s"}`);
+    setStatus(formatFeedCount(feedItems.length));
   } else {
     clearStatus();
   }
