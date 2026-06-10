@@ -19,6 +19,10 @@ export function clearFeedInflight(): void {
   inflight.clear();
 }
 
+function normalizeSearchQuery(query: string): string {
+  return query.trim().toLowerCase();
+}
+
 async function fetchWithCache(
   key: string,
   fetcher: () => Promise<FeedFetchResult>,
@@ -39,6 +43,9 @@ async function fetchWithCache(
   const promise = (async (): Promise<FeedFetchResult> => {
     try {
       const result = await fetcher();
+      if (inflight.get(key) !== promise) {
+        return result;
+      }
       if (result.items.length) {
         setCached(key, result.items);
       } else if (force) {
@@ -49,7 +56,7 @@ async function fetchWithCache(
       }
       return result;
     } catch (err) {
-      if (force) {
+      if (inflight.get(key) === promise && force) {
         clearCached(key);
       }
       return { items: [], error: String(err) };
@@ -83,8 +90,17 @@ export async function fetchFeed(
         force,
       );
     }
-    case "search":
-      return fetchSearchItems(query);
+    case "search": {
+      const normalized = normalizeSearchQuery(query);
+      if (!normalized) {
+        return { items: [], emptyHint: "Enter a search query" };
+      }
+      return fetchWithCache(
+        cacheKey("search", normalized),
+        () => fetchSearchItems(query),
+        force,
+      );
+    }
     case "related": {
       const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
       const videoId = getYouTubeVideoId(watchUrl) || "";

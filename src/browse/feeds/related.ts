@@ -72,14 +72,16 @@ export async function getRelatedItems(
 
   const promise = fetchRelatedItems(videoId).then((result) => {
     const items = result.items || [];
-    if (items.length) {
-      memoryCache.set(videoId, { savedAt: Date.now(), items });
-      setCached(cacheKey("related", videoId), items);
-    } else if (force) {
-      clearRelatedCacheForVideo(videoId);
-    }
-    if (force && result.error) {
-      clearRelatedCacheForVideo(videoId);
+    if (inflight.get(videoId) === promise) {
+      if (items.length) {
+        memoryCache.set(videoId, { savedAt: Date.now(), items });
+        setCached(cacheKey("related", videoId), items);
+      } else if (force) {
+        clearRelatedCacheForVideo(videoId);
+      }
+      if (force && result.error) {
+        clearRelatedCacheForVideo(videoId);
+      }
     }
     return {
       items,

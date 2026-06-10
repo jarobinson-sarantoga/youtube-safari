@@ -20,6 +20,7 @@ const { core, event, global, mpv, preferences, sidebar } = iina;
 
 let browseInstalled = false;
 let playerStateTimer: ReturnType<typeof setInterval> | null = null;
+let watchProgressTimer: ReturnType<typeof setInterval> | null = null;
 
 function buildPlayerState(): PlayerStateMessage {
   const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
@@ -95,7 +96,7 @@ function registerPlaybackHooks(): void {
     }
   });
 
-  setInterval(() => {
+  watchProgressTimer = setInterval(() => {
     const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
     if (!isYouTubeWatchURL(watchUrl)) {
       return;
@@ -106,6 +107,13 @@ function registerPlaybackHooks(): void {
       updateWatchProgress(pos, dur);
     }
   }, 15000);
+}
+
+function stopWatchProgressPolling(): void {
+  if (watchProgressTimer) {
+    clearInterval(watchProgressTimer);
+    watchProgressTimer = null;
+  }
 }
 
 /** Wire browse bridge, playback hooks, and global shortcut listener. */
@@ -119,6 +127,8 @@ export function installBrowse(): void {
   registerPlaybackHooks();
 
   event.on("iina.window-will-close", () => {
+    stopPlayerStatePolling();
+    stopWatchProgressPolling();
     global.postMessage("playerClosed", {});
   });
 

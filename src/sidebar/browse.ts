@@ -23,11 +23,38 @@ let feedEmptyHint = "";
 let lastFeedError = "";
 const loadedTabs = new Set<string>();
 
-function feedCacheKey(tab: FeedTab, subsFilter: SubsFilter = activeSubsFilter): string {
+interface FeedSnapshot {
+  items: FeedItem[];
+  statusText: string;
+  emptyHint: string;
+}
+
+const feedSnapshots = new Map<string, FeedSnapshot>();
+
+function feedCacheKey(
+  tab: FeedTab,
+  subsFilter: SubsFilter = activeSubsFilter,
+  query = "",
+): string {
   if (tab === "subscriptions") {
     return `subscriptions:${subsFilter}`;
   }
+  if (tab === "search") {
+    return `search:${query.trim().toLowerCase()}`;
+  }
   return tab;
+}
+
+function saveFeedSnapshot(tab: FeedTab, subsFilter: SubsFilter, query: string): void {
+  const key = feedCacheKey(tab, subsFilter, query);
+  feedSnapshots.set(key, {
+    items: feedItems,
+    statusText:
+      feedItems.length > 0
+        ? `${feedItems.length} video${feedItems.length === 1 ? "" : "s"}`
+        : "",
+    emptyHint: feedEmptyHint,
+  });
 }
 
 function setStatus(text: string, isError = false): void {
@@ -103,6 +130,7 @@ function requestFeed(
   query = "",
   subsFilter = activeSubsFilter,
   force = false,
+  background = false,
 ): void {
   activeTab = tab;
   if (tab === "subscriptions") {
@@ -110,18 +138,42 @@ function requestFeed(
   }
   updateSegButtons();
   updateSubsFilterUI();
-  setStatus("Loading…");
-  feedLoading = true;
-  feedEmptyHint = "";
-  lastFeedError = "";
-  feedItems = [];
-  selectedIndex = -1;
-  setFeedBusy(true);
-  setSearchBusy(true);
-  renderSkeleton();
 
-  const refreshBtn = $("feed-refresh");
-  refreshBtn.classList.add("spinning");
+  const cacheKey = feedCacheKey(tab, subsFilter, tab === "search" ? query : "");
+  const snapshot = !force ? feedSnapshots.get(cacheKey) : undefined;
+  const keepVisible = background && feedItems.length > 0;
+
+  if (keepVisible) {
+    feedLoading = true;
+    lastFeedError = "";
+    feedEmptyHint = "";
+    setStatus("Refreshing…");
+    setFeedBusy(false);
+    setSearchBusy(false);
+    $("feed-refresh").classList.add("spinning");
+  } else if (snapshot) {
+    feedItems = [...snapshot.items];
+    feedEmptyHint = snapshot.emptyHint;
+    lastFeedError = "";
+    feedLoading = true;
+    selectedIndex = feedItems.length > 0 ? 0 : -1;
+    setStatus(snapshot.statusText || "Refreshing…");
+    setFeedBusy(false);
+    setSearchBusy(false);
+    renderFeedList();
+    $("feed-refresh").classList.add("spinning");
+  } else {
+    setStatus("Loading…");
+    feedLoading = true;
+    feedEmptyHint = "";
+    lastFeedError = "";
+    feedItems = [];
+    selectedIndex = -1;
+    setFeedBusy(true);
+    setSearchBusy(true);
+    renderSkeleton();
+    $("feed-refresh").classList.add("spinning");
+  }
 
   const requestId = ++feedRequestId;
   postToPlugin("browseRefresh", {
@@ -243,12 +295,18 @@ function handleFeedResult(data: FeedResultMessage): void {
   feedItems = data.items || [];
   selectedIndex = feedItems.length > 0 ? 0 : -1;
   feedEmptyHint = !feedItems.length ? data.emptyHint || "" : "";
-  loadedTabs.add(feedCacheKey(data.tab, data.subsFilter || "all"));
+  const subsFilter = data.subsFilter || "all";
+  const searchQuery =
+    data.tab === "search" ? ($("search-input") as HTMLInputElement).value.trim() : "";
+  loadedTabs.add(feedCacheKey(data.tab, subsFilter, searchQuery));
 
   if (feedItems.length) {
     setStatus(`${feedItems.length} video${feedItems.length === 1 ? "" : "s"}`);
+  } else {
+    clearStatus();
   }
 
+  saveFeedSnapshot(data.tab, subsFilter, searchQuery);
   renderFeedList();
 
   if (data.tab === "related" && feedItems.length > 0) {
@@ -280,7 +338,7 @@ function setupTabs(): void {
         return;
       }
       const cacheKey = feedCacheKey(tab);
-      if (tab === activeTab && loadedTabs.has(cacheKey)) {
+      if (tab === activeTab && loadedTabs.has(cacheKey) && feedSnapshots.has(cacheKey)) {
         return;
       }
       requestFeed(tab);
@@ -401,6 +459,7 @@ export function initBrowsePanel(): void {
   onPluginMessage("watchUrlChanged", () => {
     loadedTabs.delete("related");
     loadedTabs.delete("related-preview");
+    feedSnapshots.delete("related");
     if (activeTab === "related") {
       requestFeed("related");
     }
@@ -408,6 +467,7 @@ export function initBrowsePanel(): void {
 
   onPluginMessage("historyStale", () => {
     loadedTabs.delete("history");
+    feedSnapshots.delete("history");
     if (activeTab === "history") {
       requestFeed("history");
     }
@@ -415,6 +475,17 @@ export function initBrowsePanel(): void {
 
   onPluginMessage("feedsStale", () => {
     loadedTabs.clear();
+    if (feedItems.length > 0) {
+      if (activeTab === "search") {
+        const query = ($("search-input") as HTMLInputElement).value.trim();
+        if (query) {
+          requestFeed("search", query, activeSubsFilter, true, true);
+          return;
+        }
+      }
+      requestFeed(activeTab, "", activeSubsFilter, true, true);
+      return;
+    }
     refreshCurrentFeed();
   });
 

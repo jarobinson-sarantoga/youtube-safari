@@ -4,6 +4,7 @@ const { file, preferences } = iina;
 
 const CACHE_PATH = "@data/browse-cache.json";
 const MAX_ENTRIES = 100;
+const DISK_FLUSH_MS = 250;
 
 interface CacheEntry<T> {
   key: string;
@@ -16,6 +17,9 @@ interface CacheFile<T> {
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
+const dirtyKeys = new Set<string>();
+let diskHydrated = false;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function browseCacheTtlMs(): number {
   const minutes = Number(preferences.get("browse_cache_ttl_minutes") ?? 30);
@@ -34,6 +38,9 @@ function pruneExpiredMemoryEntries(): void {
   for (const [key, entry] of memoryCache) {
     if (!isEntryFresh(entry.savedAt, ttl)) {
       memoryCache.delete(key);
+      if (diskHydrated) {
+        markDirty(key);
+      }
     }
   }
 }
@@ -47,6 +54,9 @@ function evictOldestMemoryEntries(): void {
     const oldest = sorted.shift();
     if (oldest) {
       memoryCache.delete(oldest[0]);
+      if (diskHydrated) {
+        markDirty(oldest[0]);
+      }
     }
   }
 }
@@ -85,15 +95,59 @@ function evictOldestDiskEntries<T>(entries: CacheEntry<T>[]): CacheEntry<T>[] {
   return [...entries].sort((a, b) => a.savedAt - b.savedAt).slice(-MAX_ENTRIES);
 }
 
-function removeDiskEntry<T>(key: string): void {
-  const fileData = readCacheFile<T>();
-  const filtered = fileData.entries.filter((e) => e.key !== key);
-  if (filtered.length !== fileData.entries.length) {
-    writeCacheFile({ entries: filtered });
+function hydrateFromDisk(): void {
+  if (diskHydrated) {
+    return;
+  }
+  diskHydrated = true;
+  const ttl = browseCacheTtlMs();
+  const fileData = readCacheFile<unknown>();
+  for (const entry of fileData.entries) {
+    if (isEntryFresh(entry.savedAt, ttl)) {
+      memoryCache.set(entry.key, entry);
+    }
   }
 }
 
+function markDirty(key: string): void {
+  dirtyKeys.add(key);
+  scheduleDiskFlush();
+}
+
+function scheduleDiskFlush(): void {
+  if (flushTimer !== null) {
+    return;
+  }
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    flushDirtyToDisk();
+  }, DISK_FLUSH_MS);
+}
+
+function flushDirtyToDisk(): void {
+  if (dirtyKeys.size === 0) {
+    return;
+  }
+  const keys = [...dirtyKeys];
+  dirtyKeys.clear();
+
+  const fileData = readCacheFile<unknown>();
+  const entryMap = new Map(fileData.entries.map((entry) => [entry.key, entry]));
+
+  for (const key of keys) {
+    const memEntry = memoryCache.get(key);
+    if (memEntry) {
+      entryMap.set(key, memEntry);
+    } else {
+      entryMap.delete(key);
+    }
+  }
+
+  writeCacheFile({ entries: evictOldestDiskEntries([...entryMap.values()]) });
+}
+
 export function peekCachedEntry<T>(key: string): { data: T; savedAt: number } | null {
+  hydrateFromDisk();
   pruneExpiredMemoryEntries();
 
   const memEntry = memoryCache.get(key);
@@ -102,21 +156,10 @@ export function peekCachedEntry<T>(key: string): { data: T; savedAt: number } | 
   }
   if (memEntry) {
     memoryCache.delete(key);
+    markDirty(key);
   }
 
-  const ttl = browseCacheTtlMs();
-  const fileData = readCacheFile<T>();
-  const entry = fileData.entries.find((e) => e.key === key);
-  if (!entry) {
-    return null;
-  }
-  if (!isEntryFresh(entry.savedAt, ttl)) {
-    removeDiskEntry<T>(key);
-    return null;
-  }
-
-  memoryCache.set(key, entry as CacheEntry<unknown>);
-  return { data: entry.data, savedAt: entry.savedAt };
+  return null;
 }
 
 export function getCached<T>(key: string): T | null {
@@ -125,15 +168,12 @@ export function getCached<T>(key: string): T | null {
 }
 
 export function setCached<T>(key: string, data: T): void {
+  hydrateFromDisk();
   const entry: CacheEntry<T> = { key, savedAt: Date.now(), data };
 
   memoryCache.set(key, entry as CacheEntry<unknown>);
   evictOldestMemoryEntries();
-
-  const fileData = readCacheFile<T>();
-  const filtered = fileData.entries.filter((e) => e.key !== key);
-  filtered.push(entry);
-  writeCacheFile({ entries: evictOldestDiskEntries(filtered) });
+  markDirty(key);
 }
 
 export function cacheKey(tab: string, suffix = ""): string {
@@ -142,11 +182,19 @@ export function cacheKey(tab: string, suffix = ""): string {
 
 export function clearCached(key: string): void {
   memoryCache.delete(key);
-  removeDiskEntry(key);
+  if (diskHydrated) {
+    markDirty(key);
+  }
 }
 
 export function clearBrowseCache(): void {
+  if (flushTimer !== null) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  dirtyKeys.clear();
   memoryCache.clear();
+  diskHydrated = true;
   try {
     if (file.exists(CACHE_PATH)) {
       file.delete(CACHE_PATH);
