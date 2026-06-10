@@ -1,3 +1,6 @@
+import { formatClock } from "../format";
+import { TRY_AGAIN_LABEL } from "./copy";
+
 export function $(id: string): HTMLElement {
   const el = document.getElementById(id);
   if (!el) {
@@ -5,9 +8,6 @@ export function $(id: string): HTMLElement {
   }
   return el;
 }
-
-import { formatClock } from "../format";
-import { TRY_AGAIN_LABEL } from "./copy";
 
 export { formatClock };
 

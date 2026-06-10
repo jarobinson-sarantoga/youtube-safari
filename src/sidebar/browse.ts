@@ -1,4 +1,4 @@
-import type { FeedItem, FeedTab } from "../browse/types";
+import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
 import { parseFeedResult } from "./parse";
 import { youtubeWatchUrl } from "../youtube";
 import { $, createErrorWithRetry } from "./dom";
@@ -100,7 +100,7 @@ function updateSubsFilterUI(): void {
 
   const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
-    const filter = btn.dataset.subsFilter as import("../browse/types").SubsFilter | undefined;
+    const filter = btn.dataset.subsFilter as SubsFilter | undefined;
     const isActive = filter === activeSubsFilter;
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-selected", isActive ? "true" : "false");
@@ -127,10 +127,21 @@ function playItem(item: FeedItem): void {
 
 function updateFeedSelection(): void {
   const selectedIndex = getSelectedIndex();
+  let selectedRow: HTMLElement | null = null;
+
   document.querySelectorAll<HTMLElement>(".feed-row[data-index]").forEach((row) => {
     const index = Number.parseInt(row.dataset.index || "", 10);
-    row.classList.toggle("selected", index === selectedIndex);
+    const isSelected = index === selectedIndex;
+    row.classList.toggle("selected", isSelected);
+    if (isSelected) {
+      row.setAttribute("aria-current", "true");
+      selectedRow = row;
+    } else {
+      row.removeAttribute("aria-current");
+    }
   });
+
+  selectedRow?.focus();
 }
 
 function renderFeedList(): void {
@@ -257,10 +268,11 @@ function setupTabs(): void {
 }
 
 function setupSubsFilter(): void {
-  const buttons = $("subs-filter").querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
+  const bar = $("subs-filter");
+  const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const filter = btn.dataset.subsFilter as import("../browse/types").SubsFilter | undefined;
+      const filter = btn.dataset.subsFilter as SubsFilter | undefined;
       if (!filter || getActiveTab() !== "subscriptions") {
         return;
       }
@@ -269,6 +281,41 @@ function setupSubsFilter(): void {
       }
       requestFeed("subscriptions", "", filter);
     });
+  });
+
+  bar.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+    if (getActiveTab() !== "subscriptions") {
+      return;
+    }
+
+    const tabs = [...bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn")];
+    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
+    if (currentIndex < 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const delta = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= tabs.length) {
+      return;
+    }
+
+    const filter = tabs[nextIndex].dataset.subsFilter as SubsFilter | undefined;
+    if (!filter) {
+      return;
+    }
+
+    if (filter === getActiveSubsFilter() && isSubsFilterLoaded(filter)) {
+      tabs[nextIndex].focus();
+      return;
+    }
+
+    requestFeed("subscriptions", "", filter);
+    tabs[nextIndex].focus();
   });
 }
 
