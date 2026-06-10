@@ -120,10 +120,13 @@ function renderDescription(description: string): void {
   bindDescriptionLinks(descriptionEl);
 }
 
+let lastRenderedDescription = "";
+
 function updateDescriptionSection(description: string, hasVideo: boolean): void {
   const sectionEl = $("description-section");
 
   if (!description && !hasVideo) {
+    lastRenderedDescription = "";
     sectionEl.classList.remove("hidden");
     const descriptionEl = $("description");
     descriptionEl.textContent = IDLE_COPY.description;
@@ -134,10 +137,15 @@ function updateDescriptionSection(description: string, hasVideo: boolean): void 
   sectionEl.classList.remove("hidden");
 
   if (description) {
+    if (description === lastRenderedDescription) {
+      return;
+    }
+    lastRenderedDescription = description;
     renderDescription(description);
     return;
   }
 
+  lastRenderedDescription = "";
   const descriptionEl = $("description");
   descriptionEl.textContent = "No description available.";
   descriptionEl.classList.add("empty");
@@ -168,6 +176,8 @@ function renderQualities(items: QualityItem[], selected: number, loading = false
 let currentWatchUrl = "";
 let renderedRelatedVideoId = "";
 let renderedRelatedHasItems = false;
+let lastAcceptedRelatedRequestId = 0;
+let relatedSelectedIndex = -1;
 
 export function getCurrentWatchUrl(): string {
   return currentWatchUrl;
@@ -181,6 +191,7 @@ export function hasCachedRelatedPreview(watchUrl: string): boolean {
 export function resetRelatedPreviewCache(): void {
   renderedRelatedVideoId = "";
   renderedRelatedHasItems = false;
+  relatedSelectedIndex = -1;
 }
 
 export function beginRelatedPreviewLoad(): void {
@@ -257,11 +268,26 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
   subEl.textContent = paused ? "Paused" : "Playing";
 }
 
+function updateRelatedSelection(): void {
+  const rows = document.querySelectorAll<HTMLElement>(".related-row");
+  rows.forEach((row, index) => {
+    row.classList.toggle("selected", index === relatedSelectedIndex);
+  });
+}
+
 export function renderRelatedPreview(
   videoId: string,
   items: FeedItem[],
   error?: string,
+  relatedRequestId?: number,
 ): void {
+  if (typeof relatedRequestId === "number" && relatedRequestId < lastAcceptedRelatedRequestId) {
+    return;
+  }
+  if (typeof relatedRequestId === "number") {
+    lastAcceptedRelatedRequestId = relatedRequestId;
+  }
+
   const currentVideoId = getYouTubeVideoId(currentWatchUrl) || "";
   if (videoId && currentVideoId && videoId !== currentVideoId) {
     return;
@@ -269,6 +295,7 @@ export function renderRelatedPreview(
 
   const el = $("related-preview");
   el.innerHTML = "";
+  relatedSelectedIndex = -1;
   renderedRelatedVideoId = videoId || currentVideoId;
   renderedRelatedHasItems = items.length > 0;
 
@@ -290,14 +317,17 @@ export function renderRelatedPreview(
 
   el.classList.remove("empty");
 
-  for (const item of items) {
+  items.forEach((item, index) => {
     const row = createFeedRow({
       item,
+      index,
       rowClassName: "feed-row related-row",
       showDuration: false,
       showResume: false,
       showExtra: false,
       onClick: (clickedItem) => {
+        relatedSelectedIndex = index;
+        updateRelatedSelection();
         postToPlugin("playVideo", {
           videoId: clickedItem.videoId,
           url: youtubeWatchUrl(clickedItem.videoId),
@@ -306,7 +336,33 @@ export function renderRelatedPreview(
     });
 
     el.appendChild(row);
-  }
+  });
+}
+
+function setupRelatedKeyboard(): void {
+  const relatedEl = $("related-preview");
+
+  relatedEl.addEventListener("keydown", (event) => {
+    const rows = relatedEl.querySelectorAll<HTMLElement>(".related-row");
+    if (!rows.length) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      relatedSelectedIndex = Math.min(rows.length - 1, relatedSelectedIndex + 1);
+      updateRelatedSelection();
+      rows[relatedSelectedIndex]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      relatedSelectedIndex = Math.max(0, relatedSelectedIndex < 0 ? 0 : relatedSelectedIndex - 1);
+      updateRelatedSelection();
+      rows[relatedSelectedIndex]?.focus();
+    } else if (event.key === "Enter" && relatedSelectedIndex >= 0) {
+      event.preventDefault();
+      rows[relatedSelectedIndex]?.click();
+    }
+  });
 }
 
 function renderPanel(data: PanelPayload): void {
@@ -389,6 +445,7 @@ function setupChapterSelect(): void {
 export function initPlayerPanel(): void {
   setupQualitySelect();
   setupChapterSelect();
+  setupRelatedKeyboard();
 
   onPluginMessage("panel", (raw) => {
     const data = parsePanelPayload(raw);
@@ -402,8 +459,18 @@ export function initPlayerPanel(): void {
   });
 
   onPluginMessage("relatedPreview", (raw) => {
-    const data = (raw || {}) as { videoId?: string; items?: FeedItem[]; error?: string };
-    renderRelatedPreview(data.videoId || "", data.items || [], data.error);
+    const data = (raw || {}) as {
+      videoId?: string;
+      items?: FeedItem[];
+      error?: string;
+      relatedRequestId?: number;
+    };
+    renderRelatedPreview(
+      data.videoId || "",
+      data.items || [],
+      data.error,
+      data.relatedRequestId,
+    );
   });
 
   onPluginMessage("feedsStale", () => {

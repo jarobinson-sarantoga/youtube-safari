@@ -37,6 +37,67 @@ export interface BashJsonLineResult<T> {
  * Run `/bin/bash` with script argv, parse the last stdout line as JSON.
  * Logs failures the same way as the previous ytdl/qualities inline runners.
  */
+function extractLastJsonLine(stdout: string): string {
+  return (
+    stdout
+      .trim()
+      .split("\n")
+      .map((row) => row.trim())
+      .filter((row) => row.startsWith("{"))
+      .pop() || ""
+  );
+}
+
+/**
+ * Run `/bin/bash` with script argv, parse the last JSON object line from stdout.
+ * Tolerates multi-line script logging before the JSON payload (youtubejs-feed style).
+ */
+export async function execBashScriptJson<T>(
+  bashArgs: string[],
+  logLabel: string,
+): Promise<BashJsonLineResult<T>> {
+  const script = bashArgs[0] || "";
+  if (!utils.fileInPath(script)) {
+    const error = `${logLabel} script not found: ${script}`;
+    appendLog(error);
+    return { ok: false, error };
+  }
+
+  appendLog(`${logLabel}: ${["/bin/bash", ...bashArgs].join(" ")}`);
+  const result = await utils.exec("/bin/bash", bashArgs);
+  const line = extractLastJsonLine(result.stdout);
+
+  if (!line) {
+    const message = result.stderr || result.stdout || `exit ${result.status}`;
+    appendLog(`${logLabel} empty JSON stdout (status=${result.status}): ${message}`);
+    return {
+      ok: false,
+      error: message.trim() || `exit ${result.status}`,
+      status: result.status,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  }
+
+  try {
+    const data = JSON.parse(line) as T;
+    if (result.status !== 0) {
+      appendLog(`${logLabel} non-zero exit (${result.status}) with parsed JSON`);
+    }
+    return { ok: true, data, status: result.status, stdout: result.stdout, stderr: result.stderr };
+  } catch (err) {
+    const message = `JSON parse error: ${err}`;
+    appendLog(`${logLabel} ${message}; stdout=${line.slice(0, 200)}`);
+    return {
+      ok: false,
+      error: message,
+      status: result.status,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  }
+}
+
 export async function execBashJsonLine<T>(
   bashArgs: string[],
   logLabel: string,

@@ -1,6 +1,7 @@
 import type { FeedItem } from "../types";
 import { cookiesPath } from "../cookies";
 import { appendLog } from "../../ytdl";
+import { execBashScriptJson } from "../../ytdlp-script";
 
 const { preferences, utils } = iina;
 
@@ -19,46 +20,24 @@ function scriptPath(): string {
 
 async function runFeedScript(args: string[]): Promise<FeedScriptResult> {
   const script = scriptPath();
-  if (!utils.fileInPath(script)) {
-    appendLog(`youtubejs-feed script missing: ${script}`);
-    return { items: [], error: "Browse feed script not found" };
-  }
-
   const execArgs = [script, ...args, "--cookies", cookiesPath()];
-  appendLog(`youtubejs-feed: bash ${execArgs.join(" ")}`);
+  const result = await execBashScriptJson<FeedScriptResult>(execArgs, "youtubejs-feed");
 
-  const result = await utils.exec("/bin/bash", execArgs);
-  const line =
-    result.stdout
-      .trim()
-      .split("\n")
-      .map((row) => row.trim())
-      .filter((row) => row.startsWith("{"))
-      .pop() || "";
-
-  if (!line) {
-    appendLog(
-      `youtubejs-feed empty stdout (status=${result.status}): ${result.stderr || result.stdout}`,
-    );
+  if (!result.ok || !result.data) {
     return {
       items: [],
-      error: result.stderr || "Browse feed script returned no output",
+      error: result.error || "Browse feed script returned no output",
     };
   }
 
-  try {
-    const payload = JSON.parse(line) as FeedScriptResult;
-    const items = Array.isArray(payload.items) ? payload.items : [];
-    appendLog(`youtubejs-feed: ${items.length} items`);
-    return {
-      items,
-      error: payload.error,
-      emptyHint: payload.emptyHint,
-    };
-  } catch (err) {
-    appendLog(`youtubejs-feed JSON parse error: ${err}; stdout=${line.slice(0, 200)}`);
-    return { items: [], error: String(err) };
-  }
+  const payload = result.data;
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  appendLog(`youtubejs-feed: ${items.length} items`);
+  return {
+    items,
+    error: payload.error,
+    emptyHint: payload.emptyHint,
+  };
 }
 
 export type YoutubeJsFeedTab = "home" | "subscriptions" | "shorts";

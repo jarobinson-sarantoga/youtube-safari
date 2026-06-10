@@ -199,6 +199,13 @@ function playItem(item: FeedItem): void {
   setActiveView("player");
 }
 
+function updateFeedSelection(): void {
+  document.querySelectorAll<HTMLElement>(".feed-row[data-index]").forEach((row) => {
+    const index = Number.parseInt(row.dataset.index || "", 10);
+    row.classList.toggle("selected", index === selectedIndex);
+  });
+}
+
 function renderFeedList(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
@@ -251,7 +258,7 @@ function renderFeedList(): void {
       selected: index === selectedIndex,
       onClick: (clickedItem, clickedIndex) => {
         selectedIndex = clickedIndex;
-        renderFeedList();
+        updateFeedSelection();
         playItem(clickedItem);
       },
     });
@@ -323,6 +330,14 @@ function runSearch(): void {
   requestFeed("search", query);
 }
 
+function switchSegmentTab(tab: FeedTab): void {
+  const cacheKey = feedCacheKey(tab);
+  if (tab === activeTab && loadedTabs.has(cacheKey) && feedSnapshots.has(cacheKey)) {
+    return;
+  }
+  requestFeed(tab);
+}
+
 function setupTabs(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
   buttons.forEach((btn) => {
@@ -331,12 +346,36 @@ function setupTabs(): void {
       if (!tab) {
         return;
       }
-      const cacheKey = feedCacheKey(tab);
-      if (tab === activeTab && loadedTabs.has(cacheKey) && feedSnapshots.has(cacheKey)) {
-        return;
-      }
-      requestFeed(tab);
+      switchSegmentTab(tab);
     });
+  });
+
+  const segmented = document.querySelector<HTMLElement>(".segmented");
+  segmented?.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn")];
+    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
+    if (currentIndex < 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const delta = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= tabs.length) {
+      return;
+    }
+
+    const tab = tabs[nextIndex].dataset.tab as FeedTab | undefined;
+    if (!tab) {
+      return;
+    }
+
+    switchSegmentTab(tab);
+    tabs[nextIndex].focus();
   });
 }
 
@@ -362,6 +401,11 @@ function setupSearch(): void {
 
   btn.addEventListener("click", () => runSearch());
   input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      input.blur();
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       runSearch();
@@ -394,12 +438,22 @@ function setupKeyboard(): void {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       selectedIndex = Math.min(feedItems.length - 1, selectedIndex + 1);
-      renderFeedList();
+      updateFeedSelection();
       scrollSelectedIntoView();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       selectedIndex = Math.max(0, selectedIndex - 1);
-      renderFeedList();
+      updateFeedSelection();
+      scrollSelectedIntoView();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      selectedIndex = 0;
+      updateFeedSelection();
+      scrollSelectedIntoView();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      selectedIndex = feedItems.length - 1;
+      updateFeedSelection();
       scrollSelectedIntoView();
     } else if (event.key === "Enter" && selectedIndex >= 0) {
       event.preventDefault();
@@ -410,7 +464,7 @@ function setupKeyboard(): void {
   listEl.addEventListener("focus", () => {
     if (selectedIndex < 0 && feedItems.length) {
       selectedIndex = 0;
-      renderFeedList();
+      updateFeedSelection();
     }
   });
 }
@@ -447,10 +501,6 @@ export function initBrowsePanel(): void {
   onPluginMessage("focusBrowse", () => {
     setActiveView("browse");
     ($("search-input") as HTMLInputElement).focus();
-  });
-
-  onPluginMessage("focusPlayer", () => {
-    setActiveView("player");
   });
 
   onPluginMessage("watchUrlChanged", () => {

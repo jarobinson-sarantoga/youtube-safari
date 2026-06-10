@@ -1,6 +1,6 @@
 import { ensureBrowseFeedLoaded } from "./browse";
 import { $ } from "./dom";
-import { postToPlugin } from "./messaging";
+import { onPluginMessage, postToPlugin } from "./messaging";
 import { beginRelatedPreviewLoad, getCurrentWatchUrl, hasCachedRelatedPreview } from "./player";
 
 export type ShellView = "browse" | "player";
@@ -44,6 +44,12 @@ export function setActiveView(view: ShellView): void {
 }
 
 export function setupViewNav(): void {
+  onPluginMessage("focusPlayer", () => {
+    setActiveView("player");
+    const qualityList = $("quality-list") as HTMLSelectElement;
+    qualityList.focus();
+  });
+
   const nav = document.querySelector<HTMLElement>(".view-nav");
   const buttons = document.querySelectorAll<HTMLButtonElement>(".view-btn");
 

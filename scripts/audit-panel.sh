@@ -63,10 +63,17 @@ done
 # 4. Message wiring — sidebar posts, plugin handles
 SIDEBAR_POSTS=(browseRefresh playVideo sidebarReady selectQuality descriptionSeek openUrl requestRelatedPreview refreshPanel)
 for msg in "${SIDEBAR_POSTS[@]}"; do
-  if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "\"$msg\"" "$ROOT/src/browse/bridge.ts" "$ROOT/src/quality-ui.ts" 2>/dev/null; then
+  PLUGIN_MSG_SRC=(
+    "$ROOT/src/quality-ui.ts"
+    "$ROOT/src/sidebar-host.ts"
+    "$ROOT/src/native-menus.ts"
+    "$ROOT/src/related-preview-bridge.ts"
+    "$ROOT/src/browse/bridge.ts"
+  )
+  if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "\"$msg\"" "${PLUGIN_MSG_SRC[@]}" 2>/dev/null; then
     pass "message wire: $msg"
   elif [[ "$msg" == "sidebarReady" || "$msg" == "selectQuality" || "$msg" == "descriptionSeek" || "$msg" == "openUrl" ]]; then
-    if grep -rq "$msg" "$ROOT/src/quality-ui.ts"; then
+    if grep -rq "$msg" "$ROOT/src/quality-ui.ts" "$ROOT/src/sidebar-host.ts" 2>/dev/null; then
       pass "message wire: $msg"
     else
       fail "plugin missing handler for $msg"
@@ -80,7 +87,11 @@ done
 
 PLUGIN_POSTS=(feedResult panel playerState focusBrowse focusPlayer watchUrlChanged feedsStale historyStale browseReady relatedPreview)
 for msg in "${PLUGIN_POSTS[@]}"; do
-  if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "$msg" "$ROOT/src/quality-ui.ts" "$ROOT/src/browse/" 2>/dev/null; then
+  if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "$msg" \
+    "$ROOT/src/quality-ui.ts" \
+    "$ROOT/src/sidebar-host.ts" \
+    "$ROOT/src/related-preview-bridge.ts" \
+    "$ROOT/src/browse/" 2>/dev/null; then
     pass "message wire: $msg"
   else
     fail "broken message wire: $msg"

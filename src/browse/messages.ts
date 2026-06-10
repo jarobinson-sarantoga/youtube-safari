@@ -77,4 +77,12 @@ export type PluginToSidebarMessage =
   | { name: "feedsStale"; data: Record<string, never> }
   | { name: "historyStale"; data: Record<string, never> }
   | { name: "browseReady"; data: Record<string, never> }
-  | { name: "relatedPreview"; data: { videoId?: string; items: FeedItem[]; error?: string } };
+  | {
+      name: "relatedPreview";
+      data: {
+        videoId?: string;
+        items: FeedItem[];
+        error?: string;
+        relatedRequestId?: number;
+      };
+    };
