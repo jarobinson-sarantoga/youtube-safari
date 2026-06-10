@@ -1,4 +1,5 @@
 import type { FeedItem } from "../types";
+import { IDLE_COPY } from "../../sidebar/copy";
 import {
   browseCacheTtlMs,
   cacheKey,
@@ -43,7 +44,7 @@ export async function getRelatedItems(
   if (!videoId) {
     return {
       items: [],
-      emptyHint: "Open a video in IINA to see related videos",
+      emptyHint: IDLE_COPY.related,
     };
   }
 

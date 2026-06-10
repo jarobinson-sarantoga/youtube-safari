@@ -165,10 +165,10 @@ else
   fail "shell.html does not default to Now Playing tab"
 fi
 
-if grep -q 'chapter-select' "$HTML"; then
+if grep -q 'id="chapter-list".*panel-select' "$HTML"; then
   pass "chapters use dropdown select"
 else
-  fail "shell.html missing chapter-select dropdown"
+  fail "shell.html missing chapter panel-select dropdown"
 fi
 
 if grep -q "notifyCookieHealthIfNeeded" "$ROOT/src/cookie-health.ts" \

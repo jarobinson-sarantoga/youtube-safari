@@ -1,4 +1,6 @@
 import type { FeedItem } from "../types";
+import { formatClock } from "../../format";
+import { getLastWatchUrl } from "../../preferences";
 import { appendLog } from "../../ytdl";
 import {
   getYouTubeVideoId,
@@ -7,7 +9,7 @@ import {
   youtubeThumbnailUrl,
 } from "../../youtube";
 
-const { file, preferences } = iina;
+const { file } = iina;
 
 const HISTORY_PATH = "@data/watch-history.json";
 const MAX_ENTRIES = 200;
@@ -88,7 +90,7 @@ export function getHistoryItems(limit = 50): FeedItem[] {
     thumbnailUrl: entry.thumbnailUrl,
     publishedAt: formatRelativeTime(entry.watchedAt),
     durationLabel: entry.durationSeconds
-      ? formatDuration(entry.durationSeconds)
+      ? formatClock(entry.durationSeconds)
       : undefined,
     resumeSeconds: resumeSecondsForEntry(entry),
   }));
@@ -106,16 +108,6 @@ function formatRelativeTime(timestamp: number): string {
   }
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function recordWatchStart(
@@ -228,7 +220,7 @@ export function updateWatchProgress(
   positionSeconds: number,
   durationSeconds: number,
 ): void {
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+  const watchUrl = getLastWatchUrl();
   const videoId = getYouTubeVideoId(watchUrl);
   if (!videoId) {
     return;

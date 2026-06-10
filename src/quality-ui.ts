@@ -3,6 +3,7 @@ import { pickChapters, type DescriptionChapter } from "./description-chapters";
 import { ensureExternalAudioSelected } from "./audio-track";
 import { ensureSubtitlesSelected } from "./subtitles";
 import { heightLabel } from "./format";
+import { getLastWatchUrl } from "./preferences";
 import { getSelectedHeight, listQualities, type QualityItem } from "./qualities";
 import {
   DEFAULT_QUALITY_OPTIONS,
@@ -164,7 +165,7 @@ function buildPanelPayload(
   loading: boolean,
   error?: string,
 ): PanelPayload {
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+  const watchUrl = getLastWatchUrl();
   return {
     items,
     selected,
@@ -183,7 +184,7 @@ export async function refreshQualityUI(): Promise<void> {
     return;
   }
 
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+  const watchUrl = getLastWatchUrl();
   const selected = getSelectedHeight();
 
   if (!watchUrl || !isYouTubeWatchURL(watchUrl)) {
@@ -245,7 +246,7 @@ export function scheduleRefreshQualityUI(): void {
 }
 
 export async function switchQuality(height: number): Promise<void> {
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+  const watchUrl = getLastWatchUrl();
 
   preferences.set("quality_height", height);
   preferences.sync();
@@ -283,8 +284,7 @@ export function saveWatchUrl(
   if (!isYouTubeWatchURL(url)) {
     return;
   }
-  const previousWatchUrl =
-    (preferences.get("last_watch_url") as string | undefined) || "";
+  const previousWatchUrl = getLastWatchUrl();
   preferences.set("last_watch_url", url);
   preferences.sync();
   if (title) {
@@ -365,7 +365,7 @@ function registerSidebarMessageHandlers(): void {
     }
     schedulePanelPush();
 
-    const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+    const watchUrl = getLastWatchUrl();
     if (isYouTubeWatchURL(watchUrl)) {
       void postRelatedPreview(watchUrl);
     }
@@ -406,7 +406,7 @@ function registerSidebarMessageHandlers(): void {
   });
 
   sidebar.onMessage("requestRelatedPreview", (data: { force?: boolean } | undefined) => {
-    const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+    const watchUrl = getLastWatchUrl();
     postRelatedPreview(watchUrl, !!data?.force);
   });
 
@@ -516,7 +516,7 @@ export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
 
     const current = mpv.getString("stream-open-filename") || "";
     const normalized = normalizeMediaURL(current);
-    const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+    const watchUrl = getLastWatchUrl();
     const isIdleFilename =
       !current ||
       current === "-" ||

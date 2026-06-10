@@ -1,7 +1,7 @@
 import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
 import { parseFeedResult } from "./parse";
 import { getYouTubeVideoId, youtubeWatchUrl } from "../youtube";
-import { $ } from "./dom";
+import { $, createErrorWithRetry } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
 import { getCurrentWatchUrl, renderRelatedPreview } from "./player";
@@ -215,17 +215,9 @@ function renderFeedList(): void {
 
     if (lastFeedError) {
       clearStatus();
-      const err = document.createElement("div");
-      err.className = "feed-error";
-      err.textContent = lastFeedError;
-
-      const retry = document.createElement("button");
-      retry.type = "button";
-      retry.className = "feed-retry";
-      retry.textContent = "Try again";
-      retry.addEventListener("click", () => refreshCurrentFeed());
-      err.appendChild(retry);
-      listEl.appendChild(err);
+      listEl.appendChild(
+        createErrorWithRetry(lastFeedError, () => refreshCurrentFeed()),
+      );
       return;
     }
 
@@ -406,7 +398,7 @@ function setupKeyboard(): void {
       scrollSelectedIntoView();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      selectedIndex = Math.max(0, selectedIndex <= 0 ? 0 : selectedIndex - 1);
+      selectedIndex = Math.max(0, selectedIndex - 1);
       renderFeedList();
       scrollSelectedIntoView();
     } else if (event.key === "Enter" && selectedIndex >= 0) {

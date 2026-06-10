@@ -1,9 +1,8 @@
 import type { FeedTab, SubsFilter } from "../types";
 import { cacheKey, clearCached, getCached, setCached } from "../store/cache";
 import { getHistoryItems } from "../store/history";
+import { getLastWatchUrl } from "../../preferences";
 import { getYouTubeVideoId } from "../../youtube";
-
-const { preferences } = iina;
 import { fetchSearchItems, fetchTabItems } from "./youtubejs-exec";
 import { getRelatedItems } from "./related";
 
@@ -102,7 +101,7 @@ export async function fetchFeed(
       );
     }
     case "related": {
-      const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+      const watchUrl = getLastWatchUrl();
       const videoId = getYouTubeVideoId(watchUrl) || "";
       return getRelatedItems(videoId, force);
     }

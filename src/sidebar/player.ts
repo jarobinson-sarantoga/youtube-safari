@@ -6,7 +6,8 @@ import type { PanelPayload } from "../sidebar-state";
 import { DEFAULT_QUALITY_OPTIONS } from "../sidebar-state";
 import { parsePanelPayload } from "./parse";
 import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
-import { $, escapeHtml, formatClock } from "./dom";
+import { IDLE_COPY } from "./copy";
+import { $, createErrorWithRetry, createRetryButton, escapeHtml, formatClock } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
 
@@ -68,7 +69,7 @@ function renderChapters(chapters: DescriptionChapter[], hasVideo: boolean): void
     option.value = "";
     option.textContent = hasVideo
       ? "No chapters in this description."
-      : "Open a video in IINA to see chapters.";
+      : IDLE_COPY.chapters;
     selectEl.appendChild(option);
     selectEl.disabled = true;
     return;
@@ -125,7 +126,7 @@ function updateDescriptionSection(description: string, hasVideo: boolean): void 
   if (!description && !hasVideo) {
     sectionEl.classList.remove("hidden");
     const descriptionEl = $("description");
-    descriptionEl.textContent = "Open a video in IINA to see its description.";
+    descriptionEl.textContent = IDLE_COPY.description;
     descriptionEl.classList.add("empty");
     return;
   }
@@ -200,7 +201,7 @@ function updateHero(title: string, watchUrl: string): void {
   titleEl.textContent = title || (hasVideo ? "YouTube video" : "No YouTube video");
 
   if (!hasVideo) {
-    subEl.textContent = "Open a video in IINA to see details";
+    subEl.textContent = IDLE_COPY.heroSub;
     thumbEl.classList.add("hidden");
     thumbEl.removeAttribute("src");
     thumbEl.alt = "";
@@ -273,24 +274,16 @@ export function renderRelatedPreview(
 
   if (error) {
     el.classList.remove("empty");
-    const err = document.createElement("div");
-    err.className = "feed-error";
-    err.textContent = error;
-
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.className = "feed-retry";
-    retry.textContent = "Try again";
-    retry.addEventListener("click", () => {
-      postToPlugin("requestRelatedPreview", { force: true });
-    });
-    err.appendChild(retry);
-    el.appendChild(err);
+    el.appendChild(
+      createErrorWithRetry(error, () => {
+        postToPlugin("requestRelatedPreview", { force: true });
+      }),
+    );
     return;
   }
 
   if (!items.length) {
-    el.textContent = "Open a video in IINA to see related videos.";
+    el.textContent = IDLE_COPY.related;
     el.classList.add("empty");
     return;
   }
@@ -347,16 +340,10 @@ function renderPanel(data: PanelPayload): void {
   } else if (data.error) {
     statusEl.classList.add("visible", "error");
     statusEl.textContent = data.error;
-
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.className = "quality-retry feed-retry";
-    retry.textContent = "Retry";
-    retry.addEventListener("click", () => {
-      postToPlugin("refreshPanel", {});
-    });
     statusEl.appendChild(document.createTextNode(" "));
-    statusEl.appendChild(retry);
+    statusEl.appendChild(
+      createRetryButton(() => postToPlugin("refreshPanel", {}), "quality-retry feed-retry"),
+    );
   } else {
     statusEl.classList.remove("visible");
   }
