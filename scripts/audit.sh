@@ -22,6 +22,7 @@ echo "=== youtube-safari audit ==="
 
 cd "$ROOT"
 check "npm build" npm run build
+check "npm test" npm test
 
 check "resolve oxZeLM9rx7s (minimal env)" \
   env -i LC_ALL=en_US.UTF-8 /bin/bash "$ROOT/scripts/resolve.sh" "https://www.youtube.com/watch?v=oxZeLM9rx7s"

@@ -4,6 +4,7 @@ import {
   browseCacheTtlMs,
   cacheKey,
   clearCached,
+  EMPTY_CACHE_TTL_MS,
   peekCachedEntry,
   setCached,
 } from "../store/cache";
@@ -18,13 +19,15 @@ export type RelatedFetchResult = {
 interface RelatedMemoryEntry {
   savedAt: number;
   items: FeedItem[];
+  empty?: boolean;
 }
 
 const memoryCache = new Map<string, RelatedMemoryEntry>();
 const inflight = new Map<string, Promise<RelatedFetchResult>>();
 
 function isMemoryFresh(entry: RelatedMemoryEntry): boolean {
-  return Date.now() - entry.savedAt <= browseCacheTtlMs();
+  const ttl = entry.empty ? EMPTY_CACHE_TTL_MS : browseCacheTtlMs();
+  return Date.now() - entry.savedAt <= ttl;
 }
 
 function clearRelatedCacheForVideo(videoId: string): void {
@@ -57,7 +60,7 @@ export async function getRelatedItems(
 
   if (!force) {
     const cached = memoryCache.get(videoId);
-    if (cached && isMemoryFresh(cached) && cached.items.length) {
+    if (cached && isMemoryFresh(cached)) {
       return { items: cached.items };
     }
     if (cached && !isMemoryFresh(cached)) {
@@ -65,8 +68,12 @@ export async function getRelatedItems(
     }
 
     const diskEntry = peekCachedEntry<FeedItem[]>(cacheKey("related", videoId));
-    if (diskEntry?.data.length) {
-      memoryCache.set(videoId, { savedAt: diskEntry.savedAt, items: diskEntry.data });
+    if (diskEntry) {
+      memoryCache.set(videoId, {
+        savedAt: diskEntry.savedAt,
+        items: diskEntry.data,
+        empty: diskEntry.data.length === 0 ? true : undefined,
+      });
       return { items: diskEntry.data };
     }
   }
@@ -74,14 +81,16 @@ export async function getRelatedItems(
   const promise = fetchRelatedItems(videoId).then((result) => {
     const items = result.items || [];
     if (inflight.get(videoId) === promise) {
-      if (items.length) {
+      if (result.error) {
+        if (force) {
+          clearRelatedCacheForVideo(videoId);
+        }
+      } else if (items.length) {
         memoryCache.set(videoId, { savedAt: Date.now(), items });
         setCached(cacheKey("related", videoId), items);
-      } else if (force) {
-        clearRelatedCacheForVideo(videoId);
-      }
-      if (force && result.error) {
-        clearRelatedCacheForVideo(videoId);
+      } else {
+        memoryCache.set(videoId, { savedAt: Date.now(), items: [], empty: true });
+        setCached(cacheKey("related", videoId), [], { empty: true });
       }
     }
     return {

@@ -212,6 +212,11 @@ export function handleFeedResult(data: FeedResultMessage): void {
     lastFeedError = data.error;
     feedItems = [];
     feedEmptyHint = "";
+    const subsFilter = data.subsFilter || "all";
+    const searchQuery = data.tab === "search" ? d.getSearchQuery() : "";
+    const key = feedCacheKey(data.tab, subsFilter, searchQuery);
+    loadedTabs.delete(key);
+    feedSnapshots.delete(key);
     d.renderFeedList();
     return;
   }

@@ -7,6 +7,7 @@ cd "$ROOT"
 echo "==> Building youtube-safari plugin"
 npm install
 npm run build
+echo "    (optional: npm test — run scripts/audit.sh for full checks)"
 
 IINA_PLUGIN="/Applications/IINA.app/Contents/MacOS/iina-plugin"
 if [ ! -x "$IINA_PLUGIN" ]; then

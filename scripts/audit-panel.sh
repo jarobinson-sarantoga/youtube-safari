@@ -196,6 +196,20 @@ else
   fail "sidebar-host missing registerBrowseHandlers on sidebarReady"
 fi
 
+FEED_CTRL="$ROOT/src/sidebar/feed-controller.ts"
+if grep -q "initFeedController" "$FEED_CTRL" && grep -q "initFeedController" "$ROOT/src/sidebar/browse.ts"; then
+  pass "feed-controller initFeedController wired from browse.ts"
+else
+  fail "feed-controller initFeedController not wired"
+fi
+
+if grep -q "onFeedsStale" "$FEED_CTRL" && grep -q "feedSnapshots" "$FEED_CTRL" \
+  && grep -q "onFeedsStale" "$ROOT/src/sidebar/browse.ts"; then
+  pass "feed-controller onFeedsStale clears feedSnapshots"
+else
+  fail "feed-controller onFeedsStale / feedSnapshots wiring incomplete"
+fi
+
 if grep -q "getListedTitle" "$ROOT/src/sidebar-host.ts" \
   && grep -q "buildPanelPayload" "$ROOT/src/sidebar-host.ts"; then
   pass "buildPanelPayload uses getListedTitle from native-menus"

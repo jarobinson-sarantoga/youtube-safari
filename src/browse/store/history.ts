@@ -107,6 +107,20 @@ function flushHistoryToDisk(): void {
   writeHistoryToDisk(historyData);
 }
 
+/** Flush debounced watch-history writes immediately (e.g. before window close). */
+export function flushPendingHistory(): void {
+  if (progressWriteTimer) {
+    clearTimeout(progressWriteTimer);
+    progressWriteTimer = null;
+    flushPendingProgress();
+  }
+  if (historyFlushTimer !== null) {
+    clearTimeout(historyFlushTimer);
+    historyFlushTimer = null;
+  }
+  flushHistoryToDisk();
+}
+
 function writeHistory(data: HistoryFile): void {
   historyData = data;
   historyHydrated = true;

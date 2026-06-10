@@ -142,6 +142,15 @@ function flushDirtyToDisk(): void {
   writeCacheFile({ entries: evictOldestDiskEntries([...entryMap.values()]) });
 }
 
+/** Flush debounced browse-cache writes immediately (e.g. before window close). */
+export function flushPendingCache(): void {
+  if (flushTimer !== null) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  flushDirtyToDisk();
+}
+
 export function peekCachedEntry<T>(key: string): { data: T; savedAt: number } | null {
   hydrateFromDisk();
   pruneExpiredMemoryEntries();

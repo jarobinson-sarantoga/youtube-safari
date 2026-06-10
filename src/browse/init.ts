@@ -2,10 +2,15 @@ import { registerBrowseSidebarHandlers } from "./bridge";
 import { invalidateCookieCache } from "./cookies";
 import { clearFeedInflight } from "./feeds/index";
 import { clearRelatedMemoryCache } from "./feeds/related";
-import { clearBrowseCache } from "./store/cache";
+import { clearBrowseCache, flushPendingCache } from "./store/cache";
 import { clearQualitiesCache } from "../qualities";
 
-import { markWatchEnded, recordWatchStart, updateWatchProgress } from "./store/history";
+import {
+  flushPendingHistory,
+  markWatchEnded,
+  recordWatchStart,
+  updateWatchProgress,
+} from "./store/history";
 import {
   getYouTubeVideoId,
   isYouTubeWatchURL,
@@ -130,6 +135,8 @@ export function installBrowse(): void {
   event.on("iina.window-will-close", () => {
     stopPlayerStatePolling();
     stopWatchProgressPolling();
+    flushPendingCache();
+    flushPendingHistory();
     global.postMessage("playerClosed", {});
   });
 
