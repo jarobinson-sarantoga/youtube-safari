@@ -29,6 +29,7 @@
             class="search-input"
             id="search-input"
             placeholder="Search YouTube"
+            aria-label="Search YouTube"
             autocomplete="off"
             spellcheck="false"
           />
@@ -49,7 +50,7 @@
         <button type="button" class="subs-filter-btn" data-subs-filter="shorts">Shorts</button>
       </div>
 
-      <div class="feed-status" id="feed-status"></div>
+      <div class="feed-status" id="feed-status" aria-live="polite"></div>
       <div class="feed-list" id="feed-list" tabindex="0"></div>
     </section>
 
@@ -64,7 +65,7 @@
       </div>
 
       <div class="player-progress-block" id="player-progress-block">
-        <div class="progress-track" id="progress-track" aria-hidden="true">
+        <div class="progress-track" id="progress-track">
           <div class="progress-fill" id="progress-fill"></div>
         </div>
         <div class="progress-times">
@@ -82,7 +83,7 @@
         <div class="section" id="quality-section">
           <div class="section-head">
             <p class="section-title">Quality</p>
-            <span class="quality-status" id="quality-status">Updating…</span>
+            <span class="quality-status" id="quality-status"></span>
           </div>
           <select id="quality-list" class="quality-select" aria-label="Video quality"></select>
         </div>

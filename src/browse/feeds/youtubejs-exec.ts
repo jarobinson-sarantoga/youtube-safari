@@ -1,4 +1,5 @@
 import type { FeedItem } from "../types";
+import { cookiesPath } from "../cookies";
 import { appendLog } from "../../ytdl";
 
 const { preferences, utils } = iina;
@@ -14,12 +15,6 @@ interface FeedScriptResult {
 function scriptPath(): string {
   const configured = preferences.get("youtubejs_feed_script") as string | undefined;
   return utils.resolvePath(configured || DEFAULT_SCRIPT);
-}
-
-function cookiesPath(): string {
-  const configured = preferences.get("cookies_path") as string | undefined;
-  const fallback = "~/.config/yt-dlp/cookies.txt";
-  return utils.resolvePath(configured || fallback);
 }
 
 async function runFeedScript(args: string[]): Promise<FeedScriptResult> {

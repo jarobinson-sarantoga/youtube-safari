@@ -18,6 +18,12 @@ type FeedFetchResult = {
   emptyHint?: string;
 };
 
+const inflight = new Map<string, Promise<FeedFetchResult>>();
+
+export function clearFeedInflight(): void {
+  inflight.clear();
+}
+
 async function fetchWithCache(
   key: string,
   fetcher: () => Promise<FeedFetchResult>,
@@ -29,11 +35,28 @@ async function fetchWithCache(
       return { items: cached };
     }
   }
-  const result = await fetcher();
-  if (result.items.length) {
-    setCached(key, result.items);
+
+  const pending = !force ? inflight.get(key) : undefined;
+  if (pending) {
+    return pending;
   }
-  return result;
+
+  const promise = (async (): Promise<FeedFetchResult> => {
+    const result = await fetcher();
+    if (result.items.length) {
+      setCached(key, result.items);
+    }
+    return result;
+  })();
+
+  inflight.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    if (inflight.get(key) === promise) {
+      inflight.delete(key);
+    }
+  }
 }
 
 export async function fetchFeed(

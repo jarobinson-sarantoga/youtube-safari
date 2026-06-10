@@ -1,49 +1,16 @@
+import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
+import type { FeedResultMessage } from "../browse/messages";
+import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
+import { $, formatDuration } from "./dom";
 import { onPluginMessage, postToPlugin } from "./messaging";
-import { renderRelatedPreview } from "./player";
+import { getCurrentWatchUrl, renderRelatedPreview } from "./player";
 import { setActiveView } from "./views";
-
-type FeedTab =
-  | "home"
-  | "subscriptions"
-  | "related"
-  | "history"
-  | "search";
-
-type SubsFilter = "all" | "shorts";
-
-interface FeedItem {
-  videoId: string;
-  title: string;
-  channelTitle: string;
-  thumbnailUrl: string;
-  publishedAt?: string;
-  durationLabel?: string;
-  resumeSeconds?: number;
-  sectionId?: string;
-}
 
 const SECTION_LABELS: Record<string, string> = {
   relevant: "Most relevant",
   shorts: "Shorts",
   uploads: "All uploads",
 };
-
-interface FeedResultMessage {
-  tab: FeedTab;
-  items: FeedItem[];
-  error?: string;
-  emptyHint?: string;
-  subsFilter?: SubsFilter;
-  requestId?: number;
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id);
-  if (!el) {
-    throw new Error(`Missing element #${id}`);
-  }
-  return el;
-}
 
 let activeTab: FeedTab = "home";
 let activeSubsFilter: SubsFilter = "all";
@@ -68,6 +35,19 @@ function setStatus(text: string, isError = false): void {
   el.classList.toggle("error", isError);
 }
 
+function clearStatus(): void {
+  setStatus("");
+}
+
+function setFeedBusy(busy: boolean): void {
+  const listEl = $("feed-list");
+  if (busy) {
+    listEl.setAttribute("aria-busy", "true");
+  } else {
+    listEl.removeAttribute("aria-busy");
+  }
+}
+
 function updateSegButtons(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
   buttons.forEach((btn) => {
@@ -86,16 +66,6 @@ function updateSubsFilterUI(): void {
     const filter = btn.dataset.subsFilter as SubsFilter | undefined;
     btn.classList.toggle("active", filter === activeSubsFilter);
   });
-}
-
-function formatResumeLabel(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function renderSkeleton(): void {
@@ -158,6 +128,7 @@ function requestFeed(
   lastFeedError = "";
   feedItems = [];
   selectedIndex = -1;
+  setFeedBusy(true);
   renderSkeleton();
 
   const refreshBtn = $("feed-refresh");
@@ -174,7 +145,7 @@ function requestFeed(
 }
 
 function playItem(item: FeedItem): void {
-  let url = `https://www.youtube.com/watch?v=${item.videoId}`;
+  let url = youtubeWatchUrl(item.videoId);
   if (typeof item.resumeSeconds === "number" && item.resumeSeconds > 0) {
     url += `&t=${item.resumeSeconds}`;
   }
@@ -196,7 +167,10 @@ function renderFeedList(): void {
       return;
     }
 
+    setFeedBusy(false);
+
     if (lastFeedError) {
+      clearStatus();
       const err = document.createElement("div");
       err.className = "feed-error";
       err.textContent = lastFeedError;
@@ -211,12 +185,15 @@ function renderFeedList(): void {
       return;
     }
 
+    clearStatus();
     const empty = document.createElement("div");
     empty.className = "feed-empty";
     empty.textContent = feedEmptyHint || "No videos to show.";
     listEl.appendChild(empty);
     return;
   }
+
+  setFeedBusy(false);
 
   let lastSection = "";
   const showSectionHeaders =
@@ -231,9 +208,10 @@ function renderFeedList(): void {
       listEl.appendChild(header);
     }
 
-    const row = document.createElement("div");
+    const row = document.createElement("button");
+    row.type = "button";
     row.className = `feed-row${index === selectedIndex ? " selected" : ""}`;
-    row.tabIndex = -1;
+    row.setAttribute("aria-label", item.title);
     row.dataset.index = String(index);
 
     const thumbWrap = document.createElement("div");
@@ -241,9 +219,9 @@ function renderFeedList(): void {
 
     const thumb = document.createElement("img");
     thumb.className = "feed-thumb";
-    const fallbackThumb = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+    const fallbackThumb = youtubeThumbnailUrl(item.videoId);
     thumb.src = item.thumbnailUrl || fallbackThumb;
-    thumb.alt = "";
+    thumb.alt = item.title;
     thumb.loading = "lazy";
     thumb.addEventListener("error", () => {
       if (thumb.src !== fallbackThumb) {
@@ -282,7 +260,7 @@ function renderFeedList(): void {
     extra.className = "feed-extra";
     const parts: string[] = [];
     if (typeof item.resumeSeconds === "number" && item.resumeSeconds > 0) {
-      parts.push(`Resume at ${formatResumeLabel(item.resumeSeconds)}`);
+      parts.push(`Resume at ${formatDuration(item.resumeSeconds)}`);
     }
     if (item.publishedAt) {
       parts.push(item.publishedAt);
@@ -327,7 +305,6 @@ function handleFeedResult(data: FeedResultMessage): void {
 
   if (data.error) {
     lastFeedError = data.error;
-    setStatus(data.error, true);
     feedItems = [];
     feedEmptyHint = "";
     renderFeedList();
@@ -340,16 +317,15 @@ function handleFeedResult(data: FeedResultMessage): void {
   feedEmptyHint = !feedItems.length ? data.emptyHint || "" : "";
   loadedTabs.add(feedCacheKey(data.tab, data.subsFilter || "all"));
 
-  if (!feedItems.length) {
-    setStatus(data.emptyHint || "No videos found.");
-  } else {
+  if (feedItems.length) {
     setStatus(`${feedItems.length} video${feedItems.length === 1 ? "" : "s"}`);
   }
 
   renderFeedList();
 
   if (data.tab === "related" && feedItems.length > 0) {
-    renderRelatedPreview(feedItems);
+    const videoId = getYouTubeVideoId(getCurrentWatchUrl()) || "";
+    renderRelatedPreview(videoId, feedItems);
   }
 }
 
@@ -490,7 +466,7 @@ export function initBrowsePanel(): void {
   });
 
   onPluginMessage("feedsStale", () => {
-    loadedTabs.delete(feedCacheKey(activeTab));
+    loadedTabs.clear();
     refreshCurrentFeed();
   });
 }

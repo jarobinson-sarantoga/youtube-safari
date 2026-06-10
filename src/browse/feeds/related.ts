@@ -1,5 +1,5 @@
 import type { FeedItem } from "../types";
-import { cacheKey, getCached, setCached } from "../store/cache";
+import { browseCacheTtlMs, cacheKey, peekCachedEntry, setCached } from "../store/cache";
 import { fetchRelatedItems } from "./youtubejs-exec";
 
 export type RelatedFetchResult = {
@@ -8,8 +8,17 @@ export type RelatedFetchResult = {
   error?: string;
 };
 
-const memoryCache = new Map<string, FeedItem[]>();
+interface RelatedMemoryEntry {
+  savedAt: number;
+  items: FeedItem[];
+}
+
+const memoryCache = new Map<string, RelatedMemoryEntry>();
 const inflight = new Map<string, Promise<RelatedFetchResult>>();
+
+function isMemoryFresh(entry: RelatedMemoryEntry): boolean {
+  return Date.now() - entry.savedAt <= browseCacheTtlMs();
+}
 
 export function clearRelatedMemoryCache(): void {
   memoryCache.clear();
@@ -29,14 +38,17 @@ export async function getRelatedItems(
 
   if (!force) {
     const cached = memoryCache.get(videoId);
-    if (cached?.length) {
-      return { items: cached };
+    if (cached && isMemoryFresh(cached) && cached.items.length) {
+      return { items: cached.items };
+    }
+    if (cached && !isMemoryFresh(cached)) {
+      memoryCache.delete(videoId);
     }
 
-    const disk = getCached<FeedItem[]>(cacheKey("related", videoId));
-    if (disk?.length) {
-      memoryCache.set(videoId, disk);
-      return { items: disk };
+    const diskEntry = peekCachedEntry<FeedItem[]>(cacheKey("related", videoId));
+    if (diskEntry?.data.length) {
+      memoryCache.set(videoId, { savedAt: diskEntry.savedAt, items: diskEntry.data });
+      return { items: diskEntry.data };
     }
 
     const pending = inflight.get(videoId);
@@ -48,7 +60,7 @@ export async function getRelatedItems(
   const promise = fetchRelatedItems(videoId).then((result) => {
     const items = result.items || [];
     if (items.length) {
-      memoryCache.set(videoId, items);
+      memoryCache.set(videoId, { savedAt: Date.now(), items });
       setCached(cacheKey("related", videoId), items);
     }
     return {

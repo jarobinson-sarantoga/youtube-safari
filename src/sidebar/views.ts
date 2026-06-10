@@ -1,13 +1,6 @@
+import { $ } from "./dom";
 import { postToPlugin } from "./messaging";
 import { beginRelatedPreviewLoad, getCurrentWatchUrl, hasCachedRelatedPreview } from "./player";
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id);
-  if (!el) {
-    throw new Error(`Missing element #${id}`);
-  }
-  return el;
-}
 
 export type ShellView = "browse" | "player";
 

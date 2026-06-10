@@ -1,6 +1,8 @@
 import type { DescriptionChapter } from "./description-chapters";
 import { normalizeChapters, pickChapters } from "./description-chapters";
+import { browseCacheTtlMs } from "./browse/store/cache";
 import { heightLabel } from "./format";
+import { getYouTubeVideoId } from "./youtube";
 import { appendLog } from "./ytdl";
 
 const { preferences, utils } = iina;
@@ -115,6 +117,48 @@ function parseQualityArray(options: unknown[]): ListedQualities | null {
   return { items, title: "", description: "", chapters: [] };
 }
 
+interface QualitiesCacheEntry {
+  savedAt: number;
+  data: ListedQualities;
+}
+
+const qualitiesCache = new Map<string, QualitiesCacheEntry>();
+const MAX_QUALITIES_CACHE_ENTRIES = 50;
+
+function evictOldestQualitiesEntries(): void {
+  if (qualitiesCache.size <= MAX_QUALITIES_CACHE_ENTRIES) {
+    return;
+  }
+  const sorted = [...qualitiesCache.entries()].sort((a, b) => a[1].savedAt - b[1].savedAt);
+  while (qualitiesCache.size > MAX_QUALITIES_CACHE_ENTRIES && sorted.length > 0) {
+    const oldest = sorted.shift();
+    if (oldest) {
+      qualitiesCache.delete(oldest[0]);
+    }
+  }
+}
+
+export function clearQualitiesCache(): void {
+  qualitiesCache.clear();
+}
+
+function getCachedQualities(videoId: string): ListedQualities | null {
+  const entry = qualitiesCache.get(videoId);
+  if (!entry) {
+    return null;
+  }
+  if (Date.now() - entry.savedAt > browseCacheTtlMs()) {
+    qualitiesCache.delete(videoId);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedQualities(videoId: string, data: ListedQualities): void {
+  qualitiesCache.set(videoId, { savedAt: Date.now(), data });
+  evictOldestQualitiesEntries();
+}
+
 /** List selectable qualities for a YouTube watch URL (includes Auto at height 0). */
 export async function listQualities(url: string): Promise<ListedQualities> {
   const empty: ListedQualities = {
@@ -123,6 +167,14 @@ export async function listQualities(url: string): Promise<ListedQualities> {
     description: "",
     chapters: [],
   };
+
+  const videoId = getYouTubeVideoId(url);
+  if (videoId) {
+    const cached = getCachedQualities(videoId);
+    if (cached) {
+      return cached;
+    }
+  }
 
   const script = listScriptPath();
   if (!utils.fileInPath(script)) {
@@ -144,6 +196,10 @@ export async function listQualities(url: string): Promise<ListedQualities> {
   if (!listed) {
     appendLog(`list-formats JSON parse error; stdout=${result.stdout.slice(0, 200)}`);
     return empty;
+  }
+
+  if (videoId) {
+    setCachedQualities(videoId, listed);
   }
 
   return listed;

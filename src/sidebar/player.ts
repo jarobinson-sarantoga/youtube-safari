@@ -1,67 +1,12 @@
+import type { FeedItem } from "../browse/types";
+import type { PlayerStateMessage } from "../browse/messages";
+import type { DescriptionChapter } from "../description-chapters";
+import type { QualityItem } from "../qualities";
+import type { PanelPayload } from "../sidebar-state";
+import { DEFAULT_QUALITY_OPTIONS } from "../sidebar-state";
+import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
+import { $, escapeHtml, formatClock } from "./dom";
 import { onPluginMessage, postToPlugin } from "./messaging";
-import { setActiveView } from "./views";
-
-interface QualityItem {
-  height: number;
-  label: string;
-}
-
-interface DescriptionChapter {
-  timestamp: string;
-  label: string;
-  seconds: number;
-}
-
-interface PanelPayload {
-  items: QualityItem[];
-  selected: number;
-  title: string;
-  description: string;
-  chapters: DescriptionChapter[];
-  loading: boolean;
-  watchUrl?: string;
-}
-
-interface PlayerStateMessage {
-  watchUrl?: string;
-  title?: string;
-  position?: number;
-  duration?: number;
-  paused?: boolean;
-}
-
-interface RelatedPreviewItem {
-  videoId: string;
-  title: string;
-  channelTitle: string;
-  thumbnailUrl: string;
-}
-
-const DEFAULT_ITEMS: QualityItem[] = [
-  { height: 0, label: "Auto (up to 4K)" },
-  { height: 2160, label: "4K (2160p)" },
-  { height: 1440, label: "1440p" },
-  { height: 1080, label: "1080p" },
-  { height: 720, label: "720p" },
-  { height: 480, label: "480p" },
-  { height: 360, label: "360p" },
-];
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id);
-  if (!el) {
-    throw new Error(`Missing element #${id}`);
-  }
-  return el;
-}
-
-function escapeHtml(text: string): string {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function escapeAttr(text: string): string {
   return escapeHtml(text).replace(/'/g, "&#39;");
@@ -69,45 +14,6 @@ function escapeAttr(text: string): string {
 
 function trimUrlTrailingPunctuation(url: string): string {
   return url.replace(/[),.;:!?]+$/g, "");
-}
-
-function formatClock(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  }
-  return `${m}:${String(sec).padStart(2, "0")}`;
-}
-
-function videoIdFromUrl(url: string): string {
-  if (!url) {
-    return "";
-  }
-
-  let match = url.match(/[?&]v=([\w-]{6,})/i);
-  if (match) {
-    return match[1];
-  }
-
-  match = url.match(/youtu\.be\/([\w-]{6,})/i);
-  if (match) {
-    return match[1];
-  }
-
-  match = url.match(/\/shorts\/([\w-]{6,})/i);
-  if (match) {
-    return match[1];
-  }
-
-  match = url.match(/\/live\/([\w-]{6,})/i);
-  if (match) {
-    return match[1];
-  }
-
-  return "";
 }
 
 function formatInlineRich(text: string): string {
@@ -211,15 +117,14 @@ function renderDescription(description: string): void {
   bindDescriptionLinks(descriptionEl);
 }
 
-function updateDescriptionSection(
-  description: string,
-  chapters: DescriptionChapter[],
-  hasVideo: boolean,
-): void {
+function updateDescriptionSection(description: string, hasVideo: boolean): void {
   const sectionEl = $("description-section");
 
-  if (!chapters.length) {
-    sectionEl.classList.add("hidden");
+  if (!description && !hasVideo) {
+    sectionEl.classList.remove("hidden");
+    const descriptionEl = $("description");
+    descriptionEl.textContent = "Open a YouTube video to see its description.";
+    descriptionEl.classList.add("empty");
     return;
   }
 
@@ -231,13 +136,8 @@ function updateDescriptionSection(
   }
 
   const descriptionEl = $("description");
-  if (hasVideo) {
-    descriptionEl.textContent = "No description available.";
-    descriptionEl.classList.add("empty");
-  } else {
-    descriptionEl.textContent = "Open a YouTube video to see its description.";
-    descriptionEl.classList.add("empty");
-  }
+  descriptionEl.textContent = "No description available.";
+  descriptionEl.classList.add("empty");
 }
 
 function renderQualities(items: QualityItem[], selected: number): void {
@@ -258,20 +158,21 @@ function renderQualities(items: QualityItem[], selected: number): void {
 }
 
 let currentWatchUrl = "";
-let cachedRelatedVideoId = "";
-let cachedRelatedItems: RelatedPreviewItem[] = [];
+let renderedRelatedVideoId = "";
+let renderedRelatedHasItems = false;
 
 export function getCurrentWatchUrl(): string {
   return currentWatchUrl;
 }
 
 export function hasCachedRelatedPreview(watchUrl: string): boolean {
-  const videoId = videoIdFromUrl(watchUrl);
-  return (
-    !!videoId &&
-    videoId === cachedRelatedVideoId &&
-    cachedRelatedItems.length > 0
-  );
+  const videoId = getYouTubeVideoId(watchUrl) || "";
+  return !!videoId && videoId === renderedRelatedVideoId && renderedRelatedHasItems;
+}
+
+export function resetRelatedPreviewCache(): void {
+  renderedRelatedVideoId = "";
+  renderedRelatedHasItems = false;
 }
 
 export function beginRelatedPreviewLoad(): void {
@@ -286,7 +187,7 @@ function updateHero(title: string, watchUrl: string): void {
   const subEl = $("player-hero-sub");
   const thumbEl = $("player-thumb") as HTMLImageElement;
   const resolvedUrl = watchUrl || currentWatchUrl;
-  const videoId = videoIdFromUrl(resolvedUrl);
+  const videoId = getYouTubeVideoId(resolvedUrl) || "";
   const hasVideo = !!(title || videoId);
 
   titleEl.textContent = title || (hasVideo ? "YouTube video" : "No YouTube video");
@@ -295,18 +196,21 @@ function updateHero(title: string, watchUrl: string): void {
     subEl.textContent = "Open a video to see details";
     thumbEl.classList.add("hidden");
     thumbEl.removeAttribute("src");
+    thumbEl.alt = "";
     return;
   }
 
   if (videoId) {
-    const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    const thumbUrl = youtubeThumbnailUrl(videoId);
     if (thumbEl.src !== thumbUrl) {
       thumbEl.src = thumbUrl;
     }
+    thumbEl.alt = title || "Video thumbnail";
     thumbEl.classList.remove("hidden");
   } else {
     thumbEl.classList.add("hidden");
     thumbEl.removeAttribute("src");
+    thumbEl.alt = "";
   }
 
   subEl.textContent = "Now playing in IINA";
@@ -314,12 +218,17 @@ function updateHero(title: string, watchUrl: string): void {
 
 function updateProgress(position: number, duration: number, paused: boolean): void {
   const block = $("player-progress-block");
+  const track = $("progress-track");
   const fill = $("progress-fill");
   const posEl = $("player-time-pos");
   const durEl = $("player-time-dur");
 
   if (duration <= 0) {
     block.classList.add("hidden");
+    track.removeAttribute("role");
+    track.removeAttribute("aria-valuemin");
+    track.removeAttribute("aria-valuemax");
+    track.removeAttribute("aria-valuenow");
     return;
   }
 
@@ -329,15 +238,25 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
   posEl.textContent = formatClock(position);
   durEl.textContent = formatClock(duration);
 
+  track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-valuemin", "0");
+  track.setAttribute("aria-valuemax", String(Math.floor(duration)));
+  track.setAttribute("aria-valuenow", String(Math.floor(position)));
+
   const subEl = $("player-hero-sub");
   subEl.textContent = paused ? "Paused" : "Playing";
 }
 
-export function renderRelatedPreview(items: RelatedPreviewItem[]): void {
+export function renderRelatedPreview(videoId: string, items: FeedItem[]): void {
+  const currentVideoId = getYouTubeVideoId(currentWatchUrl) || "";
+  if (videoId && currentVideoId && videoId !== currentVideoId) {
+    return;
+  }
+
   const el = $("related-preview");
   el.innerHTML = "";
-  cachedRelatedItems = items;
-  cachedRelatedVideoId = videoIdFromUrl(currentWatchUrl);
+  renderedRelatedVideoId = videoId || currentVideoId;
+  renderedRelatedHasItems = items.length > 0;
 
   if (!items.length) {
     el.textContent = "Play a video to see related videos.";
@@ -351,15 +270,16 @@ export function renderRelatedPreview(items: RelatedPreviewItem[]): void {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "feed-row related-row";
+    row.setAttribute("aria-label", item.title);
 
     const thumbWrap = document.createElement("div");
     thumbWrap.className = "thumb-wrap";
 
     const img = document.createElement("img");
-    const fallback = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+    const fallback = youtubeThumbnailUrl(item.videoId);
     img.className = "feed-thumb";
     img.src = item.thumbnailUrl || fallback;
-    img.alt = "";
+    img.alt = item.title;
     img.loading = "lazy";
     img.addEventListener("error", () => {
       if (img.src !== fallback) {
@@ -388,7 +308,7 @@ export function renderRelatedPreview(items: RelatedPreviewItem[]): void {
     row.addEventListener("click", () => {
       postToPlugin("playVideo", {
         videoId: item.videoId,
-        url: `https://www.youtube.com/watch?v=${item.videoId}`,
+        url: youtubeWatchUrl(item.videoId),
       });
     });
 
@@ -402,27 +322,27 @@ function renderPanel(data: PanelPayload): void {
   const title = data.title || "";
   const description = data.description || "";
   const chapters = data.chapters || [];
-  const items = data.items?.length ? data.items : DEFAULT_ITEMS;
+  const items = data.items?.length ? data.items : DEFAULT_QUALITY_OPTIONS;
   const selected = typeof data.selected === "number" ? data.selected : 0;
   const loading = !!data.loading;
   const watchUrl = data.watchUrl || "";
   currentWatchUrl = watchUrl;
-  const watchVideoId = videoIdFromUrl(watchUrl);
+  const watchVideoId = getYouTubeVideoId(watchUrl) || "";
 
-  if (watchVideoId !== cachedRelatedVideoId) {
-    cachedRelatedVideoId = watchVideoId;
-    cachedRelatedItems = [];
-    renderRelatedPreview([]);
+  if (watchVideoId && watchVideoId !== renderedRelatedVideoId) {
+    beginRelatedPreviewLoad();
   }
 
   updateHero(title, watchUrl);
 
   renderChapters(chapters, !!title);
-  updateDescriptionSection(description, chapters, !!title);
+  updateDescriptionSection(description, !!title);
 
   if (loading) {
+    statusEl.textContent = "Updating…";
     statusEl.classList.add("visible");
   } else {
+    statusEl.textContent = "";
     statusEl.classList.remove("visible");
   }
 
@@ -477,12 +397,20 @@ export function initPlayerPanel(): void {
   });
 
   onPluginMessage("relatedPreview", (raw) => {
-    const data = (raw || {}) as { items?: RelatedPreviewItem[] };
-    renderRelatedPreview(data.items || []);
+    const data = (raw || {}) as { videoId?: string; items?: FeedItem[] };
+    renderRelatedPreview(data.videoId || "", data.items || []);
+  });
+
+  onPluginMessage("feedsStale", () => {
+    resetRelatedPreviewCache();
+  });
+
+  onPluginMessage("watchUrlChanged", () => {
+    resetRelatedPreviewCache();
   });
 
   renderPanel({
-    items: DEFAULT_ITEMS,
+    items: DEFAULT_QUALITY_OPTIONS,
     selected: 0,
     title: "",
     description: "",

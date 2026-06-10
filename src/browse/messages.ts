@@ -74,4 +74,4 @@ export type PluginToSidebarMessage =
   | { name: "focusPlayer"; data: Record<string, never> }
   | { name: "watchUrlChanged"; data: { watchUrl?: string } }
   | { name: "feedsStale"; data: Record<string, never> }
-  | { name: "relatedPreview"; data: { items: FeedItem[] } };
+  | { name: "relatedPreview"; data: { videoId?: string; items: FeedItem[] } };

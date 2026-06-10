@@ -1,10 +1,17 @@
 import { registerBrowseSidebarHandlers } from "./bridge";
 import { invalidateCookieCache } from "./cookies";
+import { clearFeedInflight } from "./feeds/index";
 import { clearRelatedMemoryCache } from "./feeds/related";
 import { clearBrowseCache } from "./store/cache";
+import { clearQualitiesCache } from "../qualities";
 
 import { markWatchEnded, recordWatchStart, updateWatchProgress } from "./store/history";
-import { isYouTubeWatchURL, normalizeMediaURL } from "../youtube";
+import {
+  getYouTubeVideoId,
+  isYouTubeWatchURL,
+  normalizeMediaURL,
+  youtubeThumbnailUrl,
+} from "../youtube";
 import { notifyCookieHealthIfNeeded } from "../cookie-health";
 import { appendLog } from "../ytdl";
 import type { PlayerStateMessage } from "./messages";
@@ -68,8 +75,8 @@ function onYouTubeFileLoaded(): void {
       mpv.getString("media-title") ||
       core.status.title ||
       "Untitled";
-    const videoId = watchUrl.match(/[?&]v=([\w-]+)/)?.[1] || "";
-    const thumb = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
+    const videoId = getYouTubeVideoId(watchUrl) || "";
+    const thumb = videoId ? youtubeThumbnailUrl(videoId) : "";
     recordWatchStart(watchUrl, title, "", thumb);
   }
   postPlayerState();
@@ -118,6 +125,8 @@ export function installBrowse(): void {
     invalidateCookieCache();
     clearBrowseCache();
     clearRelatedMemoryCache();
+    clearQualitiesCache();
+    clearFeedInflight();
     appendLog("Cookie and browse caches invalidated after refresh");
     sidebar.postMessage("feedsStale", {});
   });

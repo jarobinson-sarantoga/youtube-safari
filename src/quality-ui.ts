@@ -19,10 +19,9 @@ import {
   setPendingSeek,
 } from "./youtube-open";
 import { appendLog } from "./ytdl";
-import { isYouTubeWatchURL, normalizeMediaURL } from "./youtube";
 import type { FeedItem } from "./browse/types";
 import { getRelatedItems } from "./browse/feeds/related";
-import { getYouTubeVideoId } from "./youtube";
+import { getYouTubeVideoId, isYouTubeWatchURL, normalizeMediaURL } from "./youtube";
 
 const { core, event, global, menu, mpv, preferences, sidebar } = iina;
 
@@ -37,15 +36,12 @@ let menuUpdatesEnabled = false;
 let lastPanelPayload: PanelPayload | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let refreshInFlight = false;
+let pendingRefresh = false;
 
 type SidebarRevealView = "browse" | "player";
 
 let pendingSidebarReveal: SidebarRevealView | null = null;
 let sidebarWebViewReady = false;
-
-let relatedPreviewVideoId = "";
-let relatedPreviewItems: FeedItem[] = [];
-let relatedPreviewInFlight: string | null = null;
 
 function postSidebarPanel(payload: PanelPayload): void {
   lastPanelPayload = payload;
@@ -182,6 +178,7 @@ function buildPanelPayload(
 
 export async function refreshQualityUI(): Promise<void> {
   if (refreshInFlight) {
+    pendingRefresh = true;
     return;
   }
 
@@ -228,6 +225,10 @@ export async function refreshQualityUI(): Promise<void> {
     postSidebarPanel(buildPanelPayload(DEFAULT_QUALITY_OPTIONS, selected, false));
   } finally {
     refreshInFlight = false;
+    if (pendingRefresh) {
+      pendingRefresh = false;
+      void refreshQualityUI();
+    }
   }
 }
 
@@ -306,76 +307,37 @@ export function saveWatchUrl(
   schedulePanelPush();
 
   if (sidebarHtmlLoaded && url !== previousWatchUrl) {
-    const nextVideoId = getYouTubeVideoId(url) || "";
-    if (nextVideoId !== relatedPreviewVideoId) {
-      clearRelatedPreviewCache();
-      postRelatedPreviewItems([]);
-    }
     sidebar.postMessage("watchUrlChanged", { watchUrl: url });
     void postRelatedPreview(url);
   }
 }
 
-function clearRelatedPreviewCache(): void {
-  relatedPreviewVideoId = "";
-  relatedPreviewItems = [];
-}
-
-function postRelatedPreviewItems(items: FeedItem[]): void {
+function postRelatedPreviewItems(videoId: string, items: FeedItem[]): void {
   if (!sidebarHtmlLoaded) {
     return;
   }
-  sidebar.postMessage("relatedPreview", { items });
+  sidebar.postMessage("relatedPreview", { videoId, items });
 }
 
 function postRelatedPreview(watchUrl: string, force = false): void {
   if (!isYouTubeWatchURL(watchUrl)) {
-    clearRelatedPreviewCache();
-    postRelatedPreviewItems([]);
+    postRelatedPreviewItems("", []);
     return;
   }
 
-  const videoId = getYouTubeVideoId(watchUrl) || "";
-  if (!videoId) {
-    clearRelatedPreviewCache();
-    postRelatedPreviewItems([]);
+  const requestVideoId = getYouTubeVideoId(watchUrl) || "";
+  if (!requestVideoId) {
+    postRelatedPreviewItems("", []);
     return;
   }
-
-  if (
-    !force &&
-    videoId === relatedPreviewVideoId &&
-    relatedPreviewItems.length > 0
-  ) {
-    postRelatedPreviewItems(relatedPreviewItems);
-    return;
-  }
-
-  if (relatedPreviewInFlight === videoId) {
-    return;
-  }
-  relatedPreviewInFlight = videoId;
 
   void (async () => {
     try {
-      const result = await getRelatedItems(videoId, force);
-      if (relatedPreviewInFlight !== videoId) {
-        return;
-      }
-      relatedPreviewVideoId = videoId;
-      relatedPreviewItems = result.items;
-      postRelatedPreviewItems(result.items);
+      const result = await getRelatedItems(requestVideoId, force);
+      postRelatedPreviewItems(requestVideoId, result.items);
     } catch (err) {
       appendLog(`related preview failed: ${err}`);
-      if (relatedPreviewInFlight === videoId) {
-        relatedPreviewVideoId = videoId;
-        relatedPreviewItems = [];
-        postRelatedPreviewItems([]);
-      }
-    } finally {
-      if (relatedPreviewInFlight === videoId) {
-        relatedPreviewInFlight = null;
-      }
+      postRelatedPreviewItems(requestVideoId, []);
     }
   })();
 }
@@ -565,7 +527,7 @@ export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
         preferences.sync();
         if (sidebarHtmlLoaded) {
           sidebar.postMessage("watchUrlChanged", { watchUrl: "" });
-          sidebar.postMessage("relatedPreview", { items: [] });
+          sidebar.postMessage("relatedPreview", { videoId: "", items: [] });
         }
       }
       lastListedTitle = "";

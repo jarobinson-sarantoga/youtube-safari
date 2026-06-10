@@ -1,6 +1,11 @@
 import type { FeedItem } from "../types";
 import { appendLog } from "../../ytdl";
-import { getYouTubeVideoId, isYouTubeWatchURL, normalizeMediaURL } from "../../youtube";
+import {
+  getYouTubeVideoId,
+  isYouTubeWatchURL,
+  normalizeMediaURL,
+  youtubeThumbnailUrl,
+} from "../../youtube";
 
 const { file, preferences } = iina;
 
@@ -8,6 +13,12 @@ const HISTORY_PATH = "@data/watch-history.json";
 const MAX_ENTRIES = 200;
 
 let skipNextWatchEnd = false;
+let lastWrittenPosition = -1;
+let lastWriteTime = 0;
+let progressWriteTimer: ReturnType<typeof setTimeout> | null = null;
+let activeVideoId = "";
+let pendingProgress: { videoId: string; position: number; duration: number } | null =
+  null;
 
 /** Skip the next end-file history update (e.g. quality reload on the same video). */
 export function suppressNextWatchEnd(): void {
@@ -122,6 +133,13 @@ export function recordWatchStart(
     return;
   }
 
+  if (pendingProgress && pendingProgress.videoId !== videoId) {
+    flushPendingProgress();
+  } else {
+    resetProgressDebounce();
+  }
+  activeVideoId = videoId;
+
   const data = readHistory();
   const existing = data.entries.findIndex((e) => e.videoId === videoId);
   const entry: HistoryEntry = {
@@ -129,7 +147,7 @@ export function recordWatchStart(
     watchUrl: url,
     title: title || "Untitled",
     channelTitle,
-    thumbnailUrl: thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    thumbnailUrl: thumbnailUrl || youtubeThumbnailUrl(videoId),
     watchedAt: Date.now(),
   };
 
@@ -147,12 +165,47 @@ export function recordWatchStart(
   writeHistory(data);
 }
 
-export function updateWatchProgress(
+function resetProgressDebounce(): void {
+  if (progressWriteTimer) {
+    clearTimeout(progressWriteTimer);
+    progressWriteTimer = null;
+  }
+  pendingProgress = null;
+  lastWrittenPosition = -1;
+  lastWriteTime = 0;
+}
+
+function shouldPersistProgress(positionSeconds: number): boolean {
+  if (lastWrittenPosition < 0) {
+    return true;
+  }
+  if (Math.abs(positionSeconds - lastWrittenPosition) > 5) {
+    return true;
+  }
+  return Date.now() - lastWriteTime >= 30000;
+}
+
+function flushPendingProgress(): void {
+  if (!pendingProgress) {
+    return;
+  }
+  flushWatchProgress(
+    pendingProgress.position,
+    pendingProgress.duration,
+    pendingProgress.videoId,
+  );
+  pendingProgress = null;
+  if (progressWriteTimer) {
+    clearTimeout(progressWriteTimer);
+    progressWriteTimer = null;
+  }
+}
+
+function flushWatchProgress(
   positionSeconds: number,
   durationSeconds: number,
+  videoId: string,
 ): void {
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
-  const videoId = getYouTubeVideoId(watchUrl);
   if (!videoId) {
     return;
   }
@@ -167,16 +220,57 @@ export function updateWatchProgress(
   entry.durationSeconds = durationSeconds;
   entry.watchedAt = Date.now();
   writeHistory(data);
+  lastWrittenPosition = positionSeconds;
+  lastWriteTime = Date.now();
+}
+
+export function updateWatchProgress(
+  positionSeconds: number,
+  durationSeconds: number,
+): void {
+  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
+  const videoId = getYouTubeVideoId(watchUrl);
+  if (!videoId) {
+    return;
+  }
+
+  activeVideoId = videoId;
+  pendingProgress = {
+    videoId,
+    position: positionSeconds,
+    duration: durationSeconds,
+  };
+
+  if (shouldPersistProgress(positionSeconds)) {
+    if (progressWriteTimer) {
+      clearTimeout(progressWriteTimer);
+      progressWriteTimer = null;
+    }
+    flushWatchProgress(positionSeconds, durationSeconds, videoId);
+    pendingProgress = null;
+    return;
+  }
+
+  if (progressWriteTimer) {
+    return;
+  }
+
+  progressWriteTimer = setTimeout(() => {
+    progressWriteTimer = null;
+    flushPendingProgress();
+  }, 30000);
 }
 
 export function markWatchEnded(): void {
+  const endingVideoId = pendingProgress?.videoId || activeVideoId;
+  flushPendingProgress();
+
   if (skipNextWatchEnd) {
     skipNextWatchEnd = false;
     return;
   }
 
-  const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
-  const videoId = getYouTubeVideoId(watchUrl);
+  const videoId = endingVideoId;
   if (!videoId) {
     return;
   }

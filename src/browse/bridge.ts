@@ -2,6 +2,7 @@ import type { BrowseRefreshMessage, HttpRequestMessage } from "./messages";
 import { fetchFeed } from "./feeds/index";
 import { httpOptions } from "./http-options";
 import { openLinkedUrl } from "../youtube-open";
+import { youtubeWatchUrl } from "../youtube";
 import { appendLog } from "../ytdl";
 
 const { http, sidebar } = iina;
@@ -102,9 +103,7 @@ async function handleBrowseRefresh(msg: BrowseRefreshMessage): Promise<void> {
 
 function handlePlayVideo(data: { videoId?: string; url?: string }): void {
   const videoId = data.videoId;
-  const url =
-    data.url ||
-    (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "");
+  const url = data.url || (videoId ? youtubeWatchUrl(videoId) : "");
 
   if (!url) {
     return;
@@ -126,10 +125,4 @@ export function registerBrowseSidebarHandlers(): void {
   sidebar.onMessage("playVideo", (data: { videoId?: string; url?: string }) => {
     handlePlayVideo(data);
   });
-}
-
-/** @deprecated Use registerBrowseSidebarHandlers */
-export function installBrowseBridge(): void {
-  registerBrowseSidebarHandlers();
-  appendLog("Browse bridge installed");
 }

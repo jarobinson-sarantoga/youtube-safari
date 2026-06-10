@@ -166,3 +166,14 @@ export function getYouTubeVideoId(url: string): string | null {
 export function isYouTubePlaylistURL(url: string): boolean {
   return isYouTubeWatchURL(url) && getYouTubePlaylistId(url) !== null;
 }
+
+/** Canonical YouTube watch URL for a video ID. */
+export function youtubeWatchUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+/** YouTube thumbnail URL for a video ID. */
+export function youtubeThumbnailUrl(videoId: string, quality: "hq" | "mq" = "hq"): string {
+  const suffix = quality === "hq" ? "hqdefault" : "mqdefault";
+  return `https://i.ytimg.com/vi/${videoId}/${suffix}.jpg`;
+}

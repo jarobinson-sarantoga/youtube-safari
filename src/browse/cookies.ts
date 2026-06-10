@@ -24,10 +24,6 @@ let cachedHeader = "";
 let cachedPath = "";
 let cachedContentLength = 0;
 
-let cachedBrowseHeader = "";
-let cachedBrowsePath = "";
-let cachedBrowseContentLength = 0;
-
 export function cookiesPath(): string {
   const configured = preferences.get("cookies_path") as string | undefined;
   const fallback = "~/.config/yt-dlp/cookies.txt";
@@ -105,62 +101,6 @@ export function hasYouTubeDomainCookies(): boolean {
   }
 
   return cookies.some((cookie) => youtubeDomainMatches(cookie.domain));
-}
-
-/** InnerTube browse requests must not include .google.com cookies (breaks session). */
-export function buildBrowseCookieHeader(force = false): string {
-  const path = cookiesPath();
-
-  if (!file.exists(path)) {
-    cachedBrowseHeader = "";
-    cachedBrowsePath = path;
-    cachedBrowseContentLength = 0;
-    return "";
-  }
-
-  let text: string;
-  try {
-    text = file.read(path) || "";
-  } catch (err) {
-    appendLog(`cookies: read failed: ${err}`);
-    return "";
-  }
-
-  if (
-    !force &&
-    path === cachedBrowsePath &&
-    cachedBrowseHeader &&
-    text.length === cachedBrowseContentLength
-  ) {
-    return cachedBrowseHeader;
-  }
-
-  const pairs: string[] = [];
-  for (const cookie of parseNetscapeCookies(text)) {
-    if (!youtubeDomainMatches(cookie.domain)) {
-      continue;
-    }
-    pairs.push(`${cookie.name}=${cookie.value}`);
-  }
-
-  cachedBrowseHeader = pairs.join("; ");
-  cachedBrowsePath = path;
-  cachedBrowseContentLength = text.length;
-
-  appendLog(`cookies: built browse header with ${pairs.length} youtube.com entries`);
-  return cachedBrowseHeader;
-}
-
-export function getYouTubeSapisiId(): string | null {
-  const cookies = readNetscapeCookies();
-  if (!cookies) {
-    return null;
-  }
-
-  const hit = cookies.find(
-    (cookie) => youtubeDomainMatches(cookie.domain) && cookie.name === "SAPISID",
-  );
-  return hit?.value || null;
 }
 
 /** True when LOGIN_INFO or __Secure-1PSID is present on a youtube.com domain. */
@@ -252,9 +192,6 @@ export function clearCookieCache(): void {
   cachedHeader = "";
   cachedPath = "";
   cachedContentLength = 0;
-  cachedBrowseHeader = "";
-  cachedBrowsePath = "";
-  cachedBrowseContentLength = 0;
 }
 
 /** Call after Safari cookie refresh so browse requests pick up new session. */
