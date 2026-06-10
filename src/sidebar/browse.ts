@@ -1,5 +1,5 @@
 import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
-import type { FeedResultMessage } from "../browse/messages";
+import { parseFeedResult } from "./parse";
 import { getYouTubeVideoId, youtubeWatchUrl } from "../youtube";
 import { $ } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
@@ -92,7 +92,9 @@ function updateSegButtons(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
   buttons.forEach((btn) => {
     const tab = btn.dataset.tab as FeedTab | undefined;
-    btn.classList.toggle("active", tab === activeTab);
+    const isActive = tab === activeTab;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 }
 
@@ -266,7 +268,7 @@ function renderFeedList(): void {
   });
 }
 
-function handleFeedResult(data: FeedResultMessage): void {
+function handleFeedResult(data: NonNullable<ReturnType<typeof parseFeedResult>>): void {
   if (typeof data.requestId === "number" && data.requestId !== feedRequestId) {
     return;
   }
@@ -444,7 +446,10 @@ export function initBrowsePanel(): void {
   setupKeyboard();
 
   onPluginMessage("feedResult", (raw) => {
-    handleFeedResult((raw || {}) as FeedResultMessage);
+    const data = parseFeedResult(raw);
+    if (data) {
+      handleFeedResult(data);
+    }
   });
 
   onPluginMessage("focusBrowse", () => {

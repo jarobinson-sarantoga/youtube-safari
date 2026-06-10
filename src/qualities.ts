@@ -3,7 +3,7 @@ import { normalizeChapters, pickChapters } from "./description-chapters";
 import { browseCacheTtlMs } from "./browse/store/cache";
 import { heightLabel } from "./format";
 import { getYouTubeVideoId } from "./youtube";
-import { appendLog } from "./ytdl";
+import { commonYtdlpFlags, execBashJsonLine } from "./ytdlp-script";
 
 const { preferences, utils } = iina;
 
@@ -19,11 +19,7 @@ export interface ListedQualities {
   title: string;
   description: string;
   chapters: DescriptionChapter[];
-}
-
-function prefPath(key: string): string {
-  const value = preferences.get(key) as string;
-  return utils.resolvePath(value);
+  error?: string;
 }
 
 function listScriptPath(): string {
@@ -32,20 +28,7 @@ function listScriptPath(): string {
 }
 
 function buildListArgs(url: string): string[] {
-  const script = listScriptPath();
-  const args = [script, url];
-
-  const cookies = preferences.get("cookies_path") as string | undefined;
-  if (cookies) {
-    args.push("--cookies", prefPath("cookies_path"));
-  }
-
-  const ytdlp = preferences.get("ytdl_path") as string | undefined;
-  if (ytdlp) {
-    args.push("--ytdlp", prefPath("ytdl_path"));
-  }
-
-  return args;
+  return [listScriptPath(), url, ...commonYtdlpFlags()];
 }
 
 /** Current quality_height preference (0 = auto / up to 4K). */
@@ -61,14 +44,7 @@ export function getSelectedHeight(): number {
   return 0;
 }
 
-function parseListedPayload(line: string): ListedQualities | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    return null;
-  }
-
+function parseListedData(parsed: unknown): ListedQualities | null {
   if (Array.isArray(parsed)) {
     return parseQualityArray(parsed);
   }
@@ -176,26 +152,19 @@ export async function listQualities(url: string): Promise<ListedQualities> {
     }
   }
 
-  const script = listScriptPath();
-  if (!utils.fileInPath(script)) {
-    appendLog(`list-formats script not found: ${script}`);
-    return empty;
-  }
-
   const args = buildListArgs(url);
-  appendLog(`Listing qualities: ${args.join(" ")}`);
-  const result = await utils.exec("/bin/bash", args);
+  const result = await execBashJsonLine<unknown>(args, "Listing qualities");
 
-  if (result.status !== 0) {
-    appendLog(`list-formats failed (${result.status}): ${result.stderr || result.stdout}`);
-    return empty;
+  if (!result.ok || result.data === undefined) {
+    return { ...empty, error: result.error || "Could not list video qualities" };
   }
 
-  const line = result.stdout.trim().split("\n").pop() || "";
-  const listed = parseListedPayload(line);
+  const listed = parseListedData(result.data);
   if (!listed) {
-    appendLog(`list-formats JSON parse error; stdout=${result.stdout.slice(0, 200)}`);
-    return empty;
+    return {
+      ...empty,
+      error: result.error || "Could not parse quality list",
+    };
   }
 
   if (videoId) {

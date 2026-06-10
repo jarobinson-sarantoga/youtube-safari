@@ -762,6 +762,15 @@ body {
   display: inline;
 }
 
+.quality-status.error {
+  color: var(--danger, #e06060);
+}
+
+.quality-retry {
+  margin-left: 6px;
+  vertical-align: baseline;
+}
+
 .quality-select {
   width: 100%;
   appearance: none;

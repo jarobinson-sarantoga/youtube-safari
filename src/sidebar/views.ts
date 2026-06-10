@@ -44,7 +44,9 @@ export function setActiveView(view: ShellView): void {
 }
 
 export function setupViewNav(): void {
+  const nav = document.querySelector<HTMLElement>(".view-nav");
   const buttons = document.querySelectorAll<HTMLButtonElement>(".view-btn");
+
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const view = btn.dataset.view as ShellView | undefined;
@@ -52,5 +54,30 @@ export function setupViewNav(): void {
         setActiveView(view);
       }
     });
+  });
+
+  nav?.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>(".view-btn")];
+    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
+    if (currentIndex < 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const delta = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= tabs.length) {
+      return;
+    }
+
+    const view = tabs[nextIndex].dataset.view as ShellView | undefined;
+    if (view === "browse" || view === "player") {
+      setActiveView(view);
+      tabs[nextIndex].focus();
+    }
   });
 }

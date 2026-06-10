@@ -4,6 +4,7 @@ import type { DescriptionChapter } from "../description-chapters";
 import type { QualityItem } from "../qualities";
 import type { PanelPayload } from "../sidebar-state";
 import { DEFAULT_QUALITY_OPTIONS } from "../sidebar-state";
+import { parsePanelPayload } from "./parse";
 import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
 import { $, escapeHtml, formatClock } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
@@ -255,7 +256,11 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
   subEl.textContent = paused ? "Paused" : "Playing";
 }
 
-export function renderRelatedPreview(videoId: string, items: FeedItem[]): void {
+export function renderRelatedPreview(
+  videoId: string,
+  items: FeedItem[],
+  error?: string,
+): void {
   const currentVideoId = getYouTubeVideoId(currentWatchUrl) || "";
   if (videoId && currentVideoId && videoId !== currentVideoId) {
     return;
@@ -265,6 +270,24 @@ export function renderRelatedPreview(videoId: string, items: FeedItem[]): void {
   el.innerHTML = "";
   renderedRelatedVideoId = videoId || currentVideoId;
   renderedRelatedHasItems = items.length > 0;
+
+  if (error) {
+    el.classList.remove("empty");
+    const err = document.createElement("div");
+    err.className = "feed-error";
+    err.textContent = error;
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "feed-retry";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => {
+      postToPlugin("requestRelatedPreview", { force: true });
+    });
+    err.appendChild(retry);
+    el.appendChild(err);
+    return;
+  }
 
   if (!items.length) {
     el.textContent = "Open a video in IINA to see related videos.";
@@ -315,11 +338,26 @@ function renderPanel(data: PanelPayload): void {
   renderChapters(chapters, !!title);
   updateDescriptionSection(description, !!title);
 
+  statusEl.innerHTML = "";
+  statusEl.classList.remove("error");
+
   if (loading) {
     statusEl.textContent = "Updating…";
     statusEl.classList.add("visible");
+  } else if (data.error) {
+    statusEl.classList.add("visible", "error");
+    statusEl.textContent = data.error;
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "quality-retry feed-retry";
+    retry.textContent = "Retry";
+    retry.addEventListener("click", () => {
+      postToPlugin("refreshPanel", {});
+    });
+    statusEl.appendChild(document.createTextNode(" "));
+    statusEl.appendChild(retry);
   } else {
-    statusEl.textContent = "";
     statusEl.classList.remove("visible");
   }
 
@@ -366,7 +404,10 @@ export function initPlayerPanel(): void {
   setupChapterSelect();
 
   onPluginMessage("panel", (raw) => {
-    renderPanel((raw || {}) as PanelPayload);
+    const data = parsePanelPayload(raw);
+    if (data) {
+      renderPanel(data);
+    }
   });
 
   onPluginMessage("playerState", (raw) => {
@@ -374,8 +415,8 @@ export function initPlayerPanel(): void {
   });
 
   onPluginMessage("relatedPreview", (raw) => {
-    const data = (raw || {}) as { videoId?: string; items?: FeedItem[] };
-    renderRelatedPreview(data.videoId || "", data.items || []);
+    const data = (raw || {}) as { videoId?: string; items?: FeedItem[]; error?: string };
+    renderRelatedPreview(data.videoId || "", data.items || [], data.error);
   });
 
   onPluginMessage("feedsStale", () => {

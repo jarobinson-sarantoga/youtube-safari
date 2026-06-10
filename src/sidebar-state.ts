@@ -10,6 +10,7 @@ export interface PanelPayload {
   chapters: DescriptionChapter[];
   loading: boolean;
   watchUrl?: string;
+  error?: string;
 }
 
 /** Default quality choices shown in the sidebar even when no video is open. */

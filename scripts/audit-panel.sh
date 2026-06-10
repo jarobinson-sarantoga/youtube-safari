@@ -61,7 +61,7 @@ for id in feed-list feed-status search-input video-title quality-list; do
 done
 
 # 4. Message wiring — sidebar posts, plugin handles
-SIDEBAR_POSTS=(browseRefresh playVideo sidebarReady selectQuality descriptionSeek openUrl requestRelatedPreview)
+SIDEBAR_POSTS=(browseRefresh playVideo sidebarReady selectQuality descriptionSeek openUrl requestRelatedPreview refreshPanel)
 for msg in "${SIDEBAR_POSTS[@]}"; do
   if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "\"$msg\"" "$ROOT/src/browse/bridge.ts" "$ROOT/src/quality-ui.ts" 2>/dev/null; then
     pass "message wire: $msg"

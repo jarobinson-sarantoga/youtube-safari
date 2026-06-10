@@ -63,7 +63,8 @@ export type SidebarToPluginMessage =
   | { name: "descriptionSeek"; data: { seconds?: number | string } }
   | { name: "seek"; data: { seconds?: number | string } }
   | { name: "openUrl"; data: { url?: string } }
-  | { name: "requestRelatedPreview"; data: { force?: boolean } };
+  | { name: "requestRelatedPreview"; data: { force?: boolean } }
+  | { name: "refreshPanel"; data: Record<string, never> };
 
 export type PluginToSidebarMessage =
   | { name: "httpResponse"; data: HttpResponseMessage }
@@ -76,4 +77,4 @@ export type PluginToSidebarMessage =
   | { name: "feedsStale"; data: Record<string, never> }
   | { name: "historyStale"; data: Record<string, never> }
   | { name: "browseReady"; data: Record<string, never> }
-  | { name: "relatedPreview"; data: { videoId?: string; items: FeedItem[] } };
+  | { name: "relatedPreview"; data: { videoId?: string; items: FeedItem[]; error?: string } };

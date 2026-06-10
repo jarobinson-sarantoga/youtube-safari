@@ -162,6 +162,7 @@ function buildPanelPayload(
   items: QualityItem[],
   selected: number,
   loading: boolean,
+  error?: string,
 ): PanelPayload {
   const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
   return {
@@ -172,6 +173,7 @@ function buildPanelPayload(
     chapters: lastListedChapters,
     loading,
     watchUrl: isYouTubeWatchURL(watchUrl) ? watchUrl : "",
+    error: error || undefined,
   };
 }
 
@@ -217,11 +219,12 @@ export async function refreshQualityUI(): Promise<void> {
     replaceQualityMenu(listed.items, selected);
     replaceChapterMenu(lastListedChapters);
     refreshNativeChapterPanel(lastListedChapters);
-    postSidebarPanel(buildPanelPayload(listed.items, selected, false));
+    postSidebarPanel(buildPanelPayload(listed.items, selected, false, listed.error));
     schedulePanelPush();
   } catch (err) {
     appendLog(`refreshQualityUI error: ${err}`);
-    postSidebarPanel(buildPanelPayload(DEFAULT_QUALITY_OPTIONS, selected, false));
+    const message = err instanceof Error ? err.message : String(err);
+    postSidebarPanel(buildPanelPayload(DEFAULT_QUALITY_OPTIONS, selected, false, message));
   } finally {
     refreshInFlight = false;
     if (pendingRefresh) {
@@ -311,11 +314,15 @@ export function saveWatchUrl(
   }
 }
 
-function postRelatedPreviewItems(videoId: string, items: FeedItem[]): void {
+function postRelatedPreviewItems(
+  videoId: string,
+  items: FeedItem[],
+  error?: string,
+): void {
   if (!sidebarHtmlLoaded) {
     return;
   }
-  sidebar.postMessage("relatedPreview", { videoId, items });
+  sidebar.postMessage("relatedPreview", { videoId, items, error });
 }
 
 function postRelatedPreview(watchUrl: string, force = false): void {
@@ -333,10 +340,11 @@ function postRelatedPreview(watchUrl: string, force = false): void {
   void (async () => {
     try {
       const result = await getRelatedItems(requestVideoId, force);
-      postRelatedPreviewItems(requestVideoId, result.items);
+      postRelatedPreviewItems(requestVideoId, result.items, result.error);
     } catch (err) {
       appendLog(`related preview failed: ${err}`);
-      postRelatedPreviewItems(requestVideoId, []);
+      const message = err instanceof Error ? err.message : String(err);
+      postRelatedPreviewItems(requestVideoId, [], message);
     }
   })();
 }
@@ -400,6 +408,10 @@ function registerSidebarMessageHandlers(): void {
   sidebar.onMessage("requestRelatedPreview", (data: { force?: boolean } | undefined) => {
     const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
     postRelatedPreview(watchUrl, !!data?.force);
+  });
+
+  sidebar.onMessage("refreshPanel", () => {
+    void refreshQualityUI();
   });
 }
 
