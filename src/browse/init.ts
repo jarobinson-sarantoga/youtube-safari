@@ -78,6 +78,7 @@ function onYouTubeFileLoaded(): void {
     const videoId = getYouTubeVideoId(watchUrl) || "";
     const thumb = videoId ? youtubeThumbnailUrl(videoId) : "";
     recordWatchStart(watchUrl, title, "", thumb);
+    sidebar.postMessage("historyStale", {});
   }
   postPlayerState();
   startPlayerStatePolling();

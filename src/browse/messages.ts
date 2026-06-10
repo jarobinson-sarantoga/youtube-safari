@@ -63,7 +63,7 @@ export type SidebarToPluginMessage =
   | { name: "descriptionSeek"; data: { seconds?: number | string } }
   | { name: "seek"; data: { seconds?: number | string } }
   | { name: "openUrl"; data: { url?: string } }
-  | { name: "requestRelatedPreview"; data: Record<string, never> };
+  | { name: "requestRelatedPreview"; data: { force?: boolean } };
 
 export type PluginToSidebarMessage =
   | { name: "httpResponse"; data: HttpResponseMessage }
@@ -74,4 +74,6 @@ export type PluginToSidebarMessage =
   | { name: "focusPlayer"; data: Record<string, never> }
   | { name: "watchUrlChanged"; data: { watchUrl?: string } }
   | { name: "feedsStale"; data: Record<string, never> }
+  | { name: "historyStale"; data: Record<string, never> }
+  | { name: "browseReady"; data: Record<string, never> }
   | { name: "relatedPreview"; data: { videoId?: string; items: FeedItem[] } };

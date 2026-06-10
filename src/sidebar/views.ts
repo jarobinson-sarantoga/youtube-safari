@@ -1,3 +1,4 @@
+import { ensureBrowseFeedLoaded } from "./browse";
 import { $ } from "./dom";
 import { postToPlugin } from "./messaging";
 import { beginRelatedPreviewLoad, getCurrentWatchUrl, hasCachedRelatedPreview } from "./player";
@@ -28,6 +29,7 @@ export function setActiveView(view: ShellView): void {
     browseView.hidden = false;
     playerView.classList.remove("active");
     playerView.hidden = true;
+    ensureBrowseFeedLoaded();
   } else {
     playerView.classList.add("active");
     playerView.hidden = false;

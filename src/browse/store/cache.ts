@@ -140,6 +140,11 @@ export function cacheKey(tab: string, suffix = ""): string {
   return suffix ? `${tab}:${suffix}` : tab;
 }
 
+export function clearCached(key: string): void {
+  memoryCache.delete(key);
+  removeDiskEntry(key);
+}
+
 export function clearBrowseCache(): void {
   memoryCache.clear();
   try {

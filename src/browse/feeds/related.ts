@@ -1,5 +1,11 @@
 import type { FeedItem } from "../types";
-import { browseCacheTtlMs, cacheKey, peekCachedEntry, setCached } from "../store/cache";
+import {
+  browseCacheTtlMs,
+  cacheKey,
+  clearCached,
+  peekCachedEntry,
+  setCached,
+} from "../store/cache";
 import { fetchRelatedItems } from "./youtubejs-exec";
 
 export type RelatedFetchResult = {
@@ -20,6 +26,11 @@ function isMemoryFresh(entry: RelatedMemoryEntry): boolean {
   return Date.now() - entry.savedAt <= browseCacheTtlMs();
 }
 
+function clearRelatedCacheForVideo(videoId: string): void {
+  memoryCache.delete(videoId);
+  clearCached(cacheKey("related", videoId));
+}
+
 export function clearRelatedMemoryCache(): void {
   memoryCache.clear();
   inflight.clear();
@@ -32,8 +43,15 @@ export async function getRelatedItems(
   if (!videoId) {
     return {
       items: [],
-      emptyHint: "Play a YouTube video to see related videos",
+      emptyHint: "Open a video in IINA to see related videos",
     };
+  }
+
+  if (!force) {
+    const pending = inflight.get(videoId);
+    if (pending) {
+      return pending;
+    }
   }
 
   if (!force) {
@@ -50,11 +68,6 @@ export async function getRelatedItems(
       memoryCache.set(videoId, { savedAt: diskEntry.savedAt, items: diskEntry.data });
       return { items: diskEntry.data };
     }
-
-    const pending = inflight.get(videoId);
-    if (pending) {
-      return pending;
-    }
   }
 
   const promise = fetchRelatedItems(videoId).then((result) => {
@@ -62,6 +75,11 @@ export async function getRelatedItems(
     if (items.length) {
       memoryCache.set(videoId, { savedAt: Date.now(), items });
       setCached(cacheKey("related", videoId), items);
+    } else if (force) {
+      clearRelatedCacheForVideo(videoId);
+    }
+    if (force && result.error) {
+      clearRelatedCacheForVideo(videoId);
     }
     return {
       items,

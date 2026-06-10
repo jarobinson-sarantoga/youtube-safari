@@ -189,6 +189,7 @@ body {
 .seg-btn:focus-visible,
 .subs-filter-btn:focus-visible,
 .feed-row:focus-visible,
+.related-row:focus-visible,
 .icon-btn:focus-visible,
 .search-btn:focus-visible,
 .feed-retry:focus-visible {
@@ -199,6 +200,7 @@ body {
 .seg-btn:focus-visible,
 .subs-filter-btn:focus-visible,
 .feed-row:focus-visible,
+.related-row:focus-visible,
 .icon-btn:focus-visible,
 .search-btn:focus-visible,
 .feed-retry:focus-visible {

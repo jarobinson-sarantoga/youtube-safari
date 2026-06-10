@@ -55,13 +55,12 @@ function schedulePanelPush(): void {
   if (!sidebarHtmlLoaded || !lastPanelPayload) {
     return;
   }
-  for (const delay of [0, 150, 600]) {
-    setTimeout(() => {
-      if (sidebarHtmlLoaded && lastPanelPayload) {
-        sidebar.postMessage("panel", lastPanelPayload);
-      }
-    }, delay);
-  }
+  sidebar.postMessage("panel", lastPanelPayload);
+  setTimeout(() => {
+    if (sidebarHtmlLoaded && lastPanelPayload) {
+      sidebar.postMessage("panel", lastPanelPayload);
+    }
+  }, 300);
 }
 
 /** IINA typings use addSubMenuItem; runtime may expose addSubmenuItem instead. */
@@ -349,6 +348,7 @@ function registerSidebarMessageHandlers(): void {
     appendLog("Sidebar ready");
     // loadFile clears sidebar.onMessage listeners — re-register before any browse fetch.
     registerBrowseHandlers();
+    sidebar.postMessage("browseReady", {});
 
     if (lastPanelPayload) {
       sidebar.postMessage("panel", lastPanelPayload);
@@ -362,7 +362,6 @@ function registerSidebarMessageHandlers(): void {
       void postRelatedPreview(watchUrl);
     }
 
-    sidebar.postMessage("feedsStale", {});
     applyPendingSidebarReveal();
   });
 
@@ -398,9 +397,9 @@ function registerSidebarMessageHandlers(): void {
     openLinkedUrl(url);
   });
 
-  sidebar.onMessage("requestRelatedPreview", () => {
+  sidebar.onMessage("requestRelatedPreview", (data: { force?: boolean } | undefined) => {
     const watchUrl = (preferences.get("last_watch_url") as string | undefined) || "";
-    postRelatedPreview(watchUrl);
+    postRelatedPreview(watchUrl, !!data?.force);
   });
 }
 
@@ -443,11 +442,6 @@ export function revealYouTubePanel(view: SidebarRevealView = "player"): void {
   } catch (err) {
     appendLog(`revealYouTubePanel deferred until window-loaded: ${err}`);
   }
-}
-
-/** @deprecated Use revealYouTubePanel */
-export function ensureSidebarReady(): void {
-  revealYouTubePanel("player");
 }
 
 export function initQualityUI(): void {

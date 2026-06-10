@@ -6,6 +6,7 @@ import type { PanelPayload } from "../sidebar-state";
 import { DEFAULT_QUALITY_OPTIONS } from "../sidebar-state";
 import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
 import { $, escapeHtml, formatClock } from "./dom";
+import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
 
 function escapeAttr(text: string): string {
@@ -66,7 +67,7 @@ function renderChapters(chapters: DescriptionChapter[], hasVideo: boolean): void
     option.value = "";
     option.textContent = hasVideo
       ? "No chapters in this description."
-      : "Open a YouTube video to see chapters.";
+      : "Open a video in IINA to see chapters.";
     selectEl.appendChild(option);
     selectEl.disabled = true;
     return;
@@ -123,7 +124,7 @@ function updateDescriptionSection(description: string, hasVideo: boolean): void 
   if (!description && !hasVideo) {
     sectionEl.classList.remove("hidden");
     const descriptionEl = $("description");
-    descriptionEl.textContent = "Open a YouTube video to see its description.";
+    descriptionEl.textContent = "Open a video in IINA to see its description.";
     descriptionEl.classList.add("empty");
     return;
   }
@@ -140,7 +141,7 @@ function updateDescriptionSection(description: string, hasVideo: boolean): void 
   descriptionEl.classList.add("empty");
 }
 
-function renderQualities(items: QualityItem[], selected: number): void {
+function renderQualities(items: QualityItem[], selected: number, loading = false): void {
   const selectEl = $("quality-list") as HTMLSelectElement;
   selectEl.innerHTML = "";
 
@@ -154,7 +155,12 @@ function renderQualities(items: QualityItem[], selected: number): void {
     selectEl.appendChild(option);
   }
 
-  selectEl.disabled = items.length === 0;
+  selectEl.disabled = items.length === 0 || loading;
+  if (loading) {
+    selectEl.setAttribute("aria-busy", "true");
+  } else {
+    selectEl.removeAttribute("aria-busy");
+  }
 }
 
 let currentWatchUrl = "";
@@ -178,8 +184,8 @@ export function resetRelatedPreviewCache(): void {
 export function beginRelatedPreviewLoad(): void {
   const el = $("related-preview");
   el.innerHTML = "";
-  el.textContent = "Loading related…";
-  el.classList.add("empty");
+  el.classList.remove("empty");
+  el.appendChild(createSkeletonRows(2));
 }
 
 function updateHero(title: string, watchUrl: string): void {
@@ -193,7 +199,7 @@ function updateHero(title: string, watchUrl: string): void {
   titleEl.textContent = title || (hasVideo ? "YouTube video" : "No YouTube video");
 
   if (!hasVideo) {
-    subEl.textContent = "Open a video to see details";
+    subEl.textContent = "Open a video in IINA to see details";
     thumbEl.classList.add("hidden");
     thumbEl.removeAttribute("src");
     thumbEl.alt = "";
@@ -226,6 +232,7 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
   if (duration <= 0) {
     block.classList.add("hidden");
     track.removeAttribute("role");
+    track.removeAttribute("aria-label");
     track.removeAttribute("aria-valuemin");
     track.removeAttribute("aria-valuemax");
     track.removeAttribute("aria-valuenow");
@@ -239,6 +246,7 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
   durEl.textContent = formatClock(duration);
 
   track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-label", "Playback progress");
   track.setAttribute("aria-valuemin", "0");
   track.setAttribute("aria-valuemax", String(Math.floor(duration)));
   track.setAttribute("aria-valuenow", String(Math.floor(position)));
@@ -259,7 +267,7 @@ export function renderRelatedPreview(videoId: string, items: FeedItem[]): void {
   renderedRelatedHasItems = items.length > 0;
 
   if (!items.length) {
-    el.textContent = "Play a video to see related videos.";
+    el.textContent = "Open a video in IINA to see related videos.";
     el.classList.add("empty");
     return;
   }
@@ -267,49 +275,18 @@ export function renderRelatedPreview(videoId: string, items: FeedItem[]): void {
   el.classList.remove("empty");
 
   for (const item of items) {
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = "feed-row related-row";
-    row.setAttribute("aria-label", item.title);
-
-    const thumbWrap = document.createElement("div");
-    thumbWrap.className = "thumb-wrap";
-
-    const img = document.createElement("img");
-    const fallback = youtubeThumbnailUrl(item.videoId);
-    img.className = "feed-thumb";
-    img.src = item.thumbnailUrl || fallback;
-    img.alt = item.title;
-    img.loading = "lazy";
-    img.addEventListener("error", () => {
-      if (img.src !== fallback) {
-        img.src = fallback;
-      }
-    });
-
-    thumbWrap.appendChild(img);
-
-    const meta = document.createElement("div");
-    meta.className = "feed-meta";
-
-    const title = document.createElement("p");
-    title.className = "feed-title";
-    title.textContent = item.title;
-
-    const channel = document.createElement("p");
-    channel.className = "feed-channel";
-    channel.textContent = item.channelTitle;
-
-    meta.appendChild(title);
-    meta.appendChild(channel);
-
-    row.appendChild(thumbWrap);
-    row.appendChild(meta);
-    row.addEventListener("click", () => {
-      postToPlugin("playVideo", {
-        videoId: item.videoId,
-        url: youtubeWatchUrl(item.videoId),
-      });
+    const row = createFeedRow({
+      item,
+      rowClassName: "feed-row related-row",
+      showDuration: false,
+      showResume: false,
+      showExtra: false,
+      onClick: (clickedItem) => {
+        postToPlugin("playVideo", {
+          videoId: clickedItem.videoId,
+          url: youtubeWatchUrl(clickedItem.videoId),
+        });
+      },
     });
 
     el.appendChild(row);
@@ -346,7 +323,7 @@ function renderPanel(data: PanelPayload): void {
     statusEl.classList.remove("visible");
   }
 
-  renderQualities(items, selected);
+  renderQualities(items, selected, loading);
 }
 
 function handlePlayerState(state: PlayerStateMessage): void {
@@ -403,6 +380,8 @@ export function initPlayerPanel(): void {
 
   onPluginMessage("feedsStale", () => {
     resetRelatedPreviewCache();
+    beginRelatedPreviewLoad();
+    postToPlugin("requestRelatedPreview", { force: true });
   });
 
   onPluginMessage("watchUrlChanged", () => {

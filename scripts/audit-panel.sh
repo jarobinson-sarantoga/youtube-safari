@@ -78,7 +78,7 @@ for msg in "${SIDEBAR_POSTS[@]}"; do
   fi
 done
 
-PLUGIN_POSTS=(feedResult panel playerState focusBrowse focusPlayer watchUrlChanged feedsStale relatedPreview)
+PLUGIN_POSTS=(feedResult panel playerState focusBrowse focusPlayer watchUrlChanged feedsStale historyStale browseReady relatedPreview)
 for msg in "${PLUGIN_POSTS[@]}"; do
   if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "$msg" "$ROOT/src/quality-ui.ts" "$ROOT/src/browse/" 2>/dev/null; then
     pass "message wire: $msg"

@@ -61,38 +61,14 @@ async function runFeedScript(args: string[]): Promise<FeedScriptResult> {
   }
 }
 
-export async function fetchHomeItems(): Promise<{
-  items: FeedItem[];
-  emptyHint?: string;
-  error?: string;
-}> {
-  const result = await runFeedScript(["--tab", "home"]);
-  return {
-    items: result.items || [],
-    emptyHint: result.emptyHint,
-    error: result.error,
-  };
-}
+export type YoutubeJsFeedTab = "home" | "subscriptions" | "shorts";
 
-export async function fetchSubscriptionsItems(): Promise<{
+export async function fetchTabItems(tab: YoutubeJsFeedTab): Promise<{
   items: FeedItem[];
   emptyHint?: string;
   error?: string;
 }> {
-  const result = await runFeedScript(["--tab", "subscriptions"]);
-  return {
-    items: result.items || [],
-    emptyHint: result.emptyHint,
-    error: result.error,
-  };
-}
-
-export async function fetchShortsItems(): Promise<{
-  items: FeedItem[];
-  emptyHint?: string;
-  error?: string;
-}> {
-  const result = await runFeedScript(["--tab", "shorts"]);
+  const result = await runFeedScript(["--tab", tab]);
   return {
     items: result.items || [],
     emptyHint: result.emptyHint,

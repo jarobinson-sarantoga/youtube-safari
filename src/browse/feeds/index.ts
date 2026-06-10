@@ -1,15 +1,10 @@
 import type { FeedTab, SubsFilter } from "../types";
-import { cacheKey, getCached, setCached } from "../store/cache";
+import { cacheKey, clearCached, getCached, setCached } from "../store/cache";
 import { getHistoryItems } from "../store/history";
 import { getYouTubeVideoId } from "../../youtube";
 
 const { preferences } = iina;
-import {
-  fetchHomeItems,
-  fetchSearchItems,
-  fetchShortsItems,
-  fetchSubscriptionsItems,
-} from "./youtubejs-exec";
+import { fetchSearchItems, fetchTabItems } from "./youtubejs-exec";
 import { getRelatedItems } from "./related";
 
 type FeedFetchResult = {
@@ -42,11 +37,23 @@ async function fetchWithCache(
   }
 
   const promise = (async (): Promise<FeedFetchResult> => {
-    const result = await fetcher();
-    if (result.items.length) {
-      setCached(key, result.items);
+    try {
+      const result = await fetcher();
+      if (result.items.length) {
+        setCached(key, result.items);
+      } else if (force) {
+        clearCached(key);
+      }
+      if (force && result.error) {
+        clearCached(key);
+      }
+      return result;
+    } catch (err) {
+      if (force) {
+        clearCached(key);
+      }
+      return { items: [], error: String(err) };
     }
-    return result;
   })();
 
   inflight.set(key, promise);
@@ -67,13 +74,12 @@ export async function fetchFeed(
 ): Promise<FeedFetchResult> {
   switch (tab) {
     case "home":
-      return fetchWithCache(cacheKey("home", "v1"), fetchHomeItems, force);
+      return fetchWithCache(cacheKey("home", "v1"), () => fetchTabItems("home"), force);
     case "subscriptions": {
       const filter = subsFilter === "shorts" ? "shorts" : "all";
       return fetchWithCache(
         cacheKey("subscriptions", filter),
-        () =>
-          filter === "shorts" ? fetchShortsItems() : fetchSubscriptionsItems(),
+        () => fetchTabItems(filter === "shorts" ? "shorts" : "subscriptions"),
         force,
       );
     }

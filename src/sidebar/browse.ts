@@ -1,7 +1,8 @@
 import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
 import type { FeedResultMessage } from "../browse/messages";
-import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../youtube";
-import { $, formatDuration } from "./dom";
+import { getYouTubeVideoId, youtubeWatchUrl } from "../youtube";
+import { $ } from "./dom";
+import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
 import { getCurrentWatchUrl, renderRelatedPreview } from "./player";
 import { setActiveView } from "./views";
@@ -48,6 +49,18 @@ function setFeedBusy(busy: boolean): void {
   }
 }
 
+function setSearchBusy(busy: boolean): void {
+  const searchRow = document.querySelector(".search-row");
+  const searchBtn = $("search-btn") as HTMLButtonElement;
+  if (busy) {
+    searchRow?.setAttribute("aria-busy", "true");
+    searchBtn.disabled = true;
+  } else {
+    searchRow?.removeAttribute("aria-busy");
+    searchBtn.disabled = false;
+  }
+}
+
 function updateSegButtons(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
   buttons.forEach((btn) => {
@@ -71,32 +84,7 @@ function updateSubsFilterUI(): void {
 function renderSkeleton(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
-
-  const wrap = document.createElement("div");
-  wrap.className = "skeleton-rows";
-
-  for (let i = 0; i < 5; i++) {
-    const row = document.createElement("div");
-    row.className = "skeleton-row";
-
-    const thumb = document.createElement("div");
-    thumb.className = "skeleton-block skeleton-thumb";
-
-    const lines = document.createElement("div");
-    lines.className = "skeleton-lines";
-
-    for (const cls of ["wide", "mid", "narrow"]) {
-      const line = document.createElement("div");
-      line.className = `skeleton-block skeleton-line ${cls}`;
-      lines.appendChild(line);
-    }
-
-    row.appendChild(thumb);
-    row.appendChild(lines);
-    wrap.appendChild(row);
-  }
-
-  listEl.appendChild(wrap);
+  listEl.appendChild(createSkeletonRows(5));
 }
 
 function refreshCurrentFeed(): void {
@@ -129,6 +117,7 @@ function requestFeed(
   feedItems = [];
   selectedIndex = -1;
   setFeedBusy(true);
+  setSearchBusy(true);
   renderSkeleton();
 
   const refreshBtn = $("feed-refresh");
@@ -168,6 +157,7 @@ function renderFeedList(): void {
     }
 
     setFeedBusy(false);
+    setSearchBusy(false);
 
     if (lastFeedError) {
       clearStatus();
@@ -194,6 +184,7 @@ function renderFeedList(): void {
   }
 
   setFeedBusy(false);
+  setSearchBusy(false);
 
   let lastSection = "";
   const showSectionHeaders =
@@ -208,78 +199,15 @@ function renderFeedList(): void {
       listEl.appendChild(header);
     }
 
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = `feed-row${index === selectedIndex ? " selected" : ""}`;
-    row.setAttribute("aria-label", item.title);
-    row.dataset.index = String(index);
-
-    const thumbWrap = document.createElement("div");
-    thumbWrap.className = "thumb-wrap";
-
-    const thumb = document.createElement("img");
-    thumb.className = "feed-thumb";
-    const fallbackThumb = youtubeThumbnailUrl(item.videoId);
-    thumb.src = item.thumbnailUrl || fallbackThumb;
-    thumb.alt = item.title;
-    thumb.loading = "lazy";
-    thumb.addEventListener("error", () => {
-      if (thumb.src !== fallbackThumb) {
-        thumb.src = fallbackThumb;
-      }
-    });
-
-    thumbWrap.appendChild(thumb);
-
-    if (item.durationLabel) {
-      const badge = document.createElement("span");
-      badge.className = "duration-badge";
-      badge.textContent = item.durationLabel;
-      thumbWrap.appendChild(badge);
-    }
-
-    if (typeof item.resumeSeconds === "number" && item.resumeSeconds > 0) {
-      const resume = document.createElement("span");
-      resume.className = "resume-badge";
-      resume.textContent = "Resume";
-      thumbWrap.appendChild(resume);
-    }
-
-    const meta = document.createElement("div");
-    meta.className = "feed-meta";
-
-    const title = document.createElement("p");
-    title.className = "feed-title";
-    title.textContent = item.title;
-
-    const channel = document.createElement("p");
-    channel.className = "feed-channel";
-    channel.textContent = item.channelTitle;
-
-    const extra = document.createElement("p");
-    extra.className = "feed-extra";
-    const parts: string[] = [];
-    if (typeof item.resumeSeconds === "number" && item.resumeSeconds > 0) {
-      parts.push(`Resume at ${formatDuration(item.resumeSeconds)}`);
-    }
-    if (item.publishedAt) {
-      parts.push(item.publishedAt);
-    }
-    extra.textContent = parts.join(" · ");
-
-    meta.appendChild(title);
-    meta.appendChild(channel);
-    if (parts.length) {
-      meta.appendChild(extra);
-    }
-
-    row.appendChild(thumbWrap);
-    row.appendChild(meta);
-
-    row.addEventListener("click", () => {
-      selectedIndex = index;
-      renderFeedList();
-      playItem(item);
+    const row = createFeedRow({
+      item,
+      index,
+      selected: index === selectedIndex,
+      onClick: (clickedItem, clickedIndex) => {
+        selectedIndex = clickedIndex;
+        renderFeedList();
+        playItem(clickedItem);
+      },
     });
 
     listEl.appendChild(row);
@@ -325,6 +253,7 @@ function handleFeedResult(data: FeedResultMessage): void {
 
   if (data.tab === "related" && feedItems.length > 0) {
     const videoId = getYouTubeVideoId(getCurrentWatchUrl()) || "";
+    loadedTabs.add("related-preview");
     renderRelatedPreview(videoId, feedItems);
   }
 }
@@ -439,6 +368,16 @@ function scrollSelectedIntoView(): void {
   row?.scrollIntoView({ block: "nearest" });
 }
 
+export function ensureBrowseFeedLoaded(): void {
+  if (activeTab === "search") {
+    return;
+  }
+  const key = feedCacheKey(activeTab);
+  if (!loadedTabs.has(key)) {
+    requestFeed(activeTab);
+  }
+}
+
 export function initBrowsePanel(): void {
   setupTabs();
   setupSubsFilter();
@@ -460,13 +399,28 @@ export function initBrowsePanel(): void {
   });
 
   onPluginMessage("watchUrlChanged", () => {
-    if (activeTab === "related" || activeTab === "history") {
-      requestFeed(activeTab);
+    loadedTabs.delete("related");
+    loadedTabs.delete("related-preview");
+    if (activeTab === "related") {
+      requestFeed("related");
+    }
+  });
+
+  onPluginMessage("historyStale", () => {
+    loadedTabs.delete("history");
+    if (activeTab === "history") {
+      requestFeed("history");
     }
   });
 
   onPluginMessage("feedsStale", () => {
     loadedTabs.clear();
     refreshCurrentFeed();
+  });
+
+  onPluginMessage("browseReady", () => {
+    if (!loadedTabs.has(feedCacheKey("home"))) {
+      requestFeed("home");
+    }
   });
 }
