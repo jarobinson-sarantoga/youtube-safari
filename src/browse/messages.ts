@@ -1,24 +1,6 @@
 import type { FeedItem, FeedTab, SubsFilter } from "./types";
 import type { PanelPayload } from "../sidebar-state";
 
-/** Sidebar → plugin: proxied HTTP request. */
-export interface HttpRequestMessage {
-  id: string;
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  url: string;
-  headers?: Record<string, string>;
-  body?: string;
-}
-
-/** Plugin → sidebar: HTTP response. */
-export interface HttpResponseMessage {
-  id: string;
-  status: number;
-  body: string;
-  headers?: Record<string, string>;
-  error?: string;
-}
-
 /** Sidebar → plugin: play a YouTube watch URL. */
 export interface PlayVideoMessage {
   videoId: string;
@@ -43,6 +25,7 @@ export interface FeedResultMessage {
   emptyHint?: string;
   subsFilter?: SubsFilter;
   requestId?: number;
+  query?: string;
 }
 
 /** Plugin → sidebar: current playback state. */
@@ -55,7 +38,6 @@ export interface PlayerStateMessage {
 }
 
 export type SidebarToPluginMessage =
-  | { name: "httpRequest"; data: HttpRequestMessage }
   | { name: "playVideo"; data: PlayVideoMessage }
   | { name: "browseRefresh"; data: BrowseRefreshMessage }
   | { name: "sidebarReady"; data: Record<string, never> }
@@ -67,7 +49,6 @@ export type SidebarToPluginMessage =
   | { name: "refreshPanel"; data: Record<string, never> };
 
 export type PluginToSidebarMessage =
-  | { name: "httpResponse"; data: HttpResponseMessage }
   | { name: "feedResult"; data: FeedResultMessage }
   | { name: "playerState"; data: PlayerStateMessage }
   | { name: "panel"; data: PanelPayload }

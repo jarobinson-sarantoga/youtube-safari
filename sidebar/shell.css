@@ -194,6 +194,7 @@ body {
 .related-row:focus-visible,
 .icon-btn:focus-visible,
 .search-btn:focus-visible,
+.search-input:focus-visible,
 .feed-retry:focus-visible,
 .quality-retry:focus-visible {
   outline: none;
@@ -206,6 +207,7 @@ body {
 .related-row:focus-visible,
 .icon-btn:focus-visible,
 .search-btn:focus-visible,
+.search-input:focus-visible,
 .feed-retry:focus-visible,
 .quality-retry:focus-visible {
   border-color: var(--accent-border);

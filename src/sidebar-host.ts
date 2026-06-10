@@ -103,30 +103,8 @@ export function schedulePanelPush(): void {
   }, 300);
 }
 
-/** IINA clears sidebar.onMessage listeners when loadFile runs — register after every load. */
-function registerSidebarMessageHandlers(): void {
-  sidebar.onMessage("sidebarReady", () => {
-    sidebarWebViewReady = true;
-    appendLog("Sidebar ready");
-    registerBrowseHandlers();
-    sidebar.postMessage("browseReady", {});
-
-    if (lastPanelPayload) {
-      sidebar.postMessage("panel", lastPanelPayload);
-      lastPushedPanelJson = JSON.stringify(lastPanelPayload);
-    } else {
-      postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
-    }
-    schedulePanelPush();
-
-    const watchUrl = getLastWatchUrl();
-    if (isYouTubeWatchURL(watchUrl)) {
-      void postRelatedPreview(watchUrl);
-    }
-
-    applyPendingSidebarReveal();
-  });
-
+/** IINA clears sidebar.onMessage listeners when loadFile runs — re-register after each load. */
+function registerPluginSidebarListeners(): void {
   sidebar.onMessage("selectQuality", (data: { height?: number }) => {
     appendLog(`selectQuality received: ${JSON.stringify(data)}`);
     const height = data?.height;
@@ -169,6 +147,31 @@ function registerSidebarMessageHandlers(): void {
   });
 }
 
+function registerSidebarMessageHandlers(): void {
+  sidebar.onMessage("sidebarReady", () => {
+    sidebarWebViewReady = true;
+    appendLog("Sidebar ready");
+    registerBrowseHandlers();
+    registerPluginSidebarListeners();
+    sidebar.postMessage("browseReady", {});
+
+    if (lastPanelPayload) {
+      sidebar.postMessage("panel", lastPanelPayload);
+      lastPushedPanelJson = JSON.stringify(lastPanelPayload);
+    } else {
+      postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
+    }
+    schedulePanelPush();
+
+    const watchUrl = getLastWatchUrl();
+    if (isYouTubeWatchURL(watchUrl)) {
+      void postRelatedPreview(watchUrl);
+    }
+
+    applyPendingSidebarReveal();
+  });
+}
+
 function applyPendingSidebarReveal(): void {
   if (pendingSidebarReveal === null || !sidebarHtmlLoaded || !sidebarWebViewReady) {
     return;
@@ -195,6 +198,7 @@ function loadSidebarHtml(): void {
   }
   sidebar.loadFile("sidebar/shell.html");
   registerSidebarMessageHandlers();
+  registerPluginSidebarListeners();
   sidebarHtmlLoaded = true;
   appendLog("Sidebar HTML loaded");
   schedulePanelPush();

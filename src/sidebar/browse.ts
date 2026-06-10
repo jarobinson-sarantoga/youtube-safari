@@ -106,7 +106,9 @@ function updateSubsFilterUI(): void {
   const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
     const filter = btn.dataset.subsFilter as SubsFilter | undefined;
-    btn.classList.toggle("active", filter === activeSubsFilter);
+    const isActive = filter === activeSubsFilter;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 }
 
@@ -279,6 +281,12 @@ function handleFeedResult(data: NonNullable<ReturnType<typeof parseFeedResult>>)
     (data.subsFilter || "all") !== activeSubsFilter
   ) {
     return;
+  }
+  if (data.tab === "search") {
+    const currentQuery = ($("search-input") as HTMLInputElement).value.trim();
+    if ((data.query ?? "") !== currentQuery) {
+      return;
+    }
   }
 
   feedLoading = false;

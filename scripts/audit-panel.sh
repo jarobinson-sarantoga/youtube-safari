@@ -190,6 +190,19 @@ else
   fail "cookie health startup wiring incomplete"
 fi
 
+if grep -q "registerBrowseHandlers" "$ROOT/src/sidebar-host.ts"; then
+  pass "sidebar-host re-registers browse handlers on sidebarReady"
+else
+  fail "sidebar-host missing registerBrowseHandlers on sidebarReady"
+fi
+
+if grep -q "getListedTitle" "$ROOT/src/sidebar-host.ts" \
+  && grep -q "buildPanelPayload" "$ROOT/src/sidebar-host.ts"; then
+  pass "buildPanelPayload uses getListedTitle from native-menus"
+else
+  fail "buildPanelPayload missing getListedTitle wiring"
+fi
+
 echo "---"
 echo "Passed: $PASS  Failed: $FAIL"
 [[ "$FAIL" -eq 0 ]]

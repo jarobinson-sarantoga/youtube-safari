@@ -42,6 +42,7 @@ export function parseFeedResult(raw: unknown): FeedResultMessage | null {
     emptyHint: typeof data.emptyHint === "string" ? data.emptyHint : undefined,
     subsFilter: parsedSubsFilter,
     requestId: typeof data.requestId === "number" ? data.requestId : undefined,
+    query: typeof data.query === "string" ? data.query : undefined,
   };
 }
 
