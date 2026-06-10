@@ -60,5 +60,18 @@
     </label>
     <p class="pref-help">When off, only runs on_load_fail instead of on_load.</p>
   </div>
+
+  <div class="pref-section">
+    <strong>Browse (advanced)</strong>
+    <p class="pref-help">Optional YouTube Data API v3 key for search when enabled below. Default search uses InnerTube + Safari cookies.</p>
+    <label>Data API key</label>
+    <input type="text" data-pref-key="data_api_key" placeholder="Optional" />
+    <label style="margin-top:8px;">
+      <input type="checkbox" data-pref-key="browse_use_data_api" />
+      Use Data API for search (when key is set)
+    </label>
+    <label>Cache TTL (minutes)</label>
+    <input type="text" data-pref-key="browse_cache_ttl_minutes" placeholder="30" />
+  </div>
 </body>
 </html>

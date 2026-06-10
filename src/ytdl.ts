@@ -190,7 +190,9 @@ export async function listYouTubePlaylist(url: string): Promise<PlaylistListing>
   };
 }
 
-export async function extractYouTube(url: string): Promise<ResolvedStream | null> {
+let resolveQueue: Promise<unknown> = Promise.resolve();
+
+async function extractYouTubeOnce(url: string): Promise<ResolvedStream | null> {
   const script = resolveScriptPath();
   if (!utils.fileInPath(script)) {
     throw new Error(`resolve script not found at ${script}`);
@@ -232,4 +234,14 @@ export async function extractYouTube(url: string): Promise<ResolvedStream | null
     audioUrl: payload.audio || null,
     headers: { "User-Agent": payload.ua || "Mozilla/5.0" },
   };
+}
+
+/** Serialize yt-dlp resolves — parallel browse clicks were starving each other. */
+export async function extractYouTube(url: string): Promise<ResolvedStream | null> {
+  const queued = resolveQueue.then(
+    () => extractYouTubeOnce(url),
+    () => extractYouTubeOnce(url),
+  );
+  resolveQueue = queued.catch(() => {});
+  return queued;
 }

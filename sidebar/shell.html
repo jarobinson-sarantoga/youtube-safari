@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube</title>
+  <link rel="stylesheet" href="shell.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="shell-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">YouTube</span>
+      </div>
+      <nav class="view-nav" role="tablist" aria-label="Panel views">
+        <button type="button" class="view-btn" data-view="browse" role="tab" aria-selected="false">Browse</button>
+        <button type="button" class="view-btn active" data-view="player" role="tab" aria-selected="true">Now Playing</button>
+      </nav>
+    </header>
+
+    <!-- Browse view -->
+    <section class="view browse-view" id="browse-view" role="tabpanel" hidden>
+      <div class="toolbar">
+        <div class="search-row">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input
+            type="search"
+            class="search-input"
+            id="search-input"
+            placeholder="Search YouTube"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" class="search-btn" id="search-btn">Search</button>
+        </div>
+        <button type="button" class="icon-btn" id="feed-refresh" title="Refresh feed" aria-label="Refresh feed">↻</button>
+      </div>
+
+      <div class="segmented" role="tablist" aria-label="Feeds">
+        <button type="button" class="seg-btn active" data-tab="home">Home</button>
+        <button type="button" class="seg-btn" data-tab="subscriptions">Subs</button>
+        <button type="button" class="seg-btn" data-tab="related">Related</button>
+        <button type="button" class="seg-btn" data-tab="history">History</button>
+      </div>
+
+      <div class="subs-filter hidden" id="subs-filter" role="tablist" aria-label="Subscription filter">
+        <button type="button" class="subs-filter-btn active" data-subs-filter="all">All</button>
+        <button type="button" class="subs-filter-btn" data-subs-filter="shorts">Shorts</button>
+      </div>
+
+      <div class="feed-status" id="feed-status"></div>
+      <div class="feed-list" id="feed-list" tabindex="0"></div>
+    </section>
+
+    <!-- Player view -->
+    <section class="view player-view active" id="player-view" role="tabpanel">
+      <div class="player-hero" id="player-hero">
+        <img class="player-thumb hidden" id="player-thumb" alt="" />
+        <div class="player-hero-overlay">
+          <p class="player-hero-title" id="video-title">No YouTube video</p>
+          <p class="player-hero-sub" id="player-hero-sub">Open a video to see details</p>
+        </div>
+      </div>
+
+      <div class="player-progress-block" id="player-progress-block">
+        <div class="progress-track" id="progress-track" aria-hidden="true">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-times">
+          <span id="player-time-pos">0:00</span>
+          <span id="player-time-dur">0:00</span>
+        </div>
+      </div>
+
+      <div class="section player-description-section" id="description-section">
+        <p class="section-title">Description</p>
+        <div class="description empty" id="description">Open a YouTube video to see its description.</div>
+      </div>
+
+      <div class="player-sections">
+        <div class="section" id="quality-section">
+          <div class="section-head">
+            <p class="section-title">Quality</p>
+            <span class="quality-status" id="quality-status">Updating…</span>
+          </div>
+          <select id="quality-list" class="quality-select" aria-label="Video quality"></select>
+        </div>
+
+        <div class="section" id="chapters-section">
+          <p class="section-title">Chapters</p>
+          <select id="chapter-list" class="chapter-select" aria-label="Video chapters" disabled>
+            <option value="">Open a YouTube video to see chapters.</option>
+          </select>
+        </div>
+
+        <div class="section" id="related-preview-section">
+          <p class="section-title">Related</p>
+          <div class="related-preview empty" id="related-preview">Play a video to see related videos.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../dist/sidebar/shell.js"></script>
+</body>
+</html>

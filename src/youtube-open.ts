@@ -8,7 +8,7 @@ import {
 import { openYouTubePlaylist } from "./playlist";
 import { appendLog } from "./ytdl";
 
-const { core, utils } = iina;
+const { core, mpv, utils } = iina;
 
 let pendingSeekSeconds: number | null = null;
 

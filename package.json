@@ -1,9 +1,9 @@
 {
   "name": "youtube-safari",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Thin YouTube-only IINA plugin with Safari cookies and Referer headers",
   "scripts": {
-    "build": "rm -rf dist && parcel build .",
+    "build": "rm -rf dist && parcel build . && node --check dist/index.js && node --check dist/global.js",
     "watch": "parcel watch ."
   },
   "author": "jarobinson",
@@ -24,6 +24,15 @@
       "distDir": "./dist/",
       "source": "src/global.ts",
       "isLibrary": false
+    },
+    "sidebarShell": {
+      "distDir": "./dist/",
+      "source": "src/sidebar/shell.ts",
+      "context": "browser",
+      "isLibrary": false
     }
+  },
+  "dependencies": {
+    "youtubei.js": "^17.0.1"
   }
 }

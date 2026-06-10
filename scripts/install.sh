@@ -73,12 +73,42 @@ echo ""
 echo "Install result:"
 ls -la "$PLUGIN_DIR" | grep -i youtube-safari || echo "  Plugin symlink not found (check iina-plugin link output)"
 
+INPUT_CONF_DIR="$HOME/Library/Application Support/com.colliderli.iina/input_conf"
+PROFILE="$(defaults read com.colliderli.iina currentInputConfigName 2>/dev/null || echo "input")"
+PROFILE_FILE="$INPUT_CONF_DIR/${PROFILE}.conf"
+if [ ! -f "$PROFILE_FILE" ]; then
+  PROFILE_FILE="$INPUT_CONF_DIR/input"
+fi
+BROWSE_MARKER="# youtube-safari: Open YouTube Browse (Shift+Y)"
+BROWSE_BINDING="Shift+y ignore"
+echo "==> Adding Shift+Y to IINA input profile (${PROFILE})"
+if [ -f "$PROFILE_FILE" ]; then
+  if grep -qF "$BROWSE_BINDING" "$PROFILE_FILE"; then
+    echo "    ${PROFILE} already has youtube-safari Shift+Y binding"
+  else
+    if grep -qF "$BROWSE_MARKER" "$PROFILE_FILE"; then
+      # Upgrade comment-only installs from older versions.
+      perl -0pi -e 's/\n# Handled by Plugin.*?\n# Restart IINA after install.*?\n/\n/' "$PROFILE_FILE" 2>/dev/null || true
+    else
+      printf '\n%s\n' "$BROWSE_MARKER" >> "$PROFILE_FILE"
+    fi
+    {
+      echo "# Reserves Shift+Y for Plugin → Open YouTube Browse (com.jarobinson.youtube-safari)."
+      echo "$BROWSE_BINDING"
+    } >> "$PROFILE_FILE"
+    echo "    added Shift+Y binding to input_conf/${PROFILE}"
+  fi
+else
+  echo "    WARNING: input profile not found at $PROFILE_FILE (skipped)"
+fi
+
 echo "==> Disabling official Online Media plugin (prevents race on YouTube URLs)"
 defaults write com.colliderli.iina "PluginEnabled.io.iina.ytdl" -bool false
 defaults write com.colliderli.iina "PluginEnabled.com.jarobinson.youtube-safari" -bool true
 echo "    io.iina.ytdl disabled; com.jarobinson.youtube-safari enabled"
 
 echo ""
-echo "Restart IINA, then try File → Open URL with a YouTube watch link."
-echo "If playback fails, run: bash $ROOT/scripts/refresh-cookies.sh (in Terminal)"
+echo "Restart IINA, then press Shift+Y or use Plugin → Open YouTube Panel."
+echo "If Shift+Y conflicts, check IINA Settings → Key Bindings → Plugin."
+echo "If playback fails, use Plugin → Refresh Safari Cookies (IINA needs Full Disk Access)"
 echo "Done."

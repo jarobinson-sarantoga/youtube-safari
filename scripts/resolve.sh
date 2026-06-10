@@ -178,20 +178,36 @@ print(json.dumps({
 '
 }
 
-for fmt in "${FORMATS[@]}"; do
-  if out="$(resolve_json "$fmt" 2>/dev/null)" && [ -n "$out" ]; then
-    printf '%s\n' "$out"
+attempt_resolve() {
+  local fmt out combined title description
+  for fmt in "${FORMATS[@]}"; do
+    if out="$(resolve_json "$fmt" 2>/dev/null)" && [ -n "$out" ]; then
+      printf '%s\n' "$out"
+      return 0
+    fi
+  done
+
+  combined="$(ytdl --no-warnings --no-playlist -f "18/best" -g -- "$URL" 2>/dev/null | head -1)"
+  if [ -n "$combined" ]; then
+    title="$(ytdl --no-playlist --print "%(title)s" -- "$URL" 2>/dev/null || echo "YouTube")"
+    description="$(ytdl --no-playlist --print "%(description)s" -- "$URL" 2>/dev/null || echo "")"
+    "$PYTHON" -c 'import json,sys; print(json.dumps({"title":sys.argv[1],"description":sys.argv[2],"video":sys.argv[3],"audio":"","ua":"Mozilla/5.0"}))' "$title" "$description" "$combined"
+    return 0
+  fi
+  return 1
+}
+
+attempt=1
+max_attempts=3
+while [ "$attempt" -le "$max_attempts" ]; do
+  if attempt_resolve; then
     exit 0
   fi
+  if [ "$attempt" -lt "$max_attempts" ]; then
+    sleep 2
+  fi
+  attempt=$((attempt + 1))
 done
-
-combined="$(ytdl --no-warnings --no-playlist -f "18/best" -g -- "$URL" 2>/dev/null | head -1)"
-if [ -n "$combined" ]; then
-  title="$(ytdl --no-playlist --print "%(title)s" -- "$URL" 2>/dev/null || echo "YouTube")"
-  description="$(ytdl --no-playlist --print "%(description)s" -- "$URL" 2>/dev/null || echo "")"
-  "$PYTHON" -c 'import json,sys; print(json.dumps({"title":sys.argv[1],"description":sys.argv[2],"video":sys.argv[3],"audio":"","ua":"Mozilla/5.0"}))' "$title" "$description" "$combined"
-  exit 0
-fi
 
 echo '{"error":"resolution failed"}' >&2
 exit 1

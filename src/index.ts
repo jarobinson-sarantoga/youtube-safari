@@ -13,7 +13,7 @@ import {
 import { queueMpvChapters, registerChapterHooks } from "./chapters-mpv";
 import { attachSubtitlesInLoadHook } from "./subtitles";
 import { openYouTubePlaylist } from "./playlist";
-import { peekPendingSeek, setPendingSeek } from "./youtube-open";
+import { openLinkedUrl, peekPendingSeek, setPendingSeek } from "./youtube-open";
 import {
   isGoogleVideoURL,
   getYouTubePlaylistId,
@@ -22,9 +22,10 @@ import {
   normalizeMediaURL,
   parseYouTubeTimestamp,
 } from "./youtube";
+import { installBrowse } from "./browse/init";
 import { appendLog, extractYouTube, type ResolvedStream } from "./ytdl";
 
-const { core, console, event, menu, mpv, preferences } = iina;
+const { core, console, event, global, menu, mpv, preferences } = iina;
 
 const SAFE_PROTOCOLS = new Set(["http", "https"]);
 
@@ -60,7 +61,7 @@ export function applyResolvedStream(resolved: ResolvedStream): void {
   appendLog(`Opened: ${resolved.title}`);
 }
 
-async function handleLoad(next: () => void): Promise<void> {
+async function handleLoad(next?: () => void): Promise<void> {
   const rawUrl = mpv.getString("stream-open-filename");
   const url = normalizeMediaURL(rawUrl);
   appendLog(`on_load hook: ${rawUrl}`);
@@ -69,7 +70,7 @@ async function handleLoad(next: () => void): Promise<void> {
   if (isGoogleVideoURL(rawUrl)) {
     appendLog("googlevideo pass-through (headers only)");
     applyStreamHeaders();
-    next();
+    next?.();
     return;
   }
 
@@ -81,7 +82,7 @@ async function handleLoad(next: () => void): Promise<void> {
       core.osd("Loading YouTube playlist…");
       try {
         await openYouTubePlaylist(url, startSeconds);
-        next();
+        next?.();
         return;
       } catch (err) {
         appendLog(`Playlist load failed: ${err}`);
@@ -104,7 +105,7 @@ async function handleLoad(next: () => void): Promise<void> {
       } else {
         appendLog("Extraction returned no safe playable URL");
         console.error("YouTube Safari: no playable stream URL");
-        core.osd("YouTube failed — refresh cookies in Terminal");
+        core.osd("YouTube failed — Plugin → Refresh Safari Cookies");
         mpv.set("stream-open-filename", "null://");
       }
     } catch (err) {
@@ -115,20 +116,30 @@ async function handleLoad(next: () => void): Promise<void> {
     }
   }
 
-  next();
+  next?.();
 }
-
-menu.addItem(menu.separator());
 
 const tryFirst = preferences.get("try_ytdl_first") !== false;
 const hookName = tryFirst ? "on_load" : "on_load_fail";
 
-// Register the load hook before quality UI init so a menu/sidebar failure
-// cannot prevent YouTube resolution from running.
+// Register load hooks before ANY menu/sidebar init — menu work during init has
+// crashed IINA (MenuController.updatePluginMenu) and prevented hook registration.
 mpv.addHook(hookName, 15, handleLoad);
+mpv.addHook(hookName === "on_load" ? "on_load_fail" : "on_load", 14, handleLoad);
+appendLog(`Player plugin loaded (${hookName} @ priority 15)`);
 console.log(`YouTube (Safari Cookies) registered ${hookName} @ priority 15`);
+
+menu.addItem(menu.separator());
 
 registerChapterHooks();
 
 registerFileLoadedRefresh(event);
 initQualityUI();
+installBrowse();
+
+global.onMessage("openYouTubeWatch", (data: { url?: string }) => {
+  const url = data?.url;
+  if (typeof url === "string" && url.trim()) {
+    openLinkedUrl(url.trim());
+  }
+});

@@ -73,7 +73,7 @@ export function registerChapterHooks(): void {
       pendingMpvChapters = [];
       applyChapterList(list, "on_preloaded");
     }
-    next();
+    next?.();
   });
 }
 

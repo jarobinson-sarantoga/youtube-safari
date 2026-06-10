@@ -55,7 +55,7 @@ ytdl() {
   "$bin" "${cookie_flags[@]}" "$@"
 }
 
-if ! ytdl --no-warnings --dump-json --no-playlist -- "$URL" 2>/dev/null | "$PYTHON" -c '
+PY_SCRIPT='
 import json, sys
 
 MAX_HEIGHT = 2160
@@ -139,7 +139,19 @@ print(json.dumps({
     "chapters": chapters,
     "qualities": qualities,
 }, ensure_ascii=False, separators=(",", ":")))
-'; then
-  echo '{"error":"format listing failed"}' >&2
-  exit 1
-fi
+'
+
+attempt=1
+max_attempts=3
+while [ "$attempt" -le "$max_attempts" ]; do
+  if ytdl --no-warnings --dump-json --no-playlist -- "$URL" 2>/dev/null | "$PYTHON" -c "$PY_SCRIPT"; then
+    exit 0
+  fi
+  if [ "$attempt" -lt "$max_attempts" ]; then
+    sleep 2
+  fi
+  attempt=$((attempt + 1))
+done
+
+echo '{"error":"format listing failed"}' >&2
+exit 1

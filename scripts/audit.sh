@@ -49,6 +49,9 @@ check "official ytdl disabled" test "$(defaults read com.colliderli.iina PluginE
 check "youtube-safari enabled" test "$(defaults read com.colliderli.iina PluginEnabled.com.jarobinson.youtube-safari 2>/dev/null || echo 0)" = "1"
 check "cookies file readable" test -r "$HOME/.config/yt-dlp/cookies.txt"
 
+echo "--- panel ---"
+PANEL_SKIP_BUILD=1 check "panel audit" bash "$ROOT/scripts/audit-panel.sh"
+
 echo "---"
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]
