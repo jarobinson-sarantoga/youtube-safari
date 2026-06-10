@@ -1,49 +1,39 @@
-import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
+import type { FeedItem, FeedTab } from "../browse/types";
 import { parseFeedResult } from "./parse";
-import { getYouTubeVideoId, youtubeWatchUrl } from "../youtube";
+import { youtubeWatchUrl } from "../youtube";
 import { $, createErrorWithRetry } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
 import { getCurrentWatchUrl, renderRelatedPreview } from "./player";
 import { setActiveView } from "./views";
+import {
+  ensureBrowseFeedLoaded,
+  getActiveSubsFilter,
+  getActiveTab,
+  getFeedEmptyHint,
+  getFeedItems,
+  getLastFeedError,
+  getSelectedIndex,
+  handleFeedResult,
+  initFeedController,
+  isFeedLoading,
+  isSubsFilterLoaded,
+  onBrowseReady,
+  onFeedsStale,
+  onHistoryStale,
+  onWatchUrlChanged,
+  refreshCurrentFeed,
+  requestFeed,
+  setActiveTabForSearch,
+  setSelectedIndex,
+  switchSegmentTab,
+} from "./feed-controller";
 
 const SECTION_LABELS: Record<string, string> = {
   relevant: "Most relevant",
   shorts: "Shorts",
   uploads: "All uploads",
 };
-
-let activeTab: FeedTab = "home";
-let activeSubsFilter: SubsFilter = "all";
-let feedItems: FeedItem[] = [];
-let selectedIndex = -1;
-let feedRequestId = 0;
-let feedLoading = false;
-let feedEmptyHint = "";
-let lastFeedError = "";
-const loadedTabs = new Set<string>();
-
-interface FeedSnapshot {
-  items: FeedItem[];
-  statusText: string;
-  emptyHint: string;
-}
-
-const feedSnapshots = new Map<string, FeedSnapshot>();
-
-function feedCacheKey(
-  tab: FeedTab,
-  subsFilter: SubsFilter = activeSubsFilter,
-  query = "",
-): string {
-  if (tab === "subscriptions") {
-    return `subscriptions:${subsFilter}`;
-  }
-  if (tab === "search") {
-    return `search:${query.trim().toLowerCase()}`;
-  }
-  return tab;
-}
 
 function formatFeedCount(n: number): string {
   return `${n} video${n === 1 ? "" : "s"}`;
@@ -57,15 +47,6 @@ function setFeedRefreshSpinning(spinning: boolean): void {
   } else {
     btn.removeAttribute("aria-busy");
   }
-}
-
-function saveFeedSnapshot(tab: FeedTab, subsFilter: SubsFilter, query: string): void {
-  const key = feedCacheKey(tab, subsFilter, query);
-  feedSnapshots.set(key, {
-    items: feedItems,
-    statusText: feedItems.length > 0 ? formatFeedCount(feedItems.length) : "",
-    emptyHint: feedEmptyHint,
-  });
 }
 
 function setStatus(text: string, isError = false): void {
@@ -100,6 +81,7 @@ function setSearchBusy(busy: boolean): void {
 }
 
 function updateSegButtons(): void {
+  const activeTab = getActiveTab();
   const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
   buttons.forEach((btn) => {
     const tab = btn.dataset.tab as FeedTab | undefined;
@@ -110,13 +92,15 @@ function updateSegButtons(): void {
 }
 
 function updateSubsFilterUI(): void {
+  const activeTab = getActiveTab();
+  const activeSubsFilter = getActiveSubsFilter();
   const bar = $("subs-filter");
   const show = activeTab === "subscriptions";
   bar.classList.toggle("hidden", !show);
 
   const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
-    const filter = btn.dataset.subsFilter as SubsFilter | undefined;
+    const filter = btn.dataset.subsFilter as import("../browse/types").SubsFilter | undefined;
     const isActive = filter === activeSubsFilter;
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-selected", isActive ? "true" : "false");
@@ -127,77 +111,6 @@ function renderSkeleton(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
   listEl.appendChild(createSkeletonRows(5));
-}
-
-function refreshCurrentFeed(): void {
-  if (activeTab === "search") {
-    const query = ($("search-input") as HTMLInputElement).value.trim();
-    if (query) {
-      requestFeed("search", query, activeSubsFilter, true);
-    }
-    return;
-  }
-  requestFeed(activeTab, "", activeSubsFilter, true);
-}
-
-function requestFeed(
-  tab: FeedTab,
-  query = "",
-  subsFilter = activeSubsFilter,
-  force = false,
-  background = false,
-): void {
-  activeTab = tab;
-  if (tab === "subscriptions") {
-    activeSubsFilter = subsFilter;
-  }
-  updateSegButtons();
-  updateSubsFilterUI();
-
-  const cacheKey = feedCacheKey(tab, subsFilter, tab === "search" ? query : "");
-  const snapshot = !force ? feedSnapshots.get(cacheKey) : undefined;
-  const keepVisible = background && feedItems.length > 0;
-
-  if (keepVisible) {
-    feedLoading = true;
-    lastFeedError = "";
-    feedEmptyHint = "";
-    setStatus("Refreshing…");
-    setFeedBusy(false);
-    setSearchBusy(false);
-    setFeedRefreshSpinning(true);
-  } else if (snapshot) {
-    feedItems = [...snapshot.items];
-    feedEmptyHint = snapshot.emptyHint;
-    lastFeedError = "";
-    feedLoading = true;
-    selectedIndex = feedItems.length > 0 ? 0 : -1;
-    setStatus(snapshot.statusText || "Refreshing…");
-    setFeedBusy(false);
-    setSearchBusy(false);
-    renderFeedList();
-    setFeedRefreshSpinning(true);
-  } else {
-    setStatus("Loading…");
-    feedLoading = true;
-    feedEmptyHint = "";
-    lastFeedError = "";
-    feedItems = [];
-    selectedIndex = -1;
-    setFeedBusy(true);
-    setSearchBusy(true);
-    renderSkeleton();
-    setFeedRefreshSpinning(true);
-  }
-
-  const requestId = ++feedRequestId;
-  postToPlugin("browseRefresh", {
-    tab,
-    query: tab === "search" ? query : undefined,
-    subsFilter: tab === "subscriptions" ? activeSubsFilter : undefined,
-    force: force || undefined,
-    requestId,
-  });
 }
 
 function playItem(item: FeedItem): void {
@@ -213,6 +126,7 @@ function playItem(item: FeedItem): void {
 }
 
 function updateFeedSelection(): void {
+  const selectedIndex = getSelectedIndex();
   document.querySelectorAll<HTMLElement>(".feed-row[data-index]").forEach((row) => {
     const index = Number.parseInt(row.dataset.index || "", 10);
     row.classList.toggle("selected", index === selectedIndex);
@@ -220,6 +134,14 @@ function updateFeedSelection(): void {
 }
 
 function renderFeedList(): void {
+  const feedItems = getFeedItems();
+  const feedLoading = isFeedLoading();
+  const lastFeedError = getLastFeedError();
+  const feedEmptyHint = getFeedEmptyHint();
+  const activeTab = getActiveTab();
+  const activeSubsFilter = getActiveSubsFilter();
+  const selectedIndex = getSelectedIndex();
+
   const listEl = $("feed-list");
   listEl.innerHTML = "";
   setFeedRefreshSpinning(false);
@@ -270,7 +192,7 @@ function renderFeedList(): void {
       index,
       selected: index === selectedIndex,
       onClick: (clickedItem, clickedIndex) => {
-        selectedIndex = clickedIndex;
+        setSelectedIndex(clickedIndex);
         updateFeedSelection();
         playItem(clickedItem);
       },
@@ -280,62 +202,6 @@ function renderFeedList(): void {
   });
 }
 
-function handleFeedResult(data: NonNullable<ReturnType<typeof parseFeedResult>>): void {
-  if (typeof data.requestId === "number" && data.requestId !== feedRequestId) {
-    return;
-  }
-  if (data.tab !== activeTab) {
-    return;
-  }
-  if (
-    data.tab === "subscriptions" &&
-    (data.subsFilter || "all") !== activeSubsFilter
-  ) {
-    return;
-  }
-  if (data.tab === "search") {
-    const currentQuery = ($("search-input") as HTMLInputElement).value.trim();
-    if ((data.query ?? "") !== currentQuery) {
-      return;
-    }
-  }
-
-  feedLoading = false;
-  setFeedRefreshSpinning(false);
-
-  if (data.error) {
-    lastFeedError = data.error;
-    feedItems = [];
-    feedEmptyHint = "";
-    renderFeedList();
-    return;
-  }
-
-  lastFeedError = "";
-  feedItems = data.items || [];
-  selectedIndex = feedItems.length > 0 ? 0 : -1;
-  feedEmptyHint = !feedItems.length ? data.emptyHint || "" : "";
-  const subsFilter = data.subsFilter || "all";
-  const searchQuery =
-    data.tab === "search" ? ($("search-input") as HTMLInputElement).value.trim() : "";
-  loadedTabs.add(feedCacheKey(data.tab, subsFilter, searchQuery));
-
-  if (feedItems.length) {
-    setStatus(formatFeedCount(feedItems.length));
-  } else {
-    clearStatus();
-  }
-
-  saveFeedSnapshot(data.tab, subsFilter, searchQuery);
-  renderFeedList();
-
-  if (data.tab === "related" && feedItems.length > 0) {
-    const videoId = getYouTubeVideoId(getCurrentWatchUrl()) || "";
-    loadedTabs.add("related-preview");
-    renderRelatedPreview(videoId, feedItems);
-  }
-}
-
 function runSearch(): void {
   const input = $("search-input") as HTMLInputElement;
   const query = input.value.trim();
@@ -343,18 +209,10 @@ function runSearch(): void {
     setStatus("Enter a search query", true);
     return;
   }
-  activeTab = "search";
+  setActiveTabForSearch();
   updateSegButtons();
   updateSubsFilterUI();
   requestFeed("search", query);
-}
-
-function switchSegmentTab(tab: FeedTab): void {
-  const cacheKey = feedCacheKey(tab);
-  if (tab === activeTab && loadedTabs.has(cacheKey) && feedSnapshots.has(cacheKey)) {
-    return;
-  }
-  requestFeed(tab);
 }
 
 function setupTabs(): void {
@@ -402,11 +260,11 @@ function setupSubsFilter(): void {
   const buttons = $("subs-filter").querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const filter = btn.dataset.subsFilter as SubsFilter | undefined;
-      if (!filter || activeTab !== "subscriptions") {
+      const filter = btn.dataset.subsFilter as import("../browse/types").SubsFilter | undefined;
+      if (!filter || getActiveTab() !== "subscriptions") {
         return;
       }
-      if (filter === activeSubsFilter && loadedTabs.has(feedCacheKey("subscriptions", filter))) {
+      if (filter === getActiveSubsFilter() && isSubsFilterLoaded(filter)) {
         return;
       }
       requestFeed("subscriptions", "", filter);
@@ -450,60 +308,73 @@ function setupKeyboard(): void {
       return;
     }
 
+    const feedItems = getFeedItems();
     if (!feedItems.length) {
       return;
     }
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      selectedIndex = Math.min(feedItems.length - 1, selectedIndex + 1);
+      setSelectedIndex(Math.min(feedItems.length - 1, getSelectedIndex() + 1));
       updateFeedSelection();
       scrollSelectedIntoView();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      selectedIndex = Math.max(0, selectedIndex - 1);
+      setSelectedIndex(Math.max(0, getSelectedIndex() - 1));
       updateFeedSelection();
       scrollSelectedIntoView();
     } else if (event.key === "Home") {
       event.preventDefault();
-      selectedIndex = 0;
+      setSelectedIndex(0);
       updateFeedSelection();
       scrollSelectedIntoView();
     } else if (event.key === "End") {
       event.preventDefault();
-      selectedIndex = feedItems.length - 1;
+      setSelectedIndex(feedItems.length - 1);
       updateFeedSelection();
       scrollSelectedIntoView();
-    } else if (event.key === "Enter" && selectedIndex >= 0) {
+    } else if (event.key === "Enter" && getSelectedIndex() >= 0) {
       event.preventDefault();
-      playItem(feedItems[selectedIndex]);
+      playItem(feedItems[getSelectedIndex()]);
     }
   });
 
   listEl.addEventListener("focus", () => {
-    if (selectedIndex < 0 && feedItems.length) {
-      selectedIndex = 0;
+    const feedItems = getFeedItems();
+    if (getSelectedIndex() < 0 && feedItems.length) {
+      setSelectedIndex(0);
       updateFeedSelection();
     }
   });
 }
 
 function scrollSelectedIntoView(): void {
-  const row = document.querySelector<HTMLElement>(`.feed-row[data-index="${selectedIndex}"]`);
+  const row = document.querySelector<HTMLElement>(
+    `.feed-row[data-index="${getSelectedIndex()}"]`,
+  );
   row?.scrollIntoView({ block: "nearest" });
 }
 
-export function ensureBrowseFeedLoaded(): void {
-  if (activeTab === "search") {
-    return;
-  }
-  const key = feedCacheKey(activeTab);
-  if (!loadedTabs.has(key)) {
-    requestFeed(activeTab);
-  }
-}
+export { ensureBrowseFeedLoaded };
 
 export function initBrowsePanel(): void {
+  initFeedController({
+    setStatus,
+    clearStatus,
+    setFeedBusy,
+    setSearchBusy,
+    setFeedRefreshSpinning,
+    renderFeedList,
+    renderSkeleton,
+    updateSegButtons,
+    updateSubsFilterUI,
+    getSearchQuery: () => ($("search-input") as HTMLInputElement).value.trim(),
+    getCurrentWatchUrl,
+    renderRelatedPreview,
+    postBrowseRefresh: (payload) => postToPlugin("browseRefresh", payload),
+    formatFeedCount,
+  });
+
   setupTabs();
   setupSubsFilter();
   setupSearch();
@@ -522,42 +393,8 @@ export function initBrowsePanel(): void {
     ($("search-input") as HTMLInputElement).focus();
   });
 
-  onPluginMessage("watchUrlChanged", () => {
-    loadedTabs.delete("related");
-    loadedTabs.delete("related-preview");
-    feedSnapshots.delete("related");
-    if (activeTab === "related") {
-      requestFeed("related");
-    }
-  });
-
-  onPluginMessage("historyStale", () => {
-    loadedTabs.delete("history");
-    feedSnapshots.delete("history");
-    if (activeTab === "history") {
-      requestFeed("history");
-    }
-  });
-
-  onPluginMessage("feedsStale", () => {
-    loadedTabs.clear();
-    if (feedItems.length > 0) {
-      if (activeTab === "search") {
-        const query = ($("search-input") as HTMLInputElement).value.trim();
-        if (query) {
-          requestFeed("search", query, activeSubsFilter, true, true);
-          return;
-        }
-      }
-      requestFeed(activeTab, "", activeSubsFilter, true, true);
-      return;
-    }
-    refreshCurrentFeed();
-  });
-
-  onPluginMessage("browseReady", () => {
-    if (!loadedTabs.has(feedCacheKey("home"))) {
-      requestFeed("home");
-    }
-  });
+  onPluginMessage("watchUrlChanged", onWatchUrlChanged);
+  onPluginMessage("historyStale", onHistoryStale);
+  onPluginMessage("feedsStale", onFeedsStale);
+  onPluginMessage("browseReady", onBrowseReady);
 }

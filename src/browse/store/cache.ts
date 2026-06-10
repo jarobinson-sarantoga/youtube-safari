@@ -5,11 +5,14 @@ const { file, preferences } = iina;
 const CACHE_PATH = "@data/browse-cache.json";
 const MAX_ENTRIES = 100;
 const DISK_FLUSH_MS = 250;
+export const EMPTY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry<T> {
   key: string;
   savedAt: number;
   data: T;
+  /** When true, use EMPTY_CACHE_TTL_MS instead of browse cache TTL. */
+  empty?: boolean;
 }
 
 interface CacheFile<T> {
@@ -17,6 +20,7 @@ interface CacheFile<T> {
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
+const entryMap = new Map<string, CacheEntry<unknown>>();
 const dirtyKeys = new Set<string>();
 let diskHydrated = false;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -29,15 +33,19 @@ export function browseCacheTtlMs(): number {
   return minutes * 60 * 1000;
 }
 
-function isEntryFresh(savedAt: number, ttl = browseCacheTtlMs()): boolean {
-  return Date.now() - savedAt <= ttl;
+function entryTtl(entry: CacheEntry<unknown>): number {
+  return entry.empty ? EMPTY_CACHE_TTL_MS : browseCacheTtlMs();
+}
+
+function isEntryFresh(entry: CacheEntry<unknown>): boolean {
+  return Date.now() - entry.savedAt <= entryTtl(entry);
 }
 
 function pruneExpiredMemoryEntries(): void {
-  const ttl = browseCacheTtlMs();
   for (const [key, entry] of memoryCache) {
-    if (!isEntryFresh(entry.savedAt, ttl)) {
+    if (!isEntryFresh(entry)) {
       memoryCache.delete(key);
+      entryMap.delete(key);
       if (diskHydrated) {
         markDirty(key);
       }
@@ -54,6 +62,7 @@ function evictOldestMemoryEntries(): void {
     const oldest = sorted.shift();
     if (oldest) {
       memoryCache.delete(oldest[0]);
+      entryMap.delete(oldest[0]);
       if (diskHydrated) {
         markDirty(oldest[0]);
       }
@@ -100,10 +109,11 @@ function hydrateFromDisk(): void {
     return;
   }
   diskHydrated = true;
-  const ttl = browseCacheTtlMs();
   const fileData = readCacheFile<unknown>();
+  entryMap.clear();
   for (const entry of fileData.entries) {
-    if (isEntryFresh(entry.savedAt, ttl)) {
+    if (isEntryFresh(entry)) {
+      entryMap.set(entry.key, entry);
       memoryCache.set(entry.key, entry);
     }
   }
@@ -128,21 +138,7 @@ function flushDirtyToDisk(): void {
   if (dirtyKeys.size === 0) {
     return;
   }
-  const keys = [...dirtyKeys];
   dirtyKeys.clear();
-
-  const fileData = readCacheFile<unknown>();
-  const entryMap = new Map(fileData.entries.map((entry) => [entry.key, entry]));
-
-  for (const key of keys) {
-    const memEntry = memoryCache.get(key);
-    if (memEntry) {
-      entryMap.set(key, memEntry);
-    } else {
-      entryMap.delete(key);
-    }
-  }
-
   writeCacheFile({ entries: evictOldestDiskEntries([...entryMap.values()]) });
 }
 
@@ -151,11 +147,12 @@ export function peekCachedEntry<T>(key: string): { data: T; savedAt: number } | 
   pruneExpiredMemoryEntries();
 
   const memEntry = memoryCache.get(key);
-  if (memEntry && isEntryFresh(memEntry.savedAt)) {
+  if (memEntry && isEntryFresh(memEntry)) {
     return { data: memEntry.data as T, savedAt: memEntry.savedAt };
   }
   if (memEntry) {
     memoryCache.delete(key);
+    entryMap.delete(key);
     markDirty(key);
   }
 
@@ -167,11 +164,17 @@ export function getCached<T>(key: string): T | null {
   return hit ? hit.data : null;
 }
 
-export function setCached<T>(key: string, data: T): void {
+export function setCached<T>(key: string, data: T, options?: { empty?: boolean }): void {
   hydrateFromDisk();
-  const entry: CacheEntry<T> = { key, savedAt: Date.now(), data };
+  const entry: CacheEntry<T> = {
+    key,
+    savedAt: Date.now(),
+    data,
+    empty: options?.empty || undefined,
+  };
 
   memoryCache.set(key, entry as CacheEntry<unknown>);
+  entryMap.set(key, entry as CacheEntry<unknown>);
   evictOldestMemoryEntries();
   markDirty(key);
 }
@@ -182,6 +185,7 @@ export function cacheKey(tab: string, suffix = ""): string {
 
 export function clearCached(key: string): void {
   memoryCache.delete(key);
+  entryMap.delete(key);
   if (diskHydrated) {
     markDirty(key);
   }
@@ -194,6 +198,7 @@ export function clearBrowseCache(): void {
   }
   dirtyKeys.clear();
   memoryCache.clear();
+  entryMap.clear();
   diskHydrated = true;
   try {
     if (file.exists(CACHE_PATH)) {

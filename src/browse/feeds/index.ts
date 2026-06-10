@@ -1,5 +1,5 @@
 import type { FeedTab, SubsFilter } from "../types";
-import { cacheKey, clearCached, getCached, setCached } from "../store/cache";
+import { cacheKey, clearCached, peekCachedEntry, setCached } from "../store/cache";
 import { getHistoryItems } from "../store/history";
 import { getLastWatchUrl } from "../../preferences";
 import { getYouTubeVideoId } from "../../youtube";
@@ -28,9 +28,9 @@ async function fetchWithCache(
   force = false,
 ): Promise<FeedFetchResult> {
   if (!force) {
-    const cached = getCached<import("../types").FeedItem[]>(key);
-    if (cached?.length) {
-      return { items: cached };
+    const cached = peekCachedEntry<import("../types").FeedItem[]>(key);
+    if (cached) {
+      return { items: cached.data };
     }
   }
 
@@ -45,13 +45,16 @@ async function fetchWithCache(
       if (inflight.get(key) !== promise) {
         return result;
       }
+      if (result.error) {
+        if (force) {
+          clearCached(key);
+        }
+        return result;
+      }
       if (result.items.length) {
         setCached(key, result.items);
-      } else if (force) {
-        clearCached(key);
-      }
-      if (force && result.error) {
-        clearCached(key);
+      } else {
+        setCached(key, [], { empty: true });
       }
       return result;
     } catch (err) {

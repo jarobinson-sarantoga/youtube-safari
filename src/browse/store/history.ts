@@ -13,6 +13,7 @@ const { file } = iina;
 
 const HISTORY_PATH = "@data/watch-history.json";
 const MAX_ENTRIES = 200;
+const DISK_FLUSH_MS = 250;
 
 let skipNextWatchEnd = false;
 let lastWrittenPosition = -1;
@@ -21,6 +22,11 @@ let progressWriteTimer: ReturnType<typeof setTimeout> | null = null;
 let activeVideoId = "";
 let pendingProgress: { videoId: string; position: number; duration: number } | null =
   null;
+
+let historyData: HistoryFile | null = null;
+let historyHydrated = false;
+let historyDirty = false;
+let historyFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Skip the next end-file history update (e.g. quality reload on the same video). */
 export function suppressNextWatchEnd(): void {
@@ -42,7 +48,7 @@ interface HistoryFile {
   entries: HistoryEntry[];
 }
 
-function readHistory(): HistoryFile {
+function readHistoryFromDisk(): HistoryFile {
   if (!file.exists(HISTORY_PATH)) {
     return { entries: [] };
   }
@@ -61,12 +67,50 @@ function readHistory(): HistoryFile {
   return { entries: [] };
 }
 
-function writeHistory(data: HistoryFile): void {
+function writeHistoryToDisk(data: HistoryFile): void {
   try {
     file.write(HISTORY_PATH, JSON.stringify(data, null, 2));
   } catch (err) {
     appendLog(`history write error: ${err}`);
   }
+}
+
+function hydrateHistory(): void {
+  if (historyHydrated) {
+    return;
+  }
+  historyHydrated = true;
+  historyData = readHistoryFromDisk();
+}
+
+function getHistoryData(): HistoryFile {
+  hydrateHistory();
+  return historyData!;
+}
+
+function scheduleHistoryFlush(): void {
+  historyDirty = true;
+  if (historyFlushTimer !== null) {
+    return;
+  }
+  historyFlushTimer = setTimeout(() => {
+    historyFlushTimer = null;
+    flushHistoryToDisk();
+  }, DISK_FLUSH_MS);
+}
+
+function flushHistoryToDisk(): void {
+  if (!historyDirty || !historyData) {
+    return;
+  }
+  historyDirty = false;
+  writeHistoryToDisk(historyData);
+}
+
+function writeHistory(data: HistoryFile): void {
+  historyData = data;
+  historyHydrated = true;
+  scheduleHistoryFlush();
 }
 
 function resumeSecondsForEntry(entry: HistoryEntry): number | undefined {
@@ -82,7 +126,7 @@ function resumeSecondsForEntry(entry: HistoryEntry): number | undefined {
 }
 
 export function getHistoryItems(limit = 50): FeedItem[] {
-  const { entries } = readHistory();
+  const { entries } = getHistoryData();
   return entries.slice(0, limit).map((entry) => ({
     videoId: entry.videoId,
     title: entry.title,
@@ -132,7 +176,7 @@ export function recordWatchStart(
   }
   activeVideoId = videoId;
 
-  const data = readHistory();
+  const data = getHistoryData();
   const existing = data.entries.findIndex((e) => e.videoId === videoId);
   const entry: HistoryEntry = {
     videoId,
@@ -202,7 +246,7 @@ function flushWatchProgress(
     return;
   }
 
-  const data = readHistory();
+  const data = getHistoryData();
   const entry = data.entries.find((e) => e.videoId === videoId);
   if (!entry) {
     return;
@@ -267,7 +311,7 @@ export function markWatchEnded(): void {
     return;
   }
 
-  const data = readHistory();
+  const data = getHistoryData();
   const entry = data.entries.find((e) => e.videoId === videoId);
   if (entry) {
     if (entry.durationSeconds && entry.durationSeconds > 0) {
