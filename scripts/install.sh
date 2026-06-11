@@ -108,6 +108,12 @@ defaults write com.colliderli.iina "PluginEnabled.io.iina.ytdl" -bool false
 defaults write com.colliderli.iina "PluginEnabled.com.jarobinson.youtube-safari" -bool true
 echo "    io.iina.ytdl disabled; com.jarobinson.youtube-safari enabled"
 
+# IINA issue #4688: this workaround blocks startup for minutes when recents point at slow volumes.
+if [ "$(defaults read com.colliderli.iina enableRecentDocumentsWorkaround 2>/dev/null || echo 0)" = "1" ]; then
+  defaults write com.colliderli.iina enableRecentDocumentsWorkaround -bool false
+  echo "    disabled enableRecentDocumentsWorkaround (prevents IINA startup hangs)"
+fi
+
 echo ""
 echo "Restart IINA, then press Shift+Y or use Plugin → Open YouTube Panel."
 echo "If Shift+Y conflicts, check IINA Settings → Key Bindings → Plugin."

@@ -24,6 +24,7 @@ import {
 } from "./youtube";
 import { installBrowse } from "./browse/init";
 import { isShuttingDown } from "./lifecycle";
+import { getLastWatchUrl } from "./preferences";
 import { appendLog, extractYouTube, type ResolvedStream } from "./ytdl";
 
 const { core, console, event, global, menu, mpv, preferences } = iina;
@@ -170,4 +171,23 @@ const bootIdle =
   bootFilename === "-" ||
   bootFilename === "/dev/null" ||
   bootFilename.endsWith("null://");
+let idleBootstrapDone = false;
+
+function maybeOpenLastWatchOnIdleLaunch(): void {
+  if (idleBootstrapDone || !bootIdle || isShuttingDown()) {
+    return;
+  }
+  const lastWatch = getLastWatchUrl();
+  if (!isYouTubeWatchURL(lastWatch)) {
+    return;
+  }
+  idleBootstrapDone = true;
+  appendLog(`Idle dock bootstrap: ${lastWatch}`);
+  openLinkedUrl(lastWatch);
+}
+
+event.on("iina.window-loaded", () => {
+  maybeOpenLastWatchOnIdleLaunch();
+});
+
 global.postMessage("playerReady", { idle: bootIdle });

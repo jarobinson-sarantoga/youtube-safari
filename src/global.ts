@@ -7,9 +7,7 @@ import {
   stopOpenUrlQueuePoller,
   takePendingWatchUrl,
 } from "./open-url-global";
-import { getLastWatchUrl } from "./preferences";
 import { appendLog, getLogPath } from "./ytdl";
-import { isYouTubeWatchURL } from "./youtube";
 
 const { global, menu, preferences, utils, console } = iina;
 
@@ -19,7 +17,6 @@ let activePlayerId: number | null = null;
 let pendingBrowse = false;
 let playerConfirmedReady = false;
 let pendingCookieRefreshNotify = false;
-let idleBootstrapTimer: ReturnType<typeof setTimeout> | null = null;
 let livePlayerCount = 0;
 
 const playerCoordinator = {
@@ -57,27 +54,7 @@ async function runCookieRefreshScript(script: string): Promise<{
   return utils.exec("/bin/bash", [script]);
 }
 
-function cancelIdleBootstrap(): void {
-  if (!idleBootstrapTimer) {
-    return;
-  }
-  clearTimeout(idleBootstrapTimer);
-  idleBootstrapTimer = null;
-}
-
-function scheduleIdleLastWatch(playerId: number, url: string): void {
-  cancelIdleBootstrap();
-  idleBootstrapTimer = setTimeout(() => {
-    idleBootstrapTimer = null;
-    if (activePlayerId !== playerId || !playerConfirmedReady) {
-      return;
-    }
-    global.postMessage(playerId, "openYouTubeWatch", { url });
-    appendLog(`Posted last watch on idle player ready: ${url}`);
-  }, 0);
-}
-
-global.onMessage("playerReady", (data: { idle?: boolean } | undefined, playerId) => {
+global.onMessage("playerReady", (_data: { idle?: boolean } | undefined, playerId) => {
   if (playerId === null || playerId === undefined) {
     return;
   }
@@ -101,12 +78,6 @@ global.onMessage("playerReady", (data: { idle?: boolean } | undefined, playerId)
     return;
   }
 
-  const lastWatch = getLastWatchUrl();
-  if (data?.idle && isYouTubeWatchURL(lastWatch)) {
-    scheduleIdleLastWatch(playerId, lastWatch);
-    return;
-  }
-
   drainPendingWatchUrl(playerId, playerCoordinator);
 
   if (pendingBrowse && !hasPendingWatchUrl()) {
@@ -120,7 +91,6 @@ global.onMessage("playerClosed", (_data, playerId) => {
     return;
   }
   livePlayerCount = Math.max(0, livePlayerCount - 1);
-  cancelIdleBootstrap();
   clearPendingWatchUrl();
   pendingBrowse = false;
   if (activePlayerId === playerId) {

@@ -69,8 +69,11 @@ check "player menu separator deferred to window-loaded" \
   rg -q "installPlayerMenuSeparator" "$ROOT/src/quality-ui.ts"
 check "menu forceUpdate deferred via scheduleMenuForceUpdate" \
   rg -q "scheduleMenuForceUpdate" "$ROOT/src/native-menus.ts"
-check "idle playerReady payload for dock bootstrap" \
-  rg -q 'playerReady.*idle' "$ROOT/src/index.ts"
+check "idle dock bootstrap deferred to window-loaded" \
+  rg -q 'maybeOpenLastWatchOnIdleLaunch' "$ROOT/src/index.ts" && \
+  rg -q 'iina.window-loaded' "$ROOT/src/index.ts"
+check "no global idle last-watch bootstrap" \
+  bash -c "! rg -n 'scheduleIdleLastWatch|Posted last watch on idle' '$ROOT/src/global.ts'"
 check "on_load hook always calls next in finally" \
   rg -q 'finally' "$ROOT/src/index.ts" && rg -q 'next\?\.' "$ROOT/src/index.ts"
 check "shutdown guard in on_load" \
