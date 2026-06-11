@@ -13,6 +13,25 @@ let lastListedTitle = "";
 let lastListedDescription = "";
 let lastListedChapters: DescriptionChapter[] = [];
 let menuUpdatesEnabled = false;
+let menuForceUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Defer forceUpdate — calling it during plugin init crashes IINA (recursive libdispatch lock). */
+function scheduleMenuForceUpdate(): void {
+  if (!menuUpdatesEnabled) {
+    return;
+  }
+  if (menuForceUpdateTimer !== null) {
+    return;
+  }
+  menuForceUpdateTimer = setTimeout(() => {
+    menuForceUpdateTimer = null;
+    try {
+      menu.forceUpdate();
+    } catch (err) {
+      appendLog(`menu.forceUpdate failed: ${err}`);
+    }
+  }, 0);
+}
 
 export function getListedTitle(): string {
   return lastListedTitle;
@@ -115,9 +134,7 @@ export function replaceChapterMenu(chapters: DescriptionChapter[]): void {
   }
 
   menu.addItem(root);
-  if (menuUpdatesEnabled) {
-    menu.forceUpdate();
-  }
+  scheduleMenuForceUpdate();
 }
 
 export function replaceQualityMenu(
@@ -149,7 +166,5 @@ export function replaceQualityMenu(
   }
 
   menu.addItem(root);
-  if (menuUpdatesEnabled) {
-    menu.forceUpdate();
-  }
+  scheduleMenuForceUpdate();
 }

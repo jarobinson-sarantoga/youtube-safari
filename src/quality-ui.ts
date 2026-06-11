@@ -195,12 +195,6 @@ export function initQualityUI(): void {
     },
   });
 
-  try {
-    ensureSidebarLoaded();
-  } catch (err) {
-    appendLog(`Sidebar eager load failed: ${err}`);
-  }
-
   function enableMenuUpdates(): void {
     if (isNativeMenuUpdatesEnabled()) {
       return;
@@ -223,8 +217,6 @@ export function initQualityUI(): void {
     }
   });
 
-  setTimeout(enableMenuUpdates, 0);
-
   registerBrowseShortcut();
 
   postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
@@ -232,6 +224,10 @@ export function initQualityUI(): void {
 
 export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
   const onFileLoaded = (): void => {
+    if (!isNativeMenuUpdatesEnabled()) {
+      enableNativeMenuUpdates();
+    }
+
     ensureExternalAudioSelected();
     ensureSubtitlesSelected();
     applyPendingSeek();
