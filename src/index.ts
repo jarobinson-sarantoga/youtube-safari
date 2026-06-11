@@ -129,13 +129,10 @@ mpv.addHook(hookName === "on_load" ? "on_load_fail" : "on_load", 14, handleLoad)
 appendLog(`Player plugin loaded (${hookName} @ priority 15)`);
 console.log(`YouTube (Safari Cookies) registered ${hookName} @ priority 15`);
 
-menu.addItem(menu.separator());
-
 registerChapterHooks();
 
 registerFileLoadedRefresh(event);
 initQualityUI();
-installBrowse();
 
 global.onMessage("openYouTubeWatch", (data: { url?: string }) => {
   const url = data?.url;
@@ -143,3 +140,6 @@ global.onMessage("openYouTubeWatch", (data: { url?: string }) => {
     openLinkedUrl(url.trim());
   }
 });
+
+installBrowse();
+global.postMessage("playerReady", {});

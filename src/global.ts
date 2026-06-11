@@ -5,7 +5,9 @@ import {
   startOpenUrlQueuePoller,
   takePendingWatchUrl,
 } from "./open-url-global";
+import { getLastWatchUrl } from "./preferences";
 import { appendLog, getLogPath } from "./ytdl";
+import { isYouTubeWatchURL } from "./youtube";
 
 const { global, menu, preferences, utils, console } = iina;
 
@@ -55,6 +57,7 @@ global.onMessage("playerReady", (_data, playerId) => {
   if (playerId === null || playerId === undefined) {
     return;
   }
+  installGlobalMenuItems();
   activePlayerId = playerId;
   playerConfirmedReady = true;
   appendLog(`Player ready: ${playerId}`);
@@ -70,6 +73,15 @@ global.onMessage("playerReady", (_data, playerId) => {
     global.postMessage(playerId, "openYouTubeWatch", { url: watchUrl });
     appendLog(`Posted pending openYouTubeWatch: ${watchUrl}`);
     pendingBrowse = false;
+    return;
+  }
+
+  const lastWatch = getLastWatchUrl();
+  if (isYouTubeWatchURL(lastWatch)) {
+    setTimeout(() => {
+      global.postMessage(playerId, "openYouTubeWatch", { url: lastWatch });
+      appendLog(`Posted last watch on player ready: ${lastWatch}`);
+    }, 0);
     return;
   }
 
@@ -98,7 +110,7 @@ function openYouTubeBrowse(): void {
   if (activePlayerId === null) {
     pendingBrowse = true;
     playerConfirmedReady = false;
-    activePlayerId = global.createPlayerInstance({ enablePlugins: false });
+    activePlayerId = global.createPlayerInstance();
     appendLog(`Created player for browse: ${activePlayerId}`);
     return;
   }
@@ -111,50 +123,63 @@ function openYouTubeBrowse(): void {
   global.postMessage(activePlayerId, "openYouTubeBrowse", {});
 }
 
-menu.addItem(
-  menu.item("Open YouTube Panel", () => {
-    openYouTubeBrowse();
-  }),
-);
+let globalMenuInstalled = false;
 
-menu.addItem(
-  menu.item("Refresh Safari Cookies", () => {
-    void (async () => {
-      appendLog("Refresh Safari Cookies requested");
+function installGlobalMenuItems(): void {
+  if (globalMenuInstalled) {
+    return;
+  }
+  globalMenuInstalled = true;
 
-      const configured = preferences.get("refresh_script") as string | undefined;
-      const script = utils.resolvePath(configured || DEFAULT_REFRESH_SCRIPT);
-      if (!utils.fileInPath(script)) {
-        appendLog(`Missing refresh script: ${script}`);
-        return;
-      }
+  menu.addItem(
+    menu.item("Open YouTube Panel", () => {
+      openYouTubeBrowse();
+    }),
+  );
 
-      const result = await runCookieRefreshScript(script);
-      if (result.status !== 0) {
-        const detail = (result.stderr || result.stdout || "unknown error").trim();
-        appendLog(`Cookie refresh failed (${result.status}): ${detail}`);
-        return;
-      }
+  menu.addItem(
+    menu.item("Refresh Safari Cookies", () => {
+      void (async () => {
+        appendLog("Refresh Safari Cookies requested");
 
-      const output = (result.stdout || "").trim();
-      appendLog(output ? `Cookie refresh OK: ${output}` : "Cookie refresh OK");
-      notifyPlayersCookiesRefreshed();
-    })();
-  }),
-);
+        const configured = preferences.get("refresh_script") as string | undefined;
+        const script = utils.resolvePath(configured || DEFAULT_REFRESH_SCRIPT);
+        if (!utils.fileInPath(script)) {
+          appendLog(`Missing refresh script: ${script}`);
+          return;
+        }
 
-menu.addItem(
-  menu.item("View Log", () => {
-    void (async () => {
-      const logPath = getLogPath();
-      appendLog("View Log opened");
-      const result = await utils.exec("/usr/bin/open", ["-t", logPath]);
-      if (result.status !== 0) {
-        appendLog(`open -t failed: ${result.stderr}`);
-      }
-    })();
-  }),
-);
+        const result = await runCookieRefreshScript(script);
+        if (result.status !== 0) {
+          const detail = (result.stderr || result.stdout || "unknown error").trim();
+          appendLog(`Cookie refresh failed (${result.status}): ${detail}`);
+          return;
+        }
+
+        const output = (result.stdout || "").trim();
+        appendLog(output ? `Cookie refresh OK: ${output}` : "Cookie refresh OK");
+        notifyPlayersCookiesRefreshed();
+      })();
+    }),
+  );
+
+  menu.addItem(
+    menu.item("View Log", () => {
+      void (async () => {
+        const logPath = getLogPath();
+        appendLog("View Log opened");
+        const result = await utils.exec("/usr/bin/open", ["-t", logPath]);
+        if (result.status !== 0) {
+          appendLog(`open -t failed: ${result.stderr}`);
+        }
+      })();
+    }),
+  );
+
+  appendLog("Global plugin menu installed");
+}
+
+setTimeout(installGlobalMenuItems, 250);
 
 startOpenUrlQueuePoller(playerCoordinator);
 notifyCookieHealthIfNeeded();

@@ -71,6 +71,17 @@ export function isNativeMenuUpdatesEnabled(): boolean {
   return menuUpdatesEnabled;
 }
 
+let playerMenuSeparatorInstalled = false;
+
+/** Install after iina.window-loaded — sync menu work during plugin init hangs IINA. */
+export function installPlayerMenuSeparator(): void {
+  if (playerMenuSeparatorInstalled) {
+    return;
+  }
+  playerMenuSeparatorInstalled = true;
+  menu.addItem(menu.separator());
+}
+
 /** IINA typings use addSubMenuItem; runtime may expose addSubmenuItem instead. */
 function addSubmenuItemCompat(parent: IINA.MenuItem, item: IINA.MenuItem): void {
   const parentAny = parent as IINA.MenuItem & { addSubmenuItem?: (child: IINA.MenuItem) => void };

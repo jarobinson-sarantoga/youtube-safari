@@ -150,7 +150,6 @@ export function installBrowse(): void {
     sidebar.postMessage("feedsStale", {});
   });
 
-  global.postMessage("playerReady", {});
   notifyCookieHealthIfNeeded({ osd: true });
   appendLog("Browse module installed");
 }

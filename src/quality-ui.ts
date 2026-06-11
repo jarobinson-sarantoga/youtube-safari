@@ -15,6 +15,7 @@ import { isYouTubeWatchURL, normalizeMediaURL } from "./youtube";
 import {
   clearListedMetadata,
   enableNativeMenuUpdates,
+  installPlayerMenuSeparator,
   isNativeMenuUpdatesEnabled,
   replaceChapterMenu,
   replaceQualityMenu,
@@ -209,6 +210,7 @@ export function initQualityUI(): void {
   });
 
   event.on("iina.window-loaded", () => {
+    installPlayerMenuSeparator();
     enableMenuUpdates();
     try {
       ensureSidebarLoaded();
