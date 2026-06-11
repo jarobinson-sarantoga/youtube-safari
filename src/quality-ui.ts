@@ -6,6 +6,7 @@ import { heightLabel } from "./format";
 import { getLastWatchUrl } from "./preferences";
 import { getSelectedHeight, listQualities } from "./qualities";
 import { DEFAULT_QUALITY_OPTIONS, defaultPanelPayload } from "./sidebar-state";
+import { isShuttingDown } from "./lifecycle";
 import { notifyPlayerStateFromFileLoaded } from "./browse/init";
 import { suppressNextWatchEnd } from "./browse/store/history";
 import { registerBrowseShortcut } from "./shortcuts";
@@ -46,6 +47,9 @@ let refreshInFlight = false;
 let pendingRefresh = false;
 
 export async function refreshQualityUI(): Promise<void> {
+  if (isShuttingDown()) {
+    return;
+  }
   if (refreshInFlight) {
     pendingRefresh = true;
     return;
@@ -112,6 +116,14 @@ export function scheduleRefreshQualityUI(): void {
     refreshTimer = null;
     void refreshQualityUI();
   }, 400);
+}
+
+export function cancelScheduledRefresh(): void {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+  pendingRefresh = false;
 }
 
 export async function switchQuality(height: number): Promise<void> {
@@ -217,6 +229,10 @@ export function initQualityUI(): void {
     } catch (err) {
       appendLog(`Sidebar load on window-loaded failed: ${err}`);
     }
+  });
+
+  event.on("iina.window-will-close", () => {
+    cancelScheduledRefresh();
   });
 
   registerBrowseShortcut();

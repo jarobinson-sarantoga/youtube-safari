@@ -15,6 +15,7 @@ export type PlayerCoordinator = {
 };
 
 let pendingWatchUrl: string | null = null;
+let queuePollerTimer: ReturnType<typeof setInterval> | null = null;
 
 function postWatchUrl(playerId: number, url: string): void {
   global.postMessage(playerId, "openYouTubeWatch", { url });
@@ -80,9 +81,16 @@ export function hasPendingWatchUrl(): boolean {
   return pendingWatchUrl !== null;
 }
 
+export function clearPendingWatchUrl(): void {
+  pendingWatchUrl = null;
+}
+
 /** Poll a CLI-written queue file (scripts/open-url.sh). */
 export function startOpenUrlQueuePoller(coordinator: PlayerCoordinator): void {
-  setInterval(() => {
+  if (queuePollerTimer) {
+    return;
+  }
+  queuePollerTimer = setInterval(() => {
     try {
       const path = utils.resolvePath(OPEN_URL_QUEUE);
       if (!file.exists(path)) {
@@ -102,4 +110,13 @@ export function startOpenUrlQueuePoller(coordinator: PlayerCoordinator): void {
       appendLog(`open-url queue error: ${err}`);
     }
   }, 400);
+}
+
+export function stopOpenUrlQueuePoller(): void {
+  if (!queuePollerTimer) {
+    return;
+  }
+  clearInterval(queuePollerTimer);
+  queuePollerTimer = null;
+  appendLog("Open-url queue poller stopped");
 }

@@ -23,6 +23,7 @@ import {
   parseYouTubeTimestamp,
 } from "./youtube";
 import { installBrowse } from "./browse/init";
+import { isShuttingDown } from "./lifecycle";
 import { appendLog, extractYouTube, type ResolvedStream } from "./ytdl";
 
 const { core, console, event, global, menu, mpv, preferences } = iina;
@@ -62,61 +63,81 @@ export function applyResolvedStream(resolved: ResolvedStream): void {
 }
 
 async function handleLoad(next?: () => void): Promise<void> {
-  const rawUrl = mpv.getString("stream-open-filename");
-  const url = normalizeMediaURL(rawUrl);
-  appendLog(`on_load hook: ${rawUrl}`);
-  appendLog(`normalized: ${url} youtube=${isYouTubeWatchURL(rawUrl)} googlevideo=${isGoogleVideoURL(rawUrl)}`);
-
-  if (isGoogleVideoURL(rawUrl)) {
-    appendLog("googlevideo pass-through (headers only)");
-    applyStreamHeaders();
-    next?.();
-    return;
-  }
-
-  if (isYouTubeWatchURL(rawUrl)) {
-    const startSeconds = parseYouTubeTimestamp(url);
-
-    if (isYouTubePlaylistURL(url)) {
-      appendLog(`Playlist URL detected (list=${getYouTubePlaylistId(url)})`);
-      core.osd("Loading YouTube playlist…");
-      try {
-        await openYouTubePlaylist(url, startSeconds);
-        next?.();
-        return;
-      } catch (err) {
-        appendLog(`Playlist load failed: ${err}`);
-        core.osd("Playlist load failed — opening video");
-        if (startSeconds !== null) {
-          setPendingSeek(startSeconds);
-        }
-      }
-    } else if (startSeconds !== null) {
-      setPendingSeek(startSeconds);
+  try {
+    if (isShuttingDown()) {
+      appendLog("on_load aborted: player shutting down");
+      mpv.set("stream-open-filename", "null://");
+      return;
     }
 
-    core.osd("Resolving YouTube…");
-    try {
-      const resolved = await extractYouTube(url);
-      if (resolved && isSafeURL(resolved.videoUrl)) {
-        applyResolvedStream(resolved);
-        saveWatchUrl(url, resolved.title, resolved.description, resolved.chapters);
-        scheduleRefreshQualityUI();
-      } else {
-        appendLog("Extraction returned no safe playable URL");
-        console.error("YouTube Safari: no playable stream URL");
-        core.osd("YouTube failed — Plugin → Refresh Safari Cookies");
+    const rawUrl = mpv.getString("stream-open-filename");
+    const url = normalizeMediaURL(rawUrl);
+    appendLog(`on_load hook: ${rawUrl}`);
+    appendLog(
+      `normalized: ${url} youtube=${isYouTubeWatchURL(rawUrl)} googlevideo=${isGoogleVideoURL(rawUrl)}`,
+    );
+
+    if (isGoogleVideoURL(rawUrl)) {
+      appendLog("googlevideo pass-through (headers only)");
+      applyStreamHeaders();
+      return;
+    }
+
+    if (isYouTubeWatchURL(rawUrl)) {
+      const startSeconds = parseYouTubeTimestamp(url);
+
+      if (isYouTubePlaylistURL(url)) {
+        appendLog(`Playlist URL detected (list=${getYouTubePlaylistId(url)})`);
+        core.osd("Loading YouTube playlist…");
+        try {
+          await openYouTubePlaylist(url, startSeconds);
+          return;
+        } catch (err) {
+          appendLog(`Playlist load failed: ${err}`);
+          core.osd("Playlist load failed — opening video");
+          if (startSeconds !== null) {
+            setPendingSeek(startSeconds);
+          }
+        }
+      } else if (startSeconds !== null) {
+        setPendingSeek(startSeconds);
+      }
+
+      if (isShuttingDown()) {
+        appendLog("on_load aborted before resolve: player shutting down");
+        mpv.set("stream-open-filename", "null://");
+        return;
+      }
+
+      core.osd("Resolving YouTube…");
+      try {
+        const resolved = await extractYouTube(url);
+        if (isShuttingDown()) {
+          appendLog("on_load resolve aborted: player shutting down");
+          mpv.set("stream-open-filename", "null://");
+          return;
+        }
+        if (resolved && isSafeURL(resolved.videoUrl)) {
+          applyResolvedStream(resolved);
+          saveWatchUrl(url, resolved.title, resolved.description, resolved.chapters);
+          scheduleRefreshQualityUI();
+        } else {
+          appendLog("Extraction returned no safe playable URL");
+          console.error("YouTube Safari: no playable stream URL");
+          core.osd("YouTube failed — Plugin → Refresh Safari Cookies");
+          mpv.set("stream-open-filename", "null://");
+        }
+      } catch (err) {
+        appendLog(`Extraction error: ${err}`);
+        console.error(`YouTube Safari extraction failed: ${err}`);
+        core.osd("YouTube resolution failed");
         mpv.set("stream-open-filename", "null://");
       }
-    } catch (err) {
-      appendLog(`Extraction error: ${err}`);
-      console.error(`YouTube Safari extraction failed: ${err}`);
-      core.osd("YouTube resolution failed");
-      mpv.set("stream-open-filename", "null://");
     }
+  } finally {
+    // Unblock mpv even when quit arrives during yt-dlp resolve.
+    next?.();
   }
-
-  next?.();
 }
 
 const tryFirst = preferences.get("try_ytdl_first") !== false;

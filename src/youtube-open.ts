@@ -6,11 +6,13 @@ import {
   parseYouTubeTimestamp,
 } from "./youtube";
 import { openYouTubePlaylist } from "./playlist";
+import { isShuttingDown } from "./lifecycle";
 import { appendLog } from "./ytdl";
 
 const { core, mpv, utils } = iina;
 
 let pendingSeekSeconds: number | null = null;
+let seekRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function setPendingSeek(seconds: number | null): void {
   if (typeof seconds === "number" && Number.isFinite(seconds) && seconds >= 0) {
@@ -49,14 +51,26 @@ function performSeek(seconds: number): void {
   mpv.command("seek", [String(seconds), "absolute"]);
 }
 
+export function cancelSeekRetries(): void {
+  if (!seekRetryTimer) {
+    return;
+  }
+  clearTimeout(seekRetryTimer);
+  seekRetryTimer = null;
+}
+
 /** Seek via mpv with retries while the DASH stream becomes seekable. */
 export function seekPlayback(seconds: number, label = "playback"): void {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return;
   }
 
+  cancelSeekRetries();
   const maxAttempts = label === "pending" ? 16 : 8;
   const attemptSeek = (tryNum: number): void => {
+    if (isShuttingDown()) {
+      return;
+    }
     performSeek(seconds);
 
     const duration = mpv.getNumber("duration") || 0;
@@ -70,7 +84,10 @@ export function seekPlayback(seconds: number, label = "playback"): void {
       return;
     }
 
-    setTimeout(() => attemptSeek(tryNum + 1), 200);
+    seekRetryTimer = setTimeout(() => {
+      seekRetryTimer = null;
+      attemptSeek(tryNum + 1);
+    }, 200);
   };
 
   attemptSeek(0);
@@ -111,6 +128,10 @@ async function loadYouTubePlaylist(url: string, startSeconds: number | null): Pr
 }
 
 export function openLinkedUrl(url: string): void {
+  if (isShuttingDown()) {
+    appendLog(`Open URL ignored during shutdown: ${url}`);
+    return;
+  }
   const normalized = normalizeMediaURL(url);
   if (!isExternalWebURL(normalized)) {
     return;

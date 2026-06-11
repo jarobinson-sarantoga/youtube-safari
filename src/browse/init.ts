@@ -18,6 +18,8 @@ import {
   youtubeThumbnailUrl,
 } from "../youtube";
 import { notifyCookieHealthIfNeeded } from "../cookie-health";
+import { markPlayerShuttingDown } from "../lifecycle";
+import { cancelSeekRetries } from "../youtube-open";
 import { getLastWatchUrl } from "../preferences";
 import { appendLog } from "../ytdl";
 import type { PlayerStateMessage } from "./messages";
@@ -133,8 +135,10 @@ export function installBrowse(): void {
   registerPlaybackHooks();
 
   event.on("iina.window-will-close", () => {
+    markPlayerShuttingDown();
     stopPlayerStatePolling();
     stopWatchProgressPolling();
+    cancelSeekRetries();
     flushPendingCache();
     flushPendingHistory();
     global.postMessage("playerClosed", {});

@@ -71,6 +71,14 @@ check "menu forceUpdate deferred via scheduleMenuForceUpdate" \
   rg -q "scheduleMenuForceUpdate" "$ROOT/src/native-menus.ts"
 check "idle playerReady payload for dock bootstrap" \
   rg -q 'playerReady.*idle' "$ROOT/src/index.ts"
+check "on_load hook always calls next in finally" \
+  rg -q 'finally' "$ROOT/src/index.ts" && rg -q 'next\?\.' "$ROOT/src/index.ts"
+check "shutdown guard in on_load" \
+  rg -q 'isShuttingDown' "$ROOT/src/index.ts"
+check "open-url poller can be stopped" \
+  rg -q 'stopOpenUrlQueuePoller' "$ROOT/src/open-url-global.ts"
+check "global stops poller on playerClosed" \
+  rg -q 'stopOpenUrlQueuePoller' "$ROOT/src/global.ts"
 
 echo "--- panel ---"
 PANEL_SKIP_BUILD=1 check "panel audit" bash "$ROOT/scripts/audit-panel.sh"

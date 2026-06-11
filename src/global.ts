@@ -1,8 +1,10 @@
 import { notifyCookieHealthIfNeeded } from "./cookie-health";
 import {
+  clearPendingWatchUrl,
   drainPendingWatchUrl,
   hasPendingWatchUrl,
   startOpenUrlQueuePoller,
+  stopOpenUrlQueuePoller,
   takePendingWatchUrl,
 } from "./open-url-global";
 import { getLastWatchUrl } from "./preferences";
@@ -17,6 +19,8 @@ let activePlayerId: number | null = null;
 let pendingBrowse = false;
 let playerConfirmedReady = false;
 let pendingCookieRefreshNotify = false;
+let idleBootstrapTimer: ReturnType<typeof setTimeout> | null = null;
+let livePlayerCount = 0;
 
 const playerCoordinator = {
   getActivePlayerId: () => activePlayerId,
@@ -53,10 +57,32 @@ async function runCookieRefreshScript(script: string): Promise<{
   return utils.exec("/bin/bash", [script]);
 }
 
+function cancelIdleBootstrap(): void {
+  if (!idleBootstrapTimer) {
+    return;
+  }
+  clearTimeout(idleBootstrapTimer);
+  idleBootstrapTimer = null;
+}
+
+function scheduleIdleLastWatch(playerId: number, url: string): void {
+  cancelIdleBootstrap();
+  idleBootstrapTimer = setTimeout(() => {
+    idleBootstrapTimer = null;
+    if (activePlayerId !== playerId || !playerConfirmedReady) {
+      return;
+    }
+    global.postMessage(playerId, "openYouTubeWatch", { url });
+    appendLog(`Posted last watch on idle player ready: ${url}`);
+  }, 0);
+}
+
 global.onMessage("playerReady", (data: { idle?: boolean } | undefined, playerId) => {
   if (playerId === null || playerId === undefined) {
     return;
   }
+  livePlayerCount += 1;
+  startOpenUrlQueuePoller(playerCoordinator);
   activePlayerId = playerId;
   playerConfirmedReady = true;
   appendLog(`Player ready: ${playerId}`);
@@ -77,10 +103,7 @@ global.onMessage("playerReady", (data: { idle?: boolean } | undefined, playerId)
 
   const lastWatch = getLastWatchUrl();
   if (data?.idle && isYouTubeWatchURL(lastWatch)) {
-    setTimeout(() => {
-      global.postMessage(playerId, "openYouTubeWatch", { url: lastWatch });
-      appendLog(`Posted last watch on idle player ready: ${lastWatch}`);
-    }, 0);
+    scheduleIdleLastWatch(playerId, lastWatch);
     return;
   }
 
@@ -96,10 +119,17 @@ global.onMessage("playerClosed", (_data, playerId) => {
   if (playerId === null || playerId === undefined) {
     return;
   }
+  livePlayerCount = Math.max(0, livePlayerCount - 1);
+  cancelIdleBootstrap();
+  clearPendingWatchUrl();
+  pendingBrowse = false;
   if (activePlayerId === playerId) {
     activePlayerId = null;
     playerConfirmedReady = false;
     appendLog(`Player closed: ${playerId}`);
+  }
+  if (livePlayerCount === 0) {
+    stopOpenUrlQueuePoller();
   }
 });
 
@@ -182,7 +212,6 @@ function installGlobalMenuItems(): void {
 // Defer global menu items — sync menu.addItem during player init crashed/hung IINA (June 2026).
 setTimeout(installGlobalMenuItems, 500);
 
-startOpenUrlQueuePoller(playerCoordinator);
 notifyCookieHealthIfNeeded();
-appendLog("Global entry loaded (open-url queue active)");
+appendLog("Global entry loaded");
 console.log("YouTube (Safari Cookies) global entry loaded");
