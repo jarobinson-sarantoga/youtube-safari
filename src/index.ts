@@ -142,4 +142,11 @@ global.onMessage("openYouTubeWatch", (data: { url?: string }) => {
 });
 
 installBrowse();
-global.postMessage("playerReady", {});
+
+const bootFilename = mpv.getString("stream-open-filename") || "";
+const bootIdle =
+  !bootFilename ||
+  bootFilename === "-" ||
+  bootFilename === "/dev/null" ||
+  bootFilename.endsWith("null://");
+global.postMessage("playerReady", { idle: bootIdle });

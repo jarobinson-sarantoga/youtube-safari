@@ -53,11 +53,10 @@ async function runCookieRefreshScript(script: string): Promise<{
   return utils.exec("/bin/bash", [script]);
 }
 
-global.onMessage("playerReady", (_data, playerId) => {
+global.onMessage("playerReady", (data: { idle?: boolean } | undefined, playerId) => {
   if (playerId === null || playerId === undefined) {
     return;
   }
-  installGlobalMenuItems();
   activePlayerId = playerId;
   playerConfirmedReady = true;
   appendLog(`Player ready: ${playerId}`);
@@ -77,10 +76,10 @@ global.onMessage("playerReady", (_data, playerId) => {
   }
 
   const lastWatch = getLastWatchUrl();
-  if (isYouTubeWatchURL(lastWatch)) {
+  if (data?.idle && isYouTubeWatchURL(lastWatch)) {
     setTimeout(() => {
       global.postMessage(playerId, "openYouTubeWatch", { url: lastWatch });
-      appendLog(`Posted last watch on player ready: ${lastWatch}`);
+      appendLog(`Posted last watch on idle player ready: ${lastWatch}`);
     }, 0);
     return;
   }
@@ -110,7 +109,8 @@ function openYouTubeBrowse(): void {
   if (activePlayerId === null) {
     pendingBrowse = true;
     playerConfirmedReady = false;
-    activePlayerId = global.createPlayerInstance();
+    // enablePlugins:false = only this plugin in the new player (IINA global-entry pattern).
+    activePlayerId = global.createPlayerInstance({ enablePlugins: false });
     appendLog(`Created player for browse: ${activePlayerId}`);
     return;
   }
@@ -179,7 +179,8 @@ function installGlobalMenuItems(): void {
   appendLog("Global plugin menu installed");
 }
 
-setTimeout(installGlobalMenuItems, 250);
+// Defer global menu items — sync menu.addItem during player init crashed/hung IINA (June 2026).
+setTimeout(installGlobalMenuItems, 500);
 
 startOpenUrlQueuePoller(playerCoordinator);
 notifyCookieHealthIfNeeded();

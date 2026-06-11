@@ -39,7 +39,7 @@ export function openYouTubeWatchUrl(
     pendingWatchUrl = normalized;
     coordinator.setPlayerConfirmedReady(false);
     // Do not pass url here — wait for playerReady so mpv.addHook is registered first.
-    const playerId = global.createPlayerInstance();
+    const playerId = global.createPlayerInstance({ enablePlugins: false });
     coordinator.setActivePlayerId(playerId);
     appendLog(`Created player for URL: ${playerId} (pending ${normalized})`);
     return;

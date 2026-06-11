@@ -50,6 +50,28 @@ check "official ytdl disabled" test "$(defaults read com.colliderli.iina PluginE
 check "youtube-safari enabled" test "$(defaults read com.colliderli.iina PluginEnabled.com.jarobinson.youtube-safari 2>/dev/null || echo 0)" = "1"
 check "cookies file readable" test -r "$HOME/.config/yt-dlp/cookies.txt"
 
+echo "--- launch guardrails (June 2026 IINA crash pattern) ---"
+check "hooks registered before playerReady post" \
+  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | cut -d: -f1)" -gt \
+       "$(rg -n 'mpv.addHook' "$ROOT/src/index.ts" | tail -1 | cut -d: -f1)"
+check "openYouTubeWatch handler before playerReady post" \
+  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | cut -d: -f1)" -gt \
+       "$(rg -n 'onMessage\("openYouTubeWatch"' "$ROOT/src/index.ts" | cut -d: -f1)"
+check "menu.forceUpdate only inside scheduler" \
+  test "$(rg -c 'menu\.forceUpdate\(\)' "$ROOT/src/native-menus.ts")" -eq 1
+check "no setTimeout enableMenuUpdates bootstrap" \
+  bash -c "! rg -n 'setTimeout\\(enableMenuUpdates' '$ROOT/src'"
+check "no top-level player menu.addItem in index" \
+  bash -c "! rg -n '^menu\\.addItem' '$ROOT/src/index.ts'"
+check "createPlayerInstance without url in open-url-global" \
+  bash -c "! rg -n 'createPlayerInstance\\(\\{[^}]*url' '$ROOT/src/open-url-global.ts'"
+check "player menu separator deferred to window-loaded" \
+  rg -q "installPlayerMenuSeparator" "$ROOT/src/quality-ui.ts"
+check "menu forceUpdate deferred via scheduleMenuForceUpdate" \
+  rg -q "scheduleMenuForceUpdate" "$ROOT/src/native-menus.ts"
+check "idle playerReady payload for dock bootstrap" \
+  rg -q 'playerReady.*idle' "$ROOT/src/index.ts"
+
 echo "--- panel ---"
 PANEL_SKIP_BUILD=1 check "panel audit" bash "$ROOT/scripts/audit-panel.sh"
 
