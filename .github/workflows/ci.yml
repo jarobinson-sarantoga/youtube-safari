@@ -28,9 +28,8 @@ jobs:
           node-version: 22
           cache: npm
       - name: Link plugin and run full audit
-        env:
-          PATH: /opt/homebrew/bin:/usr/local/bin:${{ env.PATH }}
         run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
           npm ci
           bash scripts/install.sh
           bash scripts/audit.sh
