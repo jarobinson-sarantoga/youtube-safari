@@ -1,5 +1,5 @@
 import type { FeedTab, SubsFilter } from "../../browse/types";
-import { $ } from "../dom";
+import { $, setPanelHidden } from "../dom";
 import { createSkeletonRows } from "../feed-row";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -60,26 +60,27 @@ export function updateSegButtons(activeTab: FeedTab): void {
     const tab = btn.dataset.tab as FeedTab | undefined;
     const isActive = tab === activeTab;
     btn.classList.toggle("active", isActive);
-    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    btn.setAttribute("aria-checked", isActive ? "true" : "false");
   });
 }
 
 export function updateSubsFilterUI(activeTab: FeedTab, activeFilter: SubsFilter): void {
   const bar = $("subs-filter");
   const show = activeTab === "subscriptions";
-  bar.classList.toggle("hidden", !show);
+  setPanelHidden(bar, !show);
 
   const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {
     const filter = btn.dataset.subsFilter as SubsFilter | undefined;
     const isActive = filter === activeFilter;
     btn.classList.toggle("active", isActive);
-    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    btn.setAttribute("aria-checked", isActive ? "true" : "false");
   });
 }
 
 export function renderSkeleton(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
+  listEl.tabIndex = -1;
   listEl.appendChild(createSkeletonRows(5));
 }

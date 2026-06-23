@@ -1,7 +1,6 @@
 /* Player view */
 .player-view {
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .player-hero {

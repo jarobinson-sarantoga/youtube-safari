@@ -14,17 +14,22 @@
         <span class="brand-text">YouTube</span>
       </div>
       <nav class="view-nav" role="tablist" aria-label="Panel views">
-        <button type="button" class="view-btn" data-view="browse" role="tab" aria-selected="false" aria-label="Browse">Browse</button>
-        <button type="button" class="view-btn active" data-view="player" role="tab" aria-selected="true" aria-label="Now Playing">Now Playing</button>
+        <button type="button" class="view-btn" id="view-tab-browse" data-view="browse" role="tab" aria-selected="false" aria-controls="browse-view" aria-label="Browse">Browse</button>
+        <button type="button" class="view-btn active" data-view="player" id="view-tab-player" role="tab" aria-selected="true" aria-controls="player-view" aria-label="Now Playing">Now Playing</button>
       </nav>
     </header>
 
     <!-- Browse view -->
-    <section class="view browse-view" id="browse-view" role="tabpanel" hidden>
+    <section class="view browse-view" id="browse-view" role="tabpanel" aria-labelledby="view-tab-browse" hidden>
       <div class="toolbar">
         <div class="search-row">
           <label class="visually-hidden" for="search-input">Search YouTube</label>
-          <span class="search-icon" aria-hidden="true">⌕</span>
+          <span class="search-icon" aria-hidden="true">
+            <svg class="icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="6.75" cy="6.75" r="4.25"></circle>
+              <path d="M10.25 10.25L14 14"></path>
+            </svg>
+          </span>
           <input
             type="search"
             class="search-input"
@@ -34,27 +39,34 @@
             spellcheck="false"
           />
         </div>
-        <button type="button" class="icon-btn" id="feed-refresh" title="Refresh feed" aria-label="Refresh feed">↻</button>
+        <button type="button" class="icon-btn" id="feed-refresh" title="Refresh feed" aria-label="Refresh feed">
+          <svg class="icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M13 3v3H10"></path>
+            <path d="M3 13V10H6"></path>
+            <path d="M12.5 6.5A5 5 0 0 0 4 5.5L3 7"></path>
+            <path d="M3.5 9.5A5 5 0 0 0 12 10.5l1-1.5"></path>
+          </svg>
+        </button>
       </div>
 
-      <div class="segmented" role="tablist" aria-label="Feeds">
-        <button type="button" class="seg-btn active" data-tab="home" role="tab" aria-selected="true">Home</button>
-        <button type="button" class="seg-btn" data-tab="subscriptions" role="tab" aria-selected="false">Subs</button>
-        <button type="button" class="seg-btn" data-tab="related" role="tab" aria-selected="false">Related</button>
-        <button type="button" class="seg-btn" data-tab="history" role="tab" aria-selected="false">History</button>
+      <div class="segmented" role="radiogroup" aria-label="Feeds">
+        <button type="button" class="seg-btn active" data-tab="home" role="radio" aria-checked="true">Home</button>
+        <button type="button" class="seg-btn" data-tab="subscriptions" role="radio" aria-checked="false" aria-label="Subscriptions">Subs</button>
+        <button type="button" class="seg-btn" data-tab="related" role="radio" aria-checked="false">Related</button>
+        <button type="button" class="seg-btn" data-tab="history" role="radio" aria-checked="false">History</button>
       </div>
 
-      <div class="subs-filter hidden" id="subs-filter" role="tablist" aria-label="Subscription filter">
-        <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="tab" aria-selected="true">All</button>
-        <button type="button" class="subs-filter-btn" data-subs-filter="shorts" role="tab" aria-selected="false">Shorts</button>
+      <div class="subs-filter hidden" id="subs-filter" role="radiogroup" aria-label="Subscription filter">
+        <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="radio" aria-checked="true">All</button>
+        <button type="button" class="subs-filter-btn" data-subs-filter="shorts" role="radio" aria-checked="false">Shorts</button>
       </div>
 
       <div class="feed-status" id="feed-status" aria-live="polite"></div>
-      <div class="feed-list" id="feed-list" tabindex="0" role="listbox" aria-label="Video feed"></div>
+      <div class="feed-list" id="feed-list" tabindex="-1" role="listbox" aria-label="Video feed"></div>
     </section>
 
     <!-- Player view -->
-    <section class="view player-view active" id="player-view" role="tabpanel">
+    <section class="view player-view active" id="player-view" role="tabpanel" aria-labelledby="view-tab-player">
       <div class="player-hero" id="player-hero">
         <img class="player-thumb hidden" id="player-thumb" alt="" />
         <div class="player-hero-overlay">
@@ -82,7 +94,7 @@
         <div class="section" id="quality-section">
           <div class="section-head">
             <label class="section-title" for="quality-list">Quality</label>
-            <span class="quality-status" id="quality-status"></span>
+            <span class="quality-status" id="quality-status" role="status" aria-live="polite"></span>
           </div>
           <select id="quality-list" class="panel-select"></select>
         </div>

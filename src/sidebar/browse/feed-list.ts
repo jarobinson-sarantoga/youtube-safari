@@ -48,6 +48,10 @@ export function updateFeedSelection(): void {
   }
 }
 
+function syncFeedListTabindex(listEl: HTMLElement, interactive: boolean): void {
+  listEl.tabIndex = interactive ? 0 : -1;
+}
+
 export function scrollSelectedIntoView(): void {
   const row = document.querySelector<HTMLElement>(`.feed-row[data-index="${getSelectedIndex()}"]`);
   row?.scrollIntoView({ block: "nearest" });
@@ -88,6 +92,7 @@ export function renderFeedList(): void {
 
     setFeedBusy(false);
     setSearchBusy(false);
+    syncFeedListTabindex(listEl, false);
     const lastFeedError = getLastFeedError();
     if (lastFeedError) {
       clearStatus();
@@ -105,6 +110,7 @@ export function renderFeedList(): void {
 
   setFeedBusy(false);
   setSearchBusy(false);
+  syncFeedListTabindex(listEl, true);
 
   const showSectionHeaders = getActiveTab() === "subscriptions" && getActiveSubsFilter() === "all";
   let lastSection = "";

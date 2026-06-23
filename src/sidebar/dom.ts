@@ -9,6 +9,12 @@ export function $(id: string): HTMLElement {
   return el;
 }
 
+/** Keep CSS `.hidden` and the native `hidden` attribute in sync. */
+export function setPanelHidden(el: HTMLElement, hidden: boolean): void {
+  el.classList.toggle("hidden", hidden);
+  el.hidden = hidden;
+}
+
 export { formatClock };
 
 export function escapeHtml(text: string): string {

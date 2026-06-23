@@ -32,16 +32,22 @@
   background: var(--bg-hover);
 }
 
+.related-row.selected {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+
+.related-preview:focus-within .related-row.selected {
+  background: var(--accent-soft);
+}
+
 .feed-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-bottom: 10px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-active) transparent;
+  gap: 0.25rem;
+  padding-bottom: 0.625rem;
 }
 
 .feed-row {
@@ -65,6 +71,15 @@
 }
 
 .feed-row.selected {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+
+.feed-list:focus-within .feed-row.selected {
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent-border);
+}
+
+.related-preview:focus-within .related-row.selected {
   background: var(--accent-soft);
   outline: 1px solid var(--accent-border);
 }

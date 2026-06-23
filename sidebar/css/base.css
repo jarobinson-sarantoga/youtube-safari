@@ -9,11 +9,13 @@
   --bg-active: color-mix(in srgb, CanvasText 12%, Canvas);
   --text-primary: CanvasText;
   --text-secondary: color-mix(in srgb, CanvasText 72%, Canvas);
-  --text-muted: GrayText;
-  --accent: LinkText;
-  --accent-soft: color-mix(in srgb, LinkText 18%, transparent);
-  --accent-border: color-mix(in srgb, LinkText 45%, transparent);
+  --text-muted: color-mix(in srgb, CanvasText 55%, Canvas);
+  --accent: AccentColor;
+  --accent-soft: color-mix(in srgb, AccentColor 18%, transparent);
+  --accent-border: color-mix(in srgb, AccentColor 45%, transparent);
+  --brand: #cc0000;
   --danger: #e06060;
+  --control-height: 1.75rem;
   --border: color-mix(in srgb, CanvasText 12%, transparent);
   --on-accent: HighlightText;
   --overlay-text: HighlightText;
@@ -27,9 +29,7 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --accent: #cc0000;
-    --accent-soft: rgba(204, 0, 0, 0.1);
-    --accent-border: rgba(204, 0, 0, 0.35);
+    --brand: #cc0000;
     --danger: #c62828;
   }
 
@@ -40,9 +40,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent: #ff3b30;
-    --accent-soft: rgba(255, 59, 48, 0.18);
-    --accent-border: rgba(255, 59, 48, 0.45);
+    --brand: #ff3b30;
     --danger: #e06060;
   }
 }

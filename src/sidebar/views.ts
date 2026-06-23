@@ -1,5 +1,6 @@
 import { ensureBrowseFeedLoaded } from "./browse";
 import { isPanelBooting, queueBootView } from "./boot";
+import { bindArrowNav } from "./arrow-nav";
 import { $ } from "./dom";
 import { onPluginMessage, postToPlugin } from "./messaging";
 import { requestRelatedPreviewForCurrentWatch } from "./player";
@@ -12,6 +13,7 @@ export type SetActiveViewOptions = {
 };
 
 let activeView: ShellView = "player";
+let syncViewTabindex: () => void = () => {};
 
 export function getActiveView(): ShellView {
   return activeView;
@@ -21,6 +23,11 @@ function schedulePanelRefresh(): void {
   window.setTimeout(() => {
     postToPlugin("refreshPanel", {});
   }, 0);
+}
+
+function activeViewIndex(): number {
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>(".view-btn")];
+  return tabs.findIndex((btn) => btn.classList.contains("active"));
 }
 
 export function setActiveView(view: ShellView, options?: SetActiveViewOptions): void {
@@ -35,7 +42,12 @@ export function setActiveView(view: ShellView, options?: SetActiveViewOptions): 
     const isActive = btn.dataset.view === view;
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    btn.setAttribute(
+      "aria-controls",
+      btn.dataset.view === "browse" ? "browse-view" : "player-view",
+    );
   });
+  syncViewTabindex();
 
   const browseView = $("browse-view");
   const playerView = $("player-view");
@@ -70,8 +82,11 @@ export function setupViewNav(): void {
   });
 
   const nav = document.querySelector<HTMLElement>(".view-nav");
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".view-btn");
+  if (!nav) {
+    return;
+  }
 
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".view-btn");
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const view = btn.dataset.view as ShellView | undefined;
@@ -81,28 +96,17 @@ export function setupViewNav(): void {
     });
   });
 
-  nav?.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-      return;
-    }
-
-    const tabs = [...document.querySelectorAll<HTMLButtonElement>(".view-btn")];
-    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
-    if (currentIndex < 0) {
-      return;
-    }
-
-    event.preventDefault();
-    const delta = event.key === "ArrowRight" ? 1 : -1;
-    const nextIndex = currentIndex + delta;
-    if (nextIndex < 0 || nextIndex >= tabs.length) {
-      return;
-    }
-
-    const view = tabs[nextIndex].dataset.view as ShellView | undefined;
-    if (view === "browse" || view === "player") {
-      setActiveView(view);
-      tabs[nextIndex].focus();
-    }
-  });
+  ({ syncTabindex: syncViewTabindex } = bindArrowNav({
+    container: nav,
+    itemSelector: ".view-btn",
+    getActiveIndex: activeViewIndex,
+    rovingTabindex: true,
+    onMove: (index) => {
+      const tabs = [...document.querySelectorAll<HTMLButtonElement>(".view-btn")];
+      const view = tabs[index]?.dataset.view as ShellView | undefined;
+      if (view === "browse" || view === "player") {
+        setActiveView(view);
+      }
+    },
+  }));
 }

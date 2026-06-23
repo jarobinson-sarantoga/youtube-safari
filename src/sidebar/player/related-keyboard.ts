@@ -29,7 +29,18 @@ export function setupRelatedKeyboard(): void {
         playerState.relatedSelectedIndex < 0 ? 0 : playerState.relatedSelectedIndex - 1,
       );
       updateRelatedSelection();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      playerState.relatedSelectedIndex = 0;
+      updateRelatedSelection();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      playerState.relatedSelectedIndex = rows.length - 1;
+      updateRelatedSelection();
     } else if (event.key === "Enter" && playerState.relatedSelectedIndex >= 0) {
+      event.preventDefault();
+      rows[playerState.relatedSelectedIndex]?.click();
+    } else if (event.key === " " && playerState.relatedSelectedIndex >= 0) {
       event.preventDefault();
       rows[playerState.relatedSelectedIndex]?.click();
     } else if (

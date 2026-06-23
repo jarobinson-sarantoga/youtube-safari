@@ -1,7 +1,7 @@
 import type { FeedItem } from "../../browse/types";
 import { getYouTubeVideoId, youtubeThumbnailUrl, youtubeWatchUrl } from "../../youtube";
 import { IDLE_COPY } from "../copy";
-import { $ } from "../dom";
+import { $, setPanelHidden } from "../dom";
 import { playerState } from "./state";
 
 export function getCurrentWatchUrl(): string {
@@ -28,7 +28,7 @@ export function updateHero(title: string, watchUrl: string): void {
 
   if (!hasVideo) {
     subEl.textContent = IDLE_COPY.heroSub;
-    thumbEl.classList.add("hidden");
+    setPanelHidden(thumbEl, true);
     thumbEl.removeAttribute("src");
     thumbEl.alt = "";
     return;
@@ -40,9 +40,9 @@ export function updateHero(title: string, watchUrl: string): void {
       thumbEl.src = thumbUrl;
     }
     thumbEl.alt = title || "Video thumbnail";
-    thumbEl.classList.remove("hidden");
+    setPanelHidden(thumbEl, false);
   } else {
-    thumbEl.classList.add("hidden");
+    setPanelHidden(thumbEl, true);
     thumbEl.removeAttribute("src");
     thumbEl.alt = "";
   }
