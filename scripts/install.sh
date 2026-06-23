@@ -34,6 +34,10 @@ if [ ! -e /usr/local/bin/iina-plugin ]; then
 fi
 
 echo "==> Linking plugin into IINA"
+PLUGIN_DATA_DIR="$HOME/Library/Application Support/com.colliderli.iina/plugins/.data/com.jarobinson-sarantoga.youtube-safari"
+mkdir -p "$PLUGIN_DATA_DIR"
+printf '%s' "$ROOT" > "$PLUGIN_DATA_DIR/plugin-root"
+echo "    plugin-root marker: $PLUGIN_DATA_DIR/plugin-root -> $ROOT"
 DEV_LINK="$HOME/Library/Application Support/com.colliderli.iina/plugins/youtube-safari.iinaplugin-dev"
 if [ -L "$DEV_LINK" ] && [ "$(readlink "$DEV_LINK")" = "$ROOT" ]; then
   echo "    dev symlink already points to $ROOT"
