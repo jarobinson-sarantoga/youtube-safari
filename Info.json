@@ -1,8 +1,8 @@
 {
   "name": "YouTube",
-  "identifier": "com.jarobinson.youtube-safari",
+  "identifier": "com.jarobinson-sarantoga.youtube-safari",
   "version": "0.2.7",
-  "author": { "name": "jarobinson" },
+  "author": { "name": "jarobinson-sarantoga" },
   "entry": "dist/index.js",
   "globalEntry": "dist/global.js",
   "permissions": ["show-osd", "file-system", "network-request"],
@@ -16,9 +16,9 @@
     "quality_height": 0,
     "last_watch_url": "",
     "try_ytdl_first": true,
-    "resolve_script": "~/Projects/youtube-safari/scripts/resolve.sh",
-    "list_formats_script": "~/Projects/youtube-safari/scripts/list-formats.sh",
-    "refresh_script": "~/Projects/youtube-safari/scripts/refresh-cookies.sh",
+    "resolve_script": "",
+    "list_formats_script": "",
+    "refresh_script": "",
     "data_api_key": "",
     "browse_use_data_api": false,
     "browse_cache_ttl_minutes": 30

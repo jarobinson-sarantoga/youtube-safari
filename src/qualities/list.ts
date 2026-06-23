@@ -1,16 +1,14 @@
 import { heightLabel } from "../format";
+import { pluginScriptPath } from "../plugin-script-path";
 import { getYouTubeVideoId } from "../youtube";
 import { commonYtdlpFlags, execBashJsonLine } from "../ytdlp-script";
 import { getCachedQualities, setCachedQualities } from "./cache";
 import { parseListedData, type ListedQualities } from "./parse";
 
-const { preferences, utils } = iina;
-
-const LIST_SCRIPT = "~/Projects/youtube-safari/scripts/list-formats.sh";
+const LIST_SCRIPT = "scripts/list-formats.sh";
 
 function listScriptPath(): string {
-  const configured = preferences.get("list_formats_script") as string | undefined;
-  return utils.resolvePath(configured || LIST_SCRIPT);
+  return pluginScriptPath("list_formats_script", LIST_SCRIPT);
 }
 
 function buildListArgs(url: string): string[] {

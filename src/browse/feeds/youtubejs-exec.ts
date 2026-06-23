@@ -1,11 +1,10 @@
 import type { FeedItem } from "../types";
 import { cookiesPath } from "../cookies";
+import { pluginScriptPath } from "../../plugin-script-path";
 import { appendLog } from "../../ytdl";
 import { execBashScriptJson } from "../../ytdlp-script";
 
-const { preferences, utils } = iina;
-
-const DEFAULT_SCRIPT = "~/Projects/youtube-safari/scripts/youtubejs-feed.sh";
+const DEFAULT_SCRIPT = "scripts/youtubejs-feed.sh";
 
 interface FeedScriptResult {
   items?: FeedItem[];
@@ -14,8 +13,7 @@ interface FeedScriptResult {
 }
 
 function scriptPath(): string {
-  const configured = preferences.get("youtubejs_feed_script") as string | undefined;
-  return utils.resolvePath(configured || DEFAULT_SCRIPT);
+  return pluginScriptPath("youtubejs_feed_script", DEFAULT_SCRIPT);
 }
 
 async function runFeedScript(args: string[]): Promise<FeedScriptResult> {

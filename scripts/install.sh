@@ -98,8 +98,9 @@ fi
 
 echo "==> Disabling official Online Media plugin (prevents race on YouTube URLs)"
 defaults write com.colliderli.iina "PluginEnabled.io.iina.ytdl" -bool false
-defaults write com.colliderli.iina "PluginEnabled.com.jarobinson.youtube-safari" -bool true
-echo "    io.iina.ytdl disabled; com.jarobinson.youtube-safari enabled"
+defaults write com.colliderli.iina "PluginEnabled.com.jarobinson.youtube-safari" -bool false
+defaults write com.colliderli.iina "PluginEnabled.com.jarobinson-sarantoga.youtube-safari" -bool true
+echo "    io.iina.ytdl and legacy identifier disabled; com.jarobinson-sarantoga.youtube-safari enabled"
 
 # IINA issue #4688: this workaround blocks startup for minutes when recents point at slow volumes.
 if [ "$(defaults read com.colliderli.iina enableRecentDocumentsWorkaround 2>/dev/null || echo 0)" = "1" ]; then
