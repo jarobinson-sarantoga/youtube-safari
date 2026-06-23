@@ -1,0 +1,66 @@
+name: Sarantoga orchestrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: run (manual prompt) or ingest (issue queue)
+        required: true
+        default: run
+        type: choice
+        options:
+          - run
+          - ingest
+      task:
+        description: Prompt when mode=run
+        required: false
+        type: string
+      issue_number:
+        description: Issue number when mode=ingest (optional; default = oldest ready)
+        required: false
+        type: string
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: sarantoga-orchestrate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  orchestrate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'sarantoga:ready')
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install orchestrator
+        working-directory: scripts/sarantoga
+        run: npm ci || npm install
+
+      - name: Run cloud orchestrator
+        working-directory: scripts/sarantoga
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          SARANTOGA_NTFY_TOPIC: ${{ secrets.SARANTOGA_NTFY_TOPIC }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SARANTOGA_MODE: ${{ github.event_name == 'issues' && 'ingest' || inputs.mode }}
+          SARANTOGA_TASK: ${{ inputs.task }}
+          SARANTOGA_ISSUE_NUMBER: ${{ inputs.issue_number }}
+          SARANTOGA_VERIFY_CMD: npm run build && npm test
+          SARANTOGA_PROJECT_CONTEXT: >-
+            youtube-safari — IINA YouTube plugin (npm + Parcel, not Safari extension).
+            Uses global iina API. Read AGENTS.md for launch guardrails and build commands.
+            Full macOS audit via scripts/audit.sh requires IINA + cookies on studio-m4-max.
+        run: npx tsx orchestrate.ts
