@@ -1,0 +1,7 @@
+export const HIDE_RETRY_DELAYS_MS = [
+  250, 500, 800, 1200, 1800, 2500, 3500, 5000, 7000, 10000, 15000,
+];
+
+export const OFFSCREEN_FRAME = { x: -12000, y: -12000, width: 320, height: 180 };
+export const MAINTENANCE_INTERVAL_MS = 2000;
+export const MAINTENANCE_DURATION_MS = 120000;

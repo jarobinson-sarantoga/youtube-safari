@@ -1,0 +1,71 @@
+.panel-select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  min-height: 2.75rem;
+  padding: 0.5rem 2rem 0.5rem 0.625rem;
+  font: 0.75rem var(--font);
+  line-height: 1.3;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaaaaa' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.panel-select:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+}
+
+.panel-select:focus-visible {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.panel-select:disabled {
+  color: var(--text-muted);
+  font-style: italic;
+  cursor: default;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.description.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.desc-line {
+  margin: 0 0 4px;
+}
+
+.desc-link,
+.desc-tag {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 0.125rem;
+}
+
+.desc-link:hover,
+.desc-tag:hover {
+  text-decoration: underline;
+}
+
+.desc-link:focus-visible,
+.desc-tag:focus-visible {
+  outline: 2px solid AccentColor;
+  outline-offset: 1px;
+}

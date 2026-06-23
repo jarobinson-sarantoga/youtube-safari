@@ -1,54 +1,66 @@
 # AGENTS.md
 
+Guidance for AI agents working in this repository.
+
 ## Project
 
-**youtube-safari** is an **IINA media player plugin** (not a Safari extension). It resolves YouTube streams via yt-dlp with Safari cookies and Referer headers, and provides a browse/now-playing panel (Cmd+Shift+Y).
+Thin YouTube-only **IINA plugin** that uses Safari cookies + Referer headers.
 
-| Field | Value |
-|-------|-------|
-| Plugin ID | `com.jarobinson.youtube-safari` |
-| Build | Parcel → `dist/` |
-| Verify (Ubuntu CI) | `npm run build && npm test` |
-| Full audit (mac CI) | `scripts/audit.sh` via **mac-audit** on studio-m4-max |
+- Language: TypeScript, bundled with **Parcel**.
+- Entry targets (see `package.json` → `targets`): `src/index.ts`, `src/global.ts`, `src/sidebar/shell.ts`, `src/sidebar/parse-core.ts`.
+- Web UI lives in `pref.html` (preferences) and `sidebar/` (player/feed shell). Plugin manifest is `Info.json`.
 
-## Toolchain
-
-npm + Parcel + TypeScript. **Not** part of the sarantoga-assistant pnpm monorepo.
+## Build
 
 ```bash
-npm install
 npm run build
-npm test
-scripts/install.sh   # local dev: link into IINA
-scripts/audit.sh     # full macOS audit (IINA + cookies required)
 ```
 
-## Runner provisioning (studio-m4-max)
+- Runs `parcel build` then `node --check` on the bundles.
+- **Must run outside the sandbox** — invoke with `required_permissions: ["all"]`. Parcel's LMDB cache fails under the default sandbox.
 
-CI **mac-audit** runs on a dedicated self-hosted runner (`studio-m4-max-youtube-safari`) on the Mac Studio M4 Max (LAN `192.168.1.247`, Tailscale `100.119.31.70`).
+## Tests
 
-**One-time setup on studio-m4-max:**
+```bash
+npm test
+```
 
-1. Install IINA, ripgrep (`brew install ripgrep`), Node 22
-2. Export Safari cookies: `bash scripts/refresh-cookies.sh` (IINA needs Full Disk Access)
-3. Preflight: `bash scripts/provision-runner.sh`
-4. Download GitHub Actions runner into `~/actions-runner-youtube-safari`
-5. Register: `GITHUB_TOKEN=<token> bash scripts/setup-studio-m4-max-runner.sh`
-6. Start: `./svc.sh install && ./svc.sh start`
+- Coverage is **limited**: only `parse-core` has real tests (`scripts/parse.test.mjs`); the rest is a `node --check` smoke check.
+- Behavior-critical refactors need tests written **first** — do not assume existing tests will catch regressions.
 
-Refresh cookies periodically — live yt-dlp resolve checks in `audit.sh` fail when cookies expire.
+## UI / Apple HIG
 
-PRs must pass **both** Ubuntu `verify` and studio-m4-max `mac-audit` before sarantoga auto-merge.
+macOS Human Interface Guidelines apply to `pref.html` and everything in `sidebar/`.
 
-## IINA launch guardrails
+- **Use the `hig-composer` skill** for any HIG work — do not audit from memory.
+- "HIG compliant" means a **full checklist pass**, not partial fixes. Required categories:
+  - System fonts; **rem-based** type scale.
+  - Semantic / system colors; full **dark mode** support.
+  - Contrast **≥ 4.5:1** for text.
+  - Visible **focus rings**; proper `tabindex` / keyboard navigation.
+  - Accessible **labels** on all controls.
+  - Respect **reduced motion** (`prefers-reduced-motion`).
+- Partial improvements are NOT compliance. Produce a pass/fail checklist; any FAIL = not done.
 
-Preserve patterns enforced by `scripts/audit.sh`:
+## File size (150 LOC)
 
-- Register `mpv.addHook` and `onMessage("openYouTubeWatch")` before `global.postMessage("playerReady")`
-- Call `menu.forceUpdate()` only via `scheduleMenuForceUpdate` in `native-menus.ts`
-- Defer idle dock bootstrap to `iina.window-loaded`
-- Global entry opens standalone panel; does not call `createPlayerInstance`
+Every source file (`.ts`, `.mjs`, `.css`, `.html`, `.sh` under `src/`, `sidebar/`, `scripts/`) must be **≤150 lines** (`wc -l`). Excludes `node_modules/`, `dist/`, `.parcel-cache/`, `scripts/sarantoga/node_modules/`.
 
-## Script paths
+When a module grows past the limit, split into a **directory + `index.ts` barrel** (e.g. `qualities/` with `parse.ts`, `cache.ts`, `list.ts`) so existing import paths like `./qualities` keep working. Top-level shims (`qualities.ts` → `export * from "./qualities"`) are OK for audit/grep probes. CSS: keep `sidebar/shell.css` as a thin `@import` entry; split sections into `sidebar/css/`.
 
-`Info.json` and several `src/*.ts` defaults use `~/Projects/youtube-safari/scripts/...`. Prefer relative `scripts/...` resolved via `utils.resolvePath()` in new code.
+Verify with: `find . -type f \( -name '*.ts' -o -name '*.mjs' -o -name '*.css' -o -name '*.html' -o -name '*.sh' \) ! -path './node_modules/*' ! -path './dist/*' ! -path './.parcel-cache/*' ! -path './scripts/sarantoga/node_modules/*' -exec sh -c 'test $(wc -l < "$1") -le 150 || echo FAIL "$1"' _ {} \;`
+
+## Conventions
+
+- Match existing code style and structure; keep changes **minimal in scope**.
+- In `pref.html`, **preserve `data-pref-key` bindings** — they wire controls to IINA preferences. Don't rename or drop them.
+- Don't introduce build tooling or dependencies without cause.
+
+## Orchestration Notes (lessons learned)
+
+From a failed "100% HIG compliant" run:
+
+- Absolute claims ("100%", "fully compliant", "production-ready") require **written acceptance criteria** and a completeness gate — fixing audit findings is not the same as 100%.
+- **Invoke domain skills** (`hig-composer`) when the task matches; don't skip them.
+- **QA against the user's stated bar** (full checklist pass/fail), not just diff safety.
+- Deliver the **requested scope completely** before deferring other work; don't conflate partial delivery with success.
