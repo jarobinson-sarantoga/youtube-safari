@@ -22,6 +22,6 @@ body:
     attributes:
       label: Notes
       description: Constraints, files, acceptance criteria
-      placeholder: Must pass npm run build && npm test. Preserve IINA launch guardrails in AGENTS.md.
+      placeholder: Must pass Ubuntu verify and studio-m4-max mac-audit (scripts/audit.sh). Preserve IINA launch guardrails in AGENTS.md.
     validations:
       required: false
