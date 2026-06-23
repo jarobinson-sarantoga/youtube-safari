@@ -1,9 +1,15 @@
 import { ensureBrowseFeedLoaded } from "./browse";
+import { isPanelBooting, queueBootView } from "./boot";
 import { $ } from "./dom";
 import { onPluginMessage, postToPlugin } from "./messaging";
-import { beginRelatedPreviewLoad, getCurrentWatchUrl, hasCachedRelatedPreview } from "./player";
+import { requestRelatedPreviewForCurrentWatch } from "./player";
 
 export type ShellView = "browse" | "player";
+
+export type SetActiveViewOptions = {
+  /** Skip panel metadata refresh (e.g. right after play — player pushes updates). */
+  skipPanelRefresh?: boolean;
+};
 
 let activeView: ShellView = "player";
 
@@ -11,7 +17,17 @@ export function getActiveView(): ShellView {
   return activeView;
 }
 
-export function setActiveView(view: ShellView): void {
+function schedulePanelRefresh(): void {
+  window.setTimeout(() => {
+    postToPlugin("refreshPanel", {});
+  }, 0);
+}
+
+export function setActiveView(view: ShellView, options?: SetActiveViewOptions): void {
+  if (isPanelBooting()) {
+    queueBootView(view);
+    return;
+  }
   activeView = view;
 
   const buttons = document.querySelectorAll<HTMLButtonElement>(".view-btn");
@@ -35,16 +51,19 @@ export function setActiveView(view: ShellView): void {
     playerView.hidden = false;
     browseView.classList.remove("active");
     browseView.hidden = true;
-    const watchUrl = getCurrentWatchUrl();
-    if (!hasCachedRelatedPreview(watchUrl)) {
-      beginRelatedPreviewLoad();
-      postToPlugin("requestRelatedPreview", {});
+    if (!options?.skipPanelRefresh) {
+      schedulePanelRefresh();
     }
+    requestRelatedPreviewForCurrentWatch();
   }
 }
 
 export function setupViewNav(): void {
   onPluginMessage("focusPlayer", () => {
+    if (isPanelBooting()) {
+      queueBootView("player");
+      return;
+    }
     setActiveView("player");
     const qualityList = $("quality-list") as HTMLSelectElement;
     qualityList.focus();

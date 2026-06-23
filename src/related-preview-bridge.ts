@@ -1,11 +1,8 @@
-import type { FeedItem } from "./browse/types";
-import { getRelatedItems } from "./browse/feeds/related";
-import { getYouTubeVideoId, isYouTubeWatchURL } from "./youtube";
-import { appendLog } from "./ytdl";
+import { postRelatedPreview as postRelatedPreviewShared, postRelatedPreviewClear as postRelatedPreviewClearShared } from "./panel-handlers";
+import { postPanelMessage, postSidebarPanelMessage } from "./panel-relay";
+import { getLastWatchUrl } from "./preferences";
+import { isYouTubeWatchURL } from "./youtube";
 
-const { sidebar } = iina;
-
-let relatedRequestSeq = 0;
 let sidebarReadyCheck: () => boolean = () => false;
 
 export function setRelatedPreviewReadyCheck(check: () => boolean): void {
@@ -16,28 +13,16 @@ function isSidebarReady(): boolean {
   return sidebarReadyCheck();
 }
 
-export function nextRelatedRequestId(): number {
-  return ++relatedRequestSeq;
+function postToPanels(name: string, data: unknown): void {
+  if (isSidebarReady()) {
+    postSidebarPanelMessage(name, data);
+  } else {
+    postPanelMessage(name, data);
+  }
 }
 
 export function postRelatedPreviewClear(): void {
-  if (!isSidebarReady()) {
-    return;
-  }
-  const requestId = nextRelatedRequestId();
-  sidebar.postMessage("relatedPreview", { videoId: "", items: [], relatedRequestId: requestId });
-}
-
-function postRelatedPreviewItems(
-  videoId: string,
-  items: FeedItem[],
-  requestId: number,
-  error?: string,
-): void {
-  if (!isSidebarReady()) {
-    return;
-  }
-  sidebar.postMessage("relatedPreview", { videoId, items, error, relatedRequestId: requestId });
+  postRelatedPreviewClearShared((name, data) => postToPanels(name, data));
 }
 
 export function postRelatedPreview(watchUrl: string, force = false): void {
@@ -46,22 +31,9 @@ export function postRelatedPreview(watchUrl: string, force = false): void {
     return;
   }
 
-  const requestVideoId = getYouTubeVideoId(watchUrl) || "";
-  if (!requestVideoId) {
-    postRelatedPreviewClear();
-    return;
-  }
+  void postRelatedPreviewShared(watchUrl, (name, data) => postToPanels(name, data), force);
+}
 
-  const requestId = nextRelatedRequestId();
-
-  void (async () => {
-    try {
-      const result = await getRelatedItems(requestVideoId, force);
-      postRelatedPreviewItems(requestVideoId, result.items, requestId, result.error);
-    } catch (err) {
-      appendLog(`related preview failed: ${err}`);
-      const message = err instanceof Error ? err.message : String(err);
-      postRelatedPreviewItems(requestVideoId, [], requestId, message);
-    }
-  })();
+export function refreshRelatedPreviewFromWatchUrl(): void {
+  void postRelatedPreview(getLastWatchUrl());
 }

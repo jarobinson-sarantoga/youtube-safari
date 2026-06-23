@@ -4,6 +4,8 @@ import { formatDuration } from "./dom";
 
 export type FeedRowClickHandler = (item: FeedItem, index: number) => void;
 
+export type FeedRowBackgroundHandler = (item: FeedItem, index: number) => void;
+
 export interface FeedRowOptions {
   item: FeedItem;
   index?: number;
@@ -12,7 +14,9 @@ export interface FeedRowOptions {
   showDuration?: boolean;
   showResume?: boolean;
   showExtra?: boolean;
+  showBackgroundPlay?: boolean;
   onClick: FeedRowClickHandler;
+  onBackgroundPlay?: FeedRowBackgroundHandler;
 }
 
 export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
@@ -24,7 +28,9 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
     showDuration = true,
     showResume = true,
     showExtra = true,
+    showBackgroundPlay = false,
     onClick,
+    onBackgroundPlay,
   } = options;
 
   const row = document.createElement("button");
@@ -51,6 +57,32 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
   });
 
   thumbWrap.appendChild(thumb);
+
+  const playHint = document.createElement("span");
+  playHint.className = "thumb-play-hint";
+  playHint.setAttribute("aria-hidden", "true");
+  thumbWrap.appendChild(playHint);
+
+  if (showBackgroundPlay && onBackgroundPlay) {
+    const actions = document.createElement("div");
+    actions.className = "thumb-actions";
+
+    const bgPlay = document.createElement("button");
+    bgPlay.type = "button";
+    bgPlay.className = "thumb-action-btn thumb-bg-play";
+    bgPlay.setAttribute("aria-label", "Listen in background");
+    bgPlay.title = "Listen in background (L)";
+    bgPlay.innerHTML =
+      '<span class="thumb-bg-play-icon" aria-hidden="true"></span><span class="thumb-action-label">Listen</span>';
+    bgPlay.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onBackgroundPlay(item, index);
+    });
+    actions.appendChild(bgPlay);
+
+    thumbWrap.appendChild(actions);
+  }
 
   if (showDuration && item.durationLabel) {
     const badge = document.createElement("span");

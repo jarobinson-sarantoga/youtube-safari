@@ -69,11 +69,13 @@ for msg in "${SIDEBAR_POSTS[@]}"; do
     "$ROOT/src/native-menus.ts"
     "$ROOT/src/related-preview-bridge.ts"
     "$ROOT/src/browse/bridge.ts"
+    "$ROOT/src/standalone-bridge.ts"
+    "$ROOT/src/panel-handlers.ts"
   )
   if grep -rq "\"$msg\"" "$ROOT/src/sidebar/" && grep -rq "\"$msg\"" "${PLUGIN_MSG_SRC[@]}" 2>/dev/null; then
     pass "message wire: $msg"
   elif [[ "$msg" == "sidebarReady" || "$msg" == "selectQuality" || "$msg" == "descriptionSeek" || "$msg" == "openUrl" ]]; then
-    if grep -rq "$msg" "$ROOT/src/quality-ui.ts" "$ROOT/src/sidebar-host.ts" 2>/dev/null; then
+    if grep -rq "$msg" "$ROOT/src/quality-ui.ts" "$ROOT/src/sidebar-host.ts" "$ROOT/src/standalone-bridge.ts" 2>/dev/null; then
       pass "message wire: $msg"
     else
       fail "plugin missing handler for $msg"
@@ -91,6 +93,9 @@ for msg in "${PLUGIN_POSTS[@]}"; do
     "$ROOT/src/quality-ui.ts" \
     "$ROOT/src/sidebar-host.ts" \
     "$ROOT/src/related-preview-bridge.ts" \
+    "$ROOT/src/panel-relay.ts" \
+    "$ROOT/src/standalone-host.ts" \
+    "$ROOT/src/standalone-bridge.ts" \
     "$ROOT/src/browse/" 2>/dev/null; then
     pass "message wire: $msg"
   else
@@ -140,34 +145,76 @@ else
   fail "missing subs filter row in shell.html"
 fi
 
-if grep -q 'Shift+y' "$ROOT/src/shortcuts.ts" && grep -q 'input.onKeyDown' "$ROOT/src/shortcuts.ts"; then
-  pass "Shift+y key binding registered on player entry"
+if grep -q 'Meta+Shift+Y' "$ROOT/src/keybindings.ts" && grep -q 'keyBinding' "$ROOT/src/global.ts"; then
+  pass "Cmd+Shift+Y key binding on global Plugin menu"
 else
-  fail "Shift+y key binding missing from player shortcuts"
+  fail "global menu missing Cmd+Shift+Y (Meta+Shift+Y) binding"
 fi
 
-if grep -q 'keyBinding.*Shift+y' "$ROOT/src/global.ts"; then
-  fail "global entry must not register Shift+y (conflicts with player handler)"
+if grep -q 'setTimeout(installGlobalMenuItems' "$ROOT/src/global.ts"; then
+  fail "global menu must register synchronously (like User Scripts Meta+Shift+U)"
 else
-  pass "global entry leaves Shift+y to focused player"
+  pass "global menu registers synchronously at global entry load"
 fi
 
-if grep -q "registerBrowseShortcut" "$ROOT/src/quality-ui.ts"; then
-  pass "player entry registers browse shortcut"
+if grep -q 'bootstrapGlobalEntry' "$ROOT/src/global.ts" \
+  && grep -q 'function installGlobalMenuItems' "$ROOT/src/global.ts"; then
+  pass "global bootstrap uses hoisted function declarations"
 else
-  fail "quality-ui missing registerBrowseShortcut"
+  fail "global.ts must use bootstrapGlobalEntry + function installGlobalMenuItems"
 fi
 
-if grep -q "input.onKeyDown" "$ROOT/src/shortcuts.ts"; then
-  pass "input.onKeyDown fallback registered"
+if [ -f "$ROOT/dist/global.js" ] && node -e "
+const fs=require('fs');
+const s=fs.readFileSync('$ROOT/dist/global.js','utf8');
+const entry=s.indexOf('Global entry loaded');
+const shell=s.indexOf('Standalone shell preloaded');
+const menu=s.indexOf('Global plugin menu installed');
+if (entry < 0 || shell < 0 || menu < 0) process.exit(1);
+if (!(shell < menu && menu < entry)) process.exit(2);
+" 2>/dev/null; then
+  pass "built global.js init order: shell → menu → global entry"
 else
-  fail "missing input.onKeyDown fallback"
+  fail "built global.js init order broken — rebuild global.ts bootstrap"
 fi
 
-if grep -q 'Shift+y ignore' "$ROOT/scripts/install.sh"; then
-  pass "install.sh writes Shift+y input binding"
+if awk '/initStandaloneShell\(\)/{s=1} /installGlobalMenuItems\(\)/{if(s){found=1; exit}} END{exit !found}' "$ROOT/src/global.ts"; then
+  pass "standalone shell preloaded before global menu (User Scripts order)"
 else
-  fail "install.sh missing Shift+y input binding line"
+  fail "call initStandaloneShell() before installGlobalMenuItems() in global.ts"
+fi
+
+if grep -q 'menu.forceUpdate' "$ROOT/src/global.ts" && grep -q 'setTimeout' "$ROOT/src/global.ts"; then
+  pass "plugin menu forceUpdate deferred after IINA keybinding load"
+else
+  fail "defer menu.forceUpdate() so Plugin menu keyEquivalent attaches"
+fi
+
+if grep -q 'initStandaloneShell' "$ROOT/src/global.ts" && grep -q 'loadFile' "$ROOT/src/standalone-host.ts"; then
+  pass "standalone shell preloaded at global startup"
+else
+  fail "standalone shell must preload at global startup (no player windows)"
+fi
+
+if grep -q 'registerPlayerPanelShortcut' "$ROOT/src/index.ts" \
+  && grep -q 'input.onKeyDown' "$ROOT/src/player-shortcut.ts" \
+  && grep -q 'BROWSE_KEY_BINDING' "$ROOT/src/player-shortcut.ts"; then
+  pass "player Cmd+Shift+Y shortcut (pairs with input_conf ignore)"
+else
+  fail "player panel shortcut missing (registerPlayerPanelShortcut + input.onKeyDown)"
+fi
+
+if grep -q 'Meta+Shift+Y ignore' "$ROOT/scripts/install.sh" \
+  && grep -q 'startOpenPanelQueuePoller' "$ROOT/src/global.ts"; then
+  pass "install.sh writes Meta+Shift+Y input_conf + open-panel queue poller"
+else
+  fail "install.sh must add Meta+Shift+Y ignore to input_conf"
+fi
+
+if ! test -f "$ROOT/scripts/install-global-hotkey.sh"; then
+  pass "no skhd installer"
+else
+  fail "remove scripts/install-global-hotkey.sh"
 fi
 
 if grep -q 'data-view="player".*active' "$HTML" || grep -q 'class="view-btn active" data-view="player"' "$HTML"; then

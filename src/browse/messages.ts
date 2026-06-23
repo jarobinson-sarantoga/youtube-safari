@@ -5,6 +5,8 @@ import type { PanelPayload } from "../sidebar-state";
 export interface PlayVideoMessage {
   videoId: string;
   url?: string;
+  /** Play audio in a hidden/minimized player window. */
+  background?: boolean;
 }
 
 /** Sidebar → plugin: refresh a feed tab. */
@@ -45,8 +47,9 @@ export type SidebarToPluginMessage =
   | { name: "descriptionSeek"; data: { seconds?: number | string } }
   | { name: "seek"; data: { seconds?: number | string } }
   | { name: "openUrl"; data: { url?: string } }
-  | { name: "requestRelatedPreview"; data: { force?: boolean } }
-  | { name: "refreshPanel"; data: Record<string, never> };
+  | { name: "requestRelatedPreview"; data: { force?: boolean; watchUrl?: string } }
+  | { name: "refreshPanel"; data: Record<string, never> }
+  | { name: "syncNowPlaying"; data: Record<string, never> };
 
 export type PluginToSidebarMessage =
   | { name: "feedResult"; data: FeedResultMessage }

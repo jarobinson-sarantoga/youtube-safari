@@ -1,4 +1,5 @@
-import { registerBrowseHandlers } from "./browse/init";
+import { notifyCookiesRefreshed, registerBrowseHandlers } from "./browse/init";
+import { primePanelCookiesOnFirstLoad } from "./youtube-refresh";
 import { getLastWatchUrl } from "./preferences";
 import { getSelectedHeight } from "./qualities";
 import {
@@ -11,7 +12,9 @@ import {
   getListedDescription,
   getListedTitle,
 } from "./native-menus";
+import { pushNowPlayingUpdate } from "./quality-ui";
 import { postRelatedPreview } from "./related-preview-bridge";
+import { postPanelMessage, postSidebarPanelMessage, setSidebarRelayReadyCheck } from "./panel-relay";
 import { openLinkedUrl, seekPlayback } from "./youtube-open";
 import { appendLog } from "./ytdl";
 import { isYouTubeWatchURL } from "./youtube";
@@ -34,6 +37,8 @@ export interface SidebarHandlers {
 }
 
 let handlers: SidebarHandlers | null = null;
+
+setSidebarRelayReadyCheck(() => sidebarHtmlLoaded && sidebarWebViewReady);
 
 export function setSidebarHandlers(next: SidebarHandlers): void {
   handlers = next;
@@ -68,6 +73,7 @@ export function buildPanelPayload(
 
 export function postSidebarPanel(payload: PanelPayload): void {
   lastPanelPayload = payload;
+  postPanelMessage("panel", payload);
   if (!sidebarHtmlLoaded) {
     return;
   }
@@ -76,7 +82,7 @@ export function postSidebarPanel(payload: PanelPayload): void {
 }
 
 export function schedulePanelPush(): void {
-  if (!sidebarHtmlLoaded || !lastPanelPayload) {
+  if (!lastPanelPayload) {
     return;
   }
 
@@ -91,14 +97,18 @@ export function schedulePanelPush(): void {
 
   panelPushTimer = setTimeout(() => {
     panelPushTimer = null;
-    if (!sidebarHtmlLoaded || !lastPanelPayload) {
+    if (!lastPanelPayload) {
       return;
     }
     const json = JSON.stringify(lastPanelPayload);
     if (json === lastPushedPanelJson) {
       return;
     }
-    sidebar.postMessage("panel", lastPanelPayload);
+    if (sidebarHtmlLoaded) {
+      postSidebarPanelMessage("panel", lastPanelPayload);
+    } else {
+      postPanelMessage("panel", lastPanelPayload);
+    }
     lastPushedPanelJson = json;
   }, 300);
 }
@@ -137,38 +147,55 @@ function registerPluginSidebarListeners(): void {
     openLinkedUrl(url);
   });
 
-  sidebar.onMessage("requestRelatedPreview", (data: { force?: boolean } | undefined) => {
-    const watchUrl = getLastWatchUrl();
+  sidebar.onMessage("requestRelatedPreview", (data: {
+    force?: boolean;
+    watchUrl?: string;
+  } | undefined) => {
+    const requested = data?.watchUrl?.trim() || "";
+    const watchUrl =
+      requested && isYouTubeWatchURL(requested) ? requested : getLastWatchUrl();
     postRelatedPreview(watchUrl, !!data?.force);
   });
 
   sidebar.onMessage("refreshPanel", () => {
     handlers?.onRefreshPanel();
   });
+
+  sidebar.onMessage("syncNowPlaying", () => {
+    pushNowPlayingUpdate();
+  });
 }
 
 function registerSidebarMessageHandlers(): void {
   sidebar.onMessage("sidebarReady", () => {
-    sidebarWebViewReady = true;
-    appendLog("Sidebar ready");
-    registerBrowseHandlers();
-    registerPluginSidebarListeners();
-    sidebar.postMessage("browseReady", {});
+    void (async () => {
+      sidebarWebViewReady = true;
+      appendLog("Sidebar ready");
 
-    if (lastPanelPayload) {
-      sidebar.postMessage("panel", lastPanelPayload);
-      lastPushedPanelJson = JSON.stringify(lastPanelPayload);
-    } else {
-      postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
-    }
-    schedulePanelPush();
+      const refreshed = await primePanelCookiesOnFirstLoad();
+      if (refreshed) {
+        notifyCookiesRefreshed();
+      }
 
-    const watchUrl = getLastWatchUrl();
-    if (isYouTubeWatchURL(watchUrl)) {
-      void postRelatedPreview(watchUrl);
-    }
+      registerBrowseHandlers();
+      registerPluginSidebarListeners();
+      postSidebarPanelMessage("browseReady", {});
 
-    applyPendingSidebarReveal();
+      if (lastPanelPayload) {
+        postSidebarPanelMessage("panel", lastPanelPayload);
+        lastPushedPanelJson = JSON.stringify(lastPanelPayload);
+      } else {
+        postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
+      }
+      schedulePanelPush();
+
+      const watchUrl = getLastWatchUrl();
+      if (isYouTubeWatchURL(watchUrl)) {
+        void postRelatedPreview(watchUrl);
+      }
+
+      applyPendingSidebarReveal();
+    })();
   });
 }
 
@@ -182,9 +209,9 @@ function applyPendingSidebarReveal(): void {
 
   sidebar.show();
   if (view === "browse") {
-    sidebar.postMessage("focusBrowse", {});
+    postSidebarPanelMessage("focusBrowse", {});
   } else {
-    sidebar.postMessage("focusPlayer", {});
+    postSidebarPanelMessage("focusPlayer", {});
   }
   schedulePanelPush();
   appendLog(`YouTube panel shown (${view})`);

@@ -7,9 +7,9 @@ import { getLastWatchUrl } from "./preferences";
 import { getSelectedHeight, listQualities } from "./qualities";
 import { DEFAULT_QUALITY_OPTIONS, defaultPanelPayload } from "./sidebar-state";
 import { isShuttingDown } from "./lifecycle";
-import { notifyPlayerStateFromFileLoaded } from "./browse/init";
+import { notifyPlayerStateFromFileLoaded, syncNowPlayingToPanel } from "./browse/init";
 import { suppressNextWatchEnd } from "./browse/store/history";
-import { registerBrowseShortcut } from "./shortcuts";
+
 import { setPendingSeek } from "./youtube-open";
 import { appendLog } from "./ytdl";
 import { isYouTubeWatchURL, normalizeMediaURL } from "./youtube";
@@ -25,6 +25,7 @@ import {
   updateListedChapters,
   getListedChapters,
 } from "./native-menus";
+import { postSidebarPanelMessage } from "./panel-relay";
 import { postRelatedPreview, postRelatedPreviewClear, setRelatedPreviewReadyCheck } from "./related-preview-bridge";
 import {
   buildPanelPayload,
@@ -36,9 +37,9 @@ import {
   schedulePanelPush,
   setSidebarHandlers,
 } from "./sidebar-host";
-import { applyPendingSeek } from "./youtube-open";
+import { applyPendingSeek, openLinkedUrl, seekPlayback } from "./youtube-open";
 
-const { core, event, global, mpv, preferences, sidebar } = iina;
+const { core, event, global, mpv, preferences } = iina;
 
 export { revealYouTubePanel };
 
@@ -95,10 +96,12 @@ export async function refreshQualityUI(): Promise<void> {
     refreshNativeChapterPanel(getListedChapters());
     postSidebarPanel(buildPanelPayload(listed.items, selected, false, listed.error));
     schedulePanelPush();
+    syncNowPlayingToPanel();
   } catch (err) {
     appendLog(`refreshQualityUI error: ${err}`);
     const message = err instanceof Error ? err.message : String(err);
     postSidebarPanel(buildPanelPayload(DEFAULT_QUALITY_OPTIONS, selected, false, message));
+    syncNowPlayingToPanel();
   } finally {
     refreshInFlight = false;
     if (pendingRefresh) {
@@ -182,17 +185,19 @@ export function saveWatchUrl(
   }
 
   const selected = getSelectedHeight();
+  const panelLoading = !title;
   postSidebarPanel(
     buildPanelPayload(
       getLastPanelPayload()?.items || DEFAULT_QUALITY_OPTIONS,
       selected,
-      true,
+      panelLoading,
     ),
   );
   schedulePanelPush();
+  syncNowPlayingToPanel();
 
-  if (isSidebarHtmlLoaded() && url !== previousWatchUrl) {
-    sidebar.postMessage("watchUrlChanged", { watchUrl: url });
+  if (url !== previousWatchUrl) {
+    postSidebarPanelMessage("watchUrlChanged", { watchUrl: url });
     void postRelatedPreview(url);
   }
 }
@@ -221,6 +226,40 @@ export function initQualityUI(): void {
     appendLog("Open YouTube panel triggered");
   });
 
+  global.onMessage("panelProxy", (payload: { action?: string; data?: unknown }) => {
+    const action = payload?.action;
+    const data = payload?.data;
+    switch (action) {
+      case "selectQuality": {
+        const height = (data as { height?: number } | undefined)?.height;
+        if (typeof height === "number") {
+          void switchQuality(height);
+        }
+        break;
+      }
+      case "descriptionSeek":
+      case "seek": {
+        let seconds = (data as { seconds?: number | string } | undefined)?.seconds;
+        if (typeof seconds === "string") {
+          seconds = Number.parseFloat(seconds);
+        }
+        if (typeof seconds === "number" && seconds >= 0 && Number.isFinite(seconds)) {
+          seekPlayback(seconds, "description");
+        }
+        break;
+      }
+      case "openUrl": {
+        const url = (data as { url?: string } | undefined)?.url;
+        if (typeof url === "string") {
+          openLinkedUrl(url);
+        }
+        break;
+      }
+      default:
+        appendLog(`panelProxy ignored: ${action ?? "?"}`);
+    }
+  });
+
   event.on("iina.window-loaded", () => {
     installPlayerMenuSeparator();
     enableMenuUpdates();
@@ -234,8 +273,6 @@ export function initQualityUI(): void {
   event.on("iina.window-will-close", () => {
     cancelScheduledRefresh();
   });
-
-  registerBrowseShortcut();
 
   postSidebarPanel(defaultPanelPayload(getSelectedHeight()));
 }
@@ -279,10 +316,8 @@ export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
       if (watchUrl) {
         preferences.set("last_watch_url", "");
         preferences.sync();
-        if (isSidebarHtmlLoaded()) {
-          sidebar.postMessage("watchUrlChanged", { watchUrl: "" });
-          postRelatedPreviewClear();
-        }
+        postSidebarPanelMessage("watchUrlChanged", { watchUrl: "" });
+        postRelatedPreviewClear();
       }
       clearListedMetadata();
       replaceChapterMenu([]);
@@ -292,4 +327,10 @@ export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
   };
 
   eventApi.on("iina.file-loaded", onFileLoaded);
+}
+
+/** Refresh panel metadata and push live playback state (panel requests this). */
+export function pushNowPlayingUpdate(): void {
+  scheduleRefreshQualityUI();
+  syncNowPlayingToPanel();
 }

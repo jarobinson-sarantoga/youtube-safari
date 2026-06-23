@@ -10,6 +10,8 @@ import { IDLE_COPY } from "./copy";
 import { $, createErrorWithRetry, createRetryButton, escapeHtml, formatClock } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
+import { scheduleNowPlayingSync } from "./now-playing-sync";
+import { setActiveView } from "./views";
 
 function escapeAttr(text: string): string {
   return escapeHtml(text).replace(/'/g, "&#39;");
@@ -178,9 +180,56 @@ let renderedRelatedVideoId = "";
 let renderedRelatedHasItems = false;
 let lastAcceptedRelatedRequestId = 0;
 let relatedSelectedIndex = -1;
+let relatedLoadVideoId = "";
 
 export function getCurrentWatchUrl(): string {
   return currentWatchUrl;
+}
+
+function getDisplayedHeroTitle(): string {
+  const title = ($("video-title").textContent || "").trim();
+  if (!title || title === "No YouTube video" || title === "YouTube video") {
+    return "";
+  }
+  return title;
+}
+
+function applyWatchUrlToNowPlaying(watchUrl: string): void {
+  if (!watchUrl) {
+    return;
+  }
+  currentWatchUrl = watchUrl;
+  updateHero(getDisplayedHeroTitle(), watchUrl);
+}
+
+/** Optimistic Now Playing hero while playback is starting. */
+export function previewNowPlayingFromFeed(item: FeedItem): void {
+  const url = youtubeWatchUrl(item.videoId);
+  currentWatchUrl = url;
+  updateHero(item.title, url);
+}
+
+export function requestRelatedPreviewForCurrentWatch(force = false): void {
+  const watchUrl = getCurrentWatchUrl();
+  const videoId = getYouTubeVideoId(watchUrl) || "";
+  if (!videoId) {
+    relatedLoadVideoId = "";
+    resetRelatedPreviewCache();
+    const el = $("related-preview");
+    el.innerHTML = "";
+    el.textContent = IDLE_COPY.related;
+    el.classList.add("empty");
+    return;
+  }
+  if (!force && hasCachedRelatedPreview(watchUrl)) {
+    return;
+  }
+  if (!force && relatedLoadVideoId === videoId) {
+    return;
+  }
+  relatedLoadVideoId = videoId;
+  beginRelatedPreviewLoad();
+  postToPlugin("requestRelatedPreview", { watchUrl, force: force || undefined });
 }
 
 export function hasCachedRelatedPreview(watchUrl: string): boolean {
@@ -289,8 +338,13 @@ export function renderRelatedPreview(
   }
 
   const currentVideoId = getYouTubeVideoId(currentWatchUrl) || "";
-  if (videoId && currentVideoId && videoId !== currentVideoId) {
+  const resolvedVideoId = videoId || currentVideoId;
+  if (resolvedVideoId && currentVideoId && resolvedVideoId !== currentVideoId) {
     return;
+  }
+
+  if (resolvedVideoId) {
+    relatedLoadVideoId = "";
   }
 
   const el = $("related-preview");
@@ -303,7 +357,7 @@ export function renderRelatedPreview(
     el.classList.remove("empty");
     el.appendChild(
       createErrorWithRetry(error, () => {
-        postToPlugin("requestRelatedPreview", { force: true });
+        requestRelatedPreviewForCurrentWatch(true);
       }),
     );
     return;
@@ -325,13 +379,31 @@ export function renderRelatedPreview(
       showDuration: false,
       showResume: false,
       showExtra: false,
+      showBackgroundPlay: true,
       onClick: (clickedItem) => {
         relatedSelectedIndex = index;
         updateRelatedSelection();
+        previewNowPlayingFromFeed(clickedItem);
         postToPlugin("playVideo", {
           videoId: clickedItem.videoId,
           url: youtubeWatchUrl(clickedItem.videoId),
         });
+        scheduleNowPlayingSync();
+        setActiveView("player", { skipPanelRefresh: true });
+        requestRelatedPreviewForCurrentWatch();
+      },
+      onBackgroundPlay: (clickedItem) => {
+        relatedSelectedIndex = index;
+        updateRelatedSelection();
+        previewNowPlayingFromFeed(clickedItem);
+        postToPlugin("playVideo", {
+          videoId: clickedItem.videoId,
+          url: youtubeWatchUrl(clickedItem.videoId),
+          background: true,
+        });
+        scheduleNowPlayingSync();
+        setActiveView("player", { skipPanelRefresh: true });
+        requestRelatedPreviewForCurrentWatch();
       },
     });
 
@@ -379,7 +451,7 @@ function renderPanel(data: PanelPayload): void {
   const watchVideoId = getYouTubeVideoId(watchUrl) || "";
 
   if (watchVideoId && watchVideoId !== renderedRelatedVideoId) {
-    beginRelatedPreviewLoad();
+    requestRelatedPreviewForCurrentWatch();
   }
 
   updateHero(title, watchUrl);
@@ -414,8 +486,13 @@ function handlePlayerState(state: PlayerStateMessage): void {
   const duration = typeof state.duration === "number" ? state.duration : 0;
   const paused = !!state.paused;
 
-  if (title || watchUrl || currentWatchUrl) {
-    updateHero(title, watchUrl || currentWatchUrl);
+  if (watchUrl) {
+    currentWatchUrl = watchUrl;
+  }
+
+  const resolvedTitle = title || getDisplayedHeroTitle();
+  if (resolvedTitle || watchUrl || currentWatchUrl) {
+    updateHero(resolvedTitle, watchUrl || currentWatchUrl);
   }
 
   updateProgress(position, duration, paused);
@@ -475,12 +552,18 @@ export function initPlayerPanel(): void {
 
   onPluginMessage("feedsStale", () => {
     resetRelatedPreviewCache();
-    beginRelatedPreviewLoad();
-    postToPlugin("requestRelatedPreview", { force: true });
+    requestRelatedPreviewForCurrentWatch(true);
   });
 
-  onPluginMessage("watchUrlChanged", () => {
-    resetRelatedPreviewCache();
+  onPluginMessage("watchUrlChanged", (raw) => {
+    const watchUrl = (raw as { watchUrl?: string } | undefined)?.watchUrl || "";
+    if (watchUrl) {
+      applyWatchUrlToNowPlaying(watchUrl);
+      requestRelatedPreviewForCurrentWatch();
+    } else {
+      relatedLoadVideoId = "";
+      resetRelatedPreviewCache();
+    }
   });
 
   renderPanel({

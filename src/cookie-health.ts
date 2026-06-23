@@ -18,10 +18,10 @@ export function getCookieHealth(): CookieHealth {
 
 function messageFor(health: CookieHealth): string {
   if (health === "missing") {
-    return "YouTube cookies missing — Plugin → Refresh Safari Cookies";
+    return "YouTube cookies missing — Plugin → Refresh YouTube";
   }
   if (health === "unauthenticated") {
-    return "YouTube cookies need refresh — Plugin → Refresh Safari Cookies";
+    return "YouTube cookies need refresh — Plugin → Refresh YouTube";
   }
   return "";
 }

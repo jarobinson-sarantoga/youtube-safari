@@ -18,7 +18,7 @@ import {
 const REFRESH_COOKIES_HINT =
   "No feed — refresh Safari cookies from the menu, then try again";
 const PARTIAL_COOKIES_HINT =
-  "Cookies are partial — Plugin → Refresh Safari Cookies (IINA needs Full Disk Access)";
+  "Cookies are partial — Plugin → Refresh YouTube (IINA needs Full Disk Access)";
 
 function parseArgs(argv) {
   const out = {

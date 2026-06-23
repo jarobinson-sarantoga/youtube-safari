@@ -1,7 +1,7 @@
 {
-  "name": "YouTube (Safari Cookies)",
+  "name": "YouTube",
   "identifier": "com.jarobinson.youtube-safari",
-  "version": "0.2.2",
+  "version": "0.2.7",
   "author": { "name": "jarobinson" },
   "entry": "dist/index.js",
   "globalEntry": "dist/global.js",

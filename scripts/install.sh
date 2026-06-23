@@ -80,27 +80,20 @@ PROFILE_FILE="$INPUT_CONF_DIR/${PROFILE}.conf"
 if [ ! -f "$PROFILE_FILE" ]; then
   PROFILE_FILE="$INPUT_CONF_DIR/input"
 fi
-BROWSE_MARKER="# youtube-safari: Open YouTube Browse (Shift+Y)"
-BROWSE_BINDING="Shift+y ignore"
-echo "==> Adding Shift+Y to IINA input profile (${PROFILE})"
+PANEL_MARKER="# youtube-safari: Open YouTube Panel (Cmd+Shift+Y)"
+PANEL_BINDING="Meta+Shift+Y ignore"
+echo "==> Adding Cmd+Shift+Y to IINA input profile (${PROFILE})"
 if [ -f "$PROFILE_FILE" ]; then
-  if grep -qF "$BROWSE_BINDING" "$PROFILE_FILE"; then
-    echo "    ${PROFILE} already has youtube-safari Shift+Y binding"
+  perl -0pi -e 's/\n# youtube-safari:.*?\n(?:#.*?\n)*(?:Meta\+Shift\+Y|Shift\+y) ignore\n?//g' "$PROFILE_FILE" 2>/dev/null || true
+  if ! grep -qF "$PANEL_BINDING" "$PROFILE_FILE"; then
+    printf '\n%s\n# mpv ignores this key so Plugin menu / player shortcut can handle it.\n# Also works via scripts/open-panel.sh (global queue poller).\n%s\n' \
+      "$PANEL_MARKER" "$PANEL_BINDING" >> "$PROFILE_FILE"
+    echo "    added ${PANEL_BINDING} to ${PROFILE}"
   else
-    if grep -qF "$BROWSE_MARKER" "$PROFILE_FILE"; then
-      # Upgrade comment-only installs from older versions.
-      perl -0pi -e 's/\n# Handled by Plugin.*?\n# Restart IINA after install.*?\n/\n/' "$PROFILE_FILE" 2>/dev/null || true
-    else
-      printf '\n%s\n' "$BROWSE_MARKER" >> "$PROFILE_FILE"
-    fi
-    {
-      echo "# Reserves Shift+Y for Plugin → Open YouTube Browse (com.jarobinson.youtube-safari)."
-      echo "$BROWSE_BINDING"
-    } >> "$PROFILE_FILE"
-    echo "    added Shift+Y binding to input_conf/${PROFILE}"
+    echo "    ${PANEL_BINDING} already in ${PROFILE}"
   fi
 else
-  echo "    WARNING: input profile not found at $PROFILE_FILE (skipped)"
+  echo "    WARNING: profile not found at $PROFILE_FILE (skipped)"
 fi
 
 echo "==> Disabling official Online Media plugin (prevents race on YouTube URLs)"
@@ -115,7 +108,13 @@ if [ "$(defaults read com.colliderli.iina enableRecentDocumentsWorkaround 2>/dev
 fi
 
 echo ""
-echo "Restart IINA, then press Shift+Y or use Plugin → Open YouTube Panel."
-echo "If Shift+Y conflicts, check IINA Settings → Key Bindings → Plugin."
-echo "If playback fails, use Plugin → Refresh Safari Cookies (IINA needs Full Disk Access)"
+chmod +x "$ROOT/scripts/open-panel.sh" 2>/dev/null || true
+echo ""
+echo "Restart IINA, then press Cmd+Shift+Y or use Plugin → Open YouTube Panel."
+echo "Shortcut paths: Plugin menu (no player), player input.onKeyDown, input_conf ignore."
+echo "CLI fallback: $ROOT/scripts/open-panel.sh"
+echo "If the shortcut fails but the menu item works, open Plugin menu and confirm"
+echo "  Open YouTube Panel shows ⌘⇧Y. If missing, check for Conflicting key shortcuts…"
+echo "  at the top of the Plugin menu, or IINA Settings → Key Bindings → Plugin."
+echo "If playback fails, use Plugin → Refresh YouTube (IINA needs Full Disk Access)"
 echo "Done."

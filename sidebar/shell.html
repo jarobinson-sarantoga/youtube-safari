@@ -7,15 +7,15 @@
   <link rel="stylesheet" href="shell.css" />
 </head>
 <body>
-  <div class="shell">
+  <div class="shell panel-booting" id="shell-root">
     <header class="shell-header">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
         <span class="brand-text">YouTube</span>
       </div>
       <nav class="view-nav" role="tablist" aria-label="Panel views">
-        <button type="button" class="view-btn" data-view="browse" role="tab" aria-selected="false">Browse</button>
-        <button type="button" class="view-btn active" data-view="player" role="tab" aria-selected="true">Now Playing</button>
+        <button type="button" class="view-btn" data-view="browse" role="tab" aria-selected="false" aria-label="Browse">Browse</button>
+        <button type="button" class="view-btn active" data-view="player" role="tab" aria-selected="true" aria-label="Now Playing">Now Playing</button>
       </nav>
     </header>
 
@@ -51,7 +51,7 @@
       </div>
 
       <div class="feed-status" id="feed-status" aria-live="polite"></div>
-      <div class="feed-list" id="feed-list" tabindex="0"></div>
+      <div class="feed-list" id="feed-list"></div>
     </section>
 
     <!-- Player view -->
@@ -97,7 +97,7 @@
 
         <div class="section" id="related-preview-section">
           <p class="section-title">Related</p>
-          <div class="related-preview empty" id="related-preview" tabindex="0">Open a video in IINA to see related videos.</div>
+          <div class="related-preview empty" id="related-preview">Open a video in IINA to see related videos.</div>
         </div>
       </div>
     </section>

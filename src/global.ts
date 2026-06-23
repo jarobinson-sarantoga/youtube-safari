@@ -1,20 +1,32 @@
 import { notifyCookieHealthIfNeeded } from "./cookie-health";
 import {
   clearPendingWatchUrl,
+  closeManagedPlayersForNewPlayback,
   drainPendingWatchUrl,
+  flushPendingRetirePlayers,
   hasPendingWatchUrl,
+  openYouTubeWatchUrl,
+  registerManagedPlayer,
   startOpenUrlQueuePoller,
-  stopOpenUrlQueuePoller,
-  takePendingWatchUrl,
+  unregisterManagedPlayer,
 } from "./open-url-global";
+import { normalizePlayerId } from "./player-id";
+import { startOpenPanelQueuePoller } from "./open-panel-global";
+import { BROWSE_KEY_BINDING } from "./keybindings";
+import {
+  forwardPanelRelay,
+  initStandaloneShell,
+  notifyStandaloneFeedsStale,
+  openStandalonePanel,
+} from "./standalone-host";
+import { setStandaloneCoordinator } from "./standalone-bridge";
+import { invalidateBrowseSessionCaches } from "./browse/session-invalidate";
+import { refreshYouTubeCookies } from "./youtube-refresh";
 import { appendLog, getLogPath } from "./ytdl";
 
-const { global, menu, preferences, utils, console } = iina;
-
-const DEFAULT_REFRESH_SCRIPT = "~/Projects/youtube-safari/scripts/refresh-cookies.sh";
+const { global, menu, utils, console } = iina;
 
 let activePlayerId: number | null = null;
-let pendingBrowse = false;
 let playerConfirmedReady = false;
 let pendingCookieRefreshNotify = false;
 let livePlayerCount = 0;
@@ -28,11 +40,10 @@ const playerCoordinator = {
   setPlayerConfirmedReady: (ready: boolean) => {
     playerConfirmedReady = ready;
   },
-  getPendingBrowse: () => pendingBrowse,
-  clearPendingBrowse: () => {
-    pendingBrowse = false;
-  },
+  getLivePlayerCount: () => livePlayerCount,
 };
+
+const globalMenuState = { installed: false };
 
 function notifyPlayersCookiesRefreshed(): void {
   if (activePlayerId !== null && playerConfirmedReady) {
@@ -45,143 +56,182 @@ function notifyPlayersCookiesRefreshed(): void {
   appendLog("Cookie refresh complete — will notify player on next ready");
 }
 
-async function runCookieRefreshScript(script: string): Promise<{
-  status: number;
-  stdout: string;
-  stderr: string;
-}> {
-  appendLog(`Running cookie refresh: bash ${script}`);
-  return utils.exec("/bin/bash", [script]);
+function installGlobalMenuItems(): boolean {
+  if (globalMenuState.installed) {
+    return true;
+  }
+
+  try {
+    menu.addItem(
+      menu.item(
+        "Open YouTube Panel",
+        () => {
+          appendLog(`Open YouTube panel (${BROWSE_KEY_BINDING} menu action)`);
+          openStandalonePanel();
+        },
+        { keyBinding: BROWSE_KEY_BINDING },
+      ),
+    );
+
+    menu.addItem(
+      menu.item("Refresh YouTube", () => {
+        void (async () => {
+          appendLog("Refresh YouTube requested");
+          const ok = await refreshYouTubeCookies();
+          if (!ok) {
+            return;
+          }
+          invalidateBrowseSessionCaches();
+          notifyPlayersCookiesRefreshed();
+          notifyStandaloneFeedsStale();
+        })();
+      }),
+    );
+
+    menu.addItem(
+      menu.item("View Log", () => {
+        void (async () => {
+          const logPath = getLogPath();
+          appendLog("View Log opened");
+          const result = await utils.exec("/usr/bin/open", ["-t", logPath]);
+          if (result.status !== 0) {
+            appendLog(`open -t failed: ${result.stderr}`);
+          }
+        })();
+      }),
+    );
+
+    globalMenuState.installed = true;
+    appendLog(`Global plugin menu installed (${BROWSE_KEY_BINDING})`);
+    return true;
+  } catch (err) {
+    appendLog(`Global plugin menu install failed: ${err}`);
+    return false;
+  }
 }
 
-global.onMessage("playerReady", (_data: { idle?: boolean } | undefined, playerId) => {
-  if (playerId === null || playerId === undefined) {
-    return;
+function registerGlobalMessageHandlers(): void {
+  global.onMessage("openStandalonePanel", () => {
+    appendLog("Open YouTube panel (global shortcut message)");
+    openStandalonePanel();
+  });
+
+  global.onMessage("playerReady", (data: { idle?: boolean; label?: string } | undefined, playerId) => {
+    const normalizedId = normalizePlayerId(playerId);
+    if (normalizedId === null) {
+      appendLog(`Player ready ignored (missing player id, raw=${String(playerId)})`);
+      return;
+    }
+
+    const expectedId = activePlayerId;
+    if (
+      hasPendingWatchUrl() &&
+      expectedId !== null &&
+      !playerConfirmedReady &&
+      normalizePlayerId(expectedId) !== normalizedId
+    ) {
+      appendLog(`Player ready ignored (expected ${expectedId}, got ${normalizedId})`);
+      return;
+    }
+
+    livePlayerCount += 1;
+    installGlobalMenuItems();
+    startOpenUrlQueuePoller(playerCoordinator);
+    activePlayerId = normalizedId;
+    playerConfirmedReady = true;
+    if (data?.label === "youtube-open") {
+      registerManagedPlayer(normalizedId);
+    }
+    appendLog(`Player ready: ${normalizedId}`);
+    flushPendingRetirePlayers(playerCoordinator);
+
+    if (pendingCookieRefreshNotify) {
+      global.postMessage(normalizedId, "cookiesRefreshed", {});
+      pendingCookieRefreshNotify = false;
+      appendLog("Posted deferred cookiesRefreshed after player ready");
+    }
+
+    drainPendingWatchUrl(normalizedId, playerCoordinator);
+  });
+
+  global.onMessage("playerClosed", (_data, playerId) => {
+    const normalizedId = normalizePlayerId(playerId);
+    if (normalizedId === null) {
+      return;
+    }
+    livePlayerCount = Math.max(0, livePlayerCount - 1);
+    unregisterManagedPlayer(normalizedId);
+    appendLog(`Player closed: ${normalizedId}`);
+    if (activePlayerId === normalizedId) {
+      clearPendingWatchUrl();
+      activePlayerId = null;
+      playerConfirmedReady = false;
+    }
+    // Keep the open-url poller running — stopping here drops queued panel plays
+    // while the replacement player is still starting.
+  });
+
+  global.onMessage("panelRelay", (payload: { name?: string; data?: unknown }) => {
+    const name = payload?.name;
+    if (typeof name !== "string") {
+      return;
+    }
+    forwardPanelRelay(name, payload.data ?? {});
+  });
+
+  global.onMessage("closeManagedPlayers", () => {
+    closeManagedPlayersForNewPlayback(playerCoordinator);
+  });
+
+  global.onMessage("panelPlayVideo", (data: {
+    url?: string;
+    background?: boolean;
+  }) => {
+    const url = data?.url;
+    if (typeof url !== "string" || !url.trim()) {
+      return;
+    }
+    const trimmed = url.trim();
+    openYouTubeWatchUrl(trimmed, playerCoordinator, {
+      background: !!data.background,
+    });
+    forwardPanelRelay("watchUrlChanged", { watchUrl: trimmed });
+  });
+}
+
+function pingExistingPlayers(): void {
+  try {
+    global.postMessage(null, "globalPing", {});
+    appendLog("Pinged existing players for playerReady sync");
+  } catch (err) {
+    appendLog(`globalPing failed: ${err}`);
   }
-  livePlayerCount += 1;
+}
+
+function bootstrapGlobalEntry(): void {
+  setStandaloneCoordinator(playerCoordinator);
+
+  // User Scripts order: preload standalone shell, then register Plugin menu + keyBinding.
+  initStandaloneShell();
+  installGlobalMenuItems();
+  startOpenPanelQueuePoller();
   startOpenUrlQueuePoller(playerCoordinator);
-  activePlayerId = playerId;
-  playerConfirmedReady = true;
-  appendLog(`Player ready: ${playerId}`);
+  registerGlobalMessageHandlers();
+  pingExistingPlayers();
 
-  if (pendingCookieRefreshNotify) {
-    global.postMessage(playerId, "cookiesRefreshed", {});
-    pendingCookieRefreshNotify = false;
-    appendLog("Posted deferred cookiesRefreshed after player ready");
-  }
+  // Rebuild Plugin menu after IINA finishes loading keybindings (large global.js can load late).
+  setTimeout(() => {
+    try {
+      menu.forceUpdate();
+      appendLog("Global plugin menu forceUpdate");
+    } catch (err) {
+      appendLog(`menu.forceUpdate failed: ${err}`);
+    }
+  }, 400);
 
-  const watchUrl = takePendingWatchUrl();
-  if (watchUrl) {
-    global.postMessage(playerId, "openYouTubeWatch", { url: watchUrl });
-    appendLog(`Posted pending openYouTubeWatch: ${watchUrl}`);
-    pendingBrowse = false;
-    return;
-  }
-
-  drainPendingWatchUrl(playerId, playerCoordinator);
-
-  if (pendingBrowse && !hasPendingWatchUrl()) {
-    global.postMessage(playerId, "openYouTubeBrowse", {});
-    pendingBrowse = false;
-  }
-});
-
-global.onMessage("playerClosed", (_data, playerId) => {
-  if (playerId === null || playerId === undefined) {
-    return;
-  }
-  livePlayerCount = Math.max(0, livePlayerCount - 1);
-  clearPendingWatchUrl();
-  pendingBrowse = false;
-  if (activePlayerId === playerId) {
-    activePlayerId = null;
-    playerConfirmedReady = false;
-    appendLog(`Player closed: ${playerId}`);
-  }
-  if (livePlayerCount === 0) {
-    stopOpenUrlQueuePoller();
-  }
-});
-
-function openYouTubeBrowse(): void {
-  appendLog("Open YouTube panel (global menu)");
-
-  if (activePlayerId === null) {
-    pendingBrowse = true;
-    playerConfirmedReady = false;
-    // enablePlugins:false = only this plugin in the new player (IINA global-entry pattern).
-    activePlayerId = global.createPlayerInstance({ enablePlugins: false });
-    appendLog(`Created player for browse: ${activePlayerId}`);
-    return;
-  }
-
-  if (!playerConfirmedReady) {
-    pendingBrowse = true;
-    return;
-  }
-
-  global.postMessage(activePlayerId, "openYouTubeBrowse", {});
+  notifyCookieHealthIfNeeded();
+  appendLog("Global entry loaded");
+  console.log("YouTube global entry loaded");
 }
 
-let globalMenuInstalled = false;
-
-function installGlobalMenuItems(): void {
-  if (globalMenuInstalled) {
-    return;
-  }
-  globalMenuInstalled = true;
-
-  menu.addItem(
-    menu.item("Open YouTube Panel", () => {
-      openYouTubeBrowse();
-    }),
-  );
-
-  menu.addItem(
-    menu.item("Refresh Safari Cookies", () => {
-      void (async () => {
-        appendLog("Refresh Safari Cookies requested");
-
-        const configured = preferences.get("refresh_script") as string | undefined;
-        const script = utils.resolvePath(configured || DEFAULT_REFRESH_SCRIPT);
-        if (!utils.fileInPath(script)) {
-          appendLog(`Missing refresh script: ${script}`);
-          return;
-        }
-
-        const result = await runCookieRefreshScript(script);
-        if (result.status !== 0) {
-          const detail = (result.stderr || result.stdout || "unknown error").trim();
-          appendLog(`Cookie refresh failed (${result.status}): ${detail}`);
-          return;
-        }
-
-        const output = (result.stdout || "").trim();
-        appendLog(output ? `Cookie refresh OK: ${output}` : "Cookie refresh OK");
-        notifyPlayersCookiesRefreshed();
-      })();
-    }),
-  );
-
-  menu.addItem(
-    menu.item("View Log", () => {
-      void (async () => {
-        const logPath = getLogPath();
-        appendLog("View Log opened");
-        const result = await utils.exec("/usr/bin/open", ["-t", logPath]);
-        if (result.status !== 0) {
-          appendLog(`open -t failed: ${result.stderr}`);
-        }
-      })();
-    }),
-  );
-
-  appendLog("Global plugin menu installed");
-}
-
-// Defer global menu items — sync menu.addItem during player init crashed/hung IINA (June 2026).
-setTimeout(installGlobalMenuItems, 500);
-
-notifyCookieHealthIfNeeded();
-appendLog("Global entry loaded");
-console.log("YouTube (Safari Cookies) global entry loaded");
+bootstrapGlobalEntry();

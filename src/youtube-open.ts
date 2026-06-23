@@ -127,7 +127,22 @@ async function loadYouTubePlaylist(url: string, startSeconds: number | null): Pr
   }
 }
 
-export function openLinkedUrl(url: string): void {
+export type OpenLinkedUrlOptions = {
+  /** Replace current stream in-place (safer when reusing a managed player). */
+  replace?: boolean;
+};
+
+function hasActiveStream(): boolean {
+  const current = mpv.getString("stream-open-filename") || "";
+  return (
+    !!current &&
+    current !== "-" &&
+    current !== "/dev/null" &&
+    !current.endsWith("null://")
+  );
+}
+
+export function openLinkedUrl(url: string, options?: OpenLinkedUrlOptions): void {
   if (isShuttingDown()) {
     appendLog(`Open URL ignored during shutdown: ${url}`);
     return;
@@ -155,6 +170,14 @@ export function openLinkedUrl(url: string): void {
   }
 
   setPendingSeek(startSeconds);
+  const replace = !!options?.replace && hasActiveStream();
+  if (replace) {
+    mpv.command("loadfile", [normalized, "replace"]);
+    appendLog(
+      `Replace YouTube in player: ${normalized}${startSeconds !== null ? ` @ ${startSeconds}s` : ""}`,
+    );
+    return;
+  }
   core.open(normalized);
   appendLog(
     `Open YouTube in player: ${normalized}${startSeconds !== null ? ` @ ${startSeconds}s` : ""}`,

@@ -4,7 +4,9 @@ import { youtubeWatchUrl } from "../youtube";
 import { $, createErrorWithRetry } from "./dom";
 import { createFeedRow, createSkeletonRows } from "./feed-row";
 import { onPluginMessage, postToPlugin } from "./messaging";
-import { getCurrentWatchUrl, renderRelatedPreview } from "./player";
+import { getCurrentWatchUrl, previewNowPlayingFromFeed, renderRelatedPreview } from "./player";
+import { scheduleNowPlayingSync } from "./now-playing-sync";
+import { completePanelBoot, isPanelBooting, queueBootView } from "./boot";
 import { setActiveView } from "./views";
 import {
   ensureBrowseFeedLoaded,
@@ -113,16 +115,25 @@ function renderSkeleton(): void {
   listEl.appendChild(createSkeletonRows(5));
 }
 
-function playItem(item: FeedItem): void {
+function playItem(
+  item: FeedItem,
+  options?: { background?: boolean },
+): void {
   let url = youtubeWatchUrl(item.videoId);
   if (typeof item.resumeSeconds === "number" && item.resumeSeconds > 0) {
     url += `&t=${item.resumeSeconds}`;
   }
+  previewNowPlayingFromFeed(item);
   postToPlugin("playVideo", {
     videoId: item.videoId,
     url,
+    background: !!options?.background,
   });
-  setActiveView("player");
+  scheduleNowPlayingSync();
+  if (!options?.background) {
+    clearStatus();
+  }
+  setActiveView("player", { skipPanelRefresh: true });
 }
 
 function updateFeedSelection(): void {
@@ -202,10 +213,16 @@ function renderFeedList(): void {
       item,
       index,
       selected: index === selectedIndex,
+      showBackgroundPlay: true,
       onClick: (clickedItem, clickedIndex) => {
         setSelectedIndex(clickedIndex);
         updateFeedSelection();
         playItem(clickedItem);
+      },
+      onBackgroundPlay: (clickedItem, clickedIndex) => {
+        setSelectedIndex(clickedIndex);
+        updateFeedSelection();
+        playItem(clickedItem, { background: true });
       },
     });
 
@@ -380,13 +397,26 @@ function setupKeyboard(): void {
       setSelectedIndex(feedItems.length - 1);
       updateFeedSelection();
       scrollSelectedIntoView();
+    } else if (
+      (event.key === "l" || event.key === "L") &&
+      getSelectedIndex() >= 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      playItem(feedItems[getSelectedIndex()], { background: true });
     } else if (event.key === "Enter" && getSelectedIndex() >= 0) {
       event.preventDefault();
       playItem(feedItems[getSelectedIndex()]);
     }
   });
 
-  listEl.addEventListener("focus", () => {
+  // Use "focusin" (bubbles) so entering the list via its now directly
+  // focusable child rows still auto-selects the first item. The list
+  // container is intentionally no longer tabbable (macOS HIG: avoid a
+  // redundant tab stop), so a plain "focus" listener would never fire.
+  listEl.addEventListener("focusin", () => {
     const feedItems = getFeedItems();
     if (getSelectedIndex() < 0 && feedItems.length) {
       setSelectedIndex(0);
@@ -436,6 +466,10 @@ export function initBrowsePanel(): void {
   });
 
   onPluginMessage("focusBrowse", () => {
+    if (isPanelBooting()) {
+      queueBootView("browse");
+      return;
+    }
     setActiveView("browse");
     ($("search-input") as HTMLInputElement).focus();
   });
@@ -443,5 +477,14 @@ export function initBrowsePanel(): void {
   onPluginMessage("watchUrlChanged", onWatchUrlChanged);
   onPluginMessage("historyStale", onHistoryStale);
   onPluginMessage("feedsStale", onFeedsStale);
-  onPluginMessage("browseReady", onBrowseReady);
+  onPluginMessage("browseReady", () => {
+    const view = completePanelBoot();
+    if (view) {
+      setActiveView(view);
+      if (view === "browse") {
+        ($("search-input") as HTMLInputElement).focus();
+      }
+    }
+    onBrowseReady();
+  });
 }

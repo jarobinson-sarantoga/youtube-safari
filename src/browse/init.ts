@@ -1,9 +1,6 @@
 import { registerBrowseSidebarHandlers } from "./bridge";
-import { invalidateCookieCache } from "./cookies";
-import { clearFeedInflight } from "./feeds/index";
-import { clearRelatedMemoryCache } from "./feeds/related";
-import { clearBrowseCache, flushPendingCache } from "./store/cache";
-import { clearQualitiesCache } from "../qualities";
+import { invalidateBrowseSessionCaches } from "./session-invalidate";
+import { flushPendingCache } from "./store/cache";
 
 import {
   flushPendingHistory,
@@ -18,13 +15,15 @@ import {
   youtubeThumbnailUrl,
 } from "../youtube";
 import { notifyCookieHealthIfNeeded } from "../cookie-health";
-import { markPlayerShuttingDown } from "../lifecycle";
+import { isBackgroundHidePending } from "../background-play";
+import { isIntentionalPlayerClose, markPlayerShuttingDown } from "../lifecycle";
 import { cancelSeekRetries } from "../youtube-open";
 import { getLastWatchUrl } from "../preferences";
+import { postPanelMessage, postSidebarPanelMessage } from "../panel-relay";
 import { appendLog } from "../ytdl";
 import type { PlayerStateMessage } from "./messages";
 
-const { core, event, global, mpv, sidebar } = iina;
+const { core, event, global, mpv } = iina;
 
 let browseInstalled = false;
 let playerStateTimer: ReturnType<typeof setInterval> | null = null;
@@ -56,8 +55,8 @@ function buildPlayerState(): PlayerStateMessage {
   };
 }
 
-function postPlayerState(): void {
-  sidebar.postMessage("playerState", buildPlayerState());
+export function postPlayerState(): void {
+  postSidebarPanelMessage("playerState", buildPlayerState());
 }
 
 function startPlayerStatePolling(): void {
@@ -66,7 +65,7 @@ function startPlayerStatePolling(): void {
   }
   playerStateTimer = setInterval(() => {
     postPlayerState();
-  }, 2000);
+  }, 1000);
 }
 
 function stopPlayerStatePolling(): void {
@@ -87,7 +86,7 @@ function onYouTubeFileLoaded(): void {
     const videoId = getYouTubeVideoId(watchUrl) || "";
     const thumb = videoId ? youtubeThumbnailUrl(videoId) : "";
     recordWatchStart(watchUrl, title, "", thumb);
-    sidebar.postMessage("historyStale", {});
+    postSidebarPanelMessage("historyStale", {});
   }
   postPlayerState();
   startPlayerStatePolling();
@@ -135,6 +134,16 @@ export function installBrowse(): void {
   registerPlaybackHooks();
 
   event.on("iina.window-will-close", () => {
+    if (isBackgroundHidePending() && !isIntentionalPlayerClose()) {
+      appendLog("window-will-close skipped (background hide)");
+      return;
+    }
+    const label =
+      typeof global.getLabel === "function" ? global.getLabel() : "";
+    if (label === "youtube-open" && !isIntentionalPlayerClose()) {
+      appendLog("window-will-close skipped (managed youtube-open)");
+      return;
+    }
     markPlayerShuttingDown();
     stopPlayerStatePolling();
     stopWatchProgressPolling();
@@ -145,17 +154,16 @@ export function installBrowse(): void {
   });
 
   global.onMessage("cookiesRefreshed", () => {
-    invalidateCookieCache();
-    clearBrowseCache();
-    clearRelatedMemoryCache();
-    clearQualitiesCache();
-    clearFeedInflight();
-    appendLog("Cookie and browse caches invalidated after refresh");
-    sidebar.postMessage("feedsStale", {});
+    notifyCookiesRefreshed();
   });
 
   notifyCookieHealthIfNeeded({ osd: true });
   appendLog("Browse module installed");
+}
+
+export function notifyCookiesRefreshed(): void {
+  invalidateBrowseSessionCaches();
+  postPanelMessage("feedsStale", {});
 }
 
 /** Re-register browse handlers after sidebar.loadFile (IINA clears listeners). */
@@ -172,4 +180,10 @@ export function notifyPlayerStateFromFileLoaded(): void {
     postPlayerState();
     startPlayerStatePolling();
   }
+}
+
+/** Push full Now Playing metadata and live playback state to the panel. */
+export function syncNowPlayingToPanel(): void {
+  postPlayerState();
+  startPlayerStatePolling();
 }

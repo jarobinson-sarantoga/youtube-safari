@@ -52,10 +52,10 @@ check "cookies file readable" test -r "$HOME/.config/yt-dlp/cookies.txt"
 
 echo "--- launch guardrails (June 2026 IINA crash pattern) ---"
 check "hooks registered before playerReady post" \
-  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | cut -d: -f1)" -gt \
+  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | tail -1 | cut -d: -f1)" -gt \
        "$(rg -n 'mpv.addHook' "$ROOT/src/index.ts" | tail -1 | cut -d: -f1)"
 check "openYouTubeWatch handler before playerReady post" \
-  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | cut -d: -f1)" -gt \
+  test "$(rg -n 'global.postMessage\("playerReady"' "$ROOT/src/index.ts" | tail -1 | cut -d: -f1)" -gt \
        "$(rg -n 'onMessage\("openYouTubeWatch"' "$ROOT/src/index.ts" | cut -d: -f1)"
 check "menu.forceUpdate only inside scheduler" \
   test "$(rg -c 'menu\.forceUpdate\(\)' "$ROOT/src/native-menus.ts")" -eq 1
@@ -74,14 +74,24 @@ check "idle dock bootstrap deferred to window-loaded" \
   rg -q 'iina.window-loaded' "$ROOT/src/index.ts"
 check "no global idle last-watch bootstrap" \
   bash -c "! rg -n 'scheduleIdleLastWatch|Posted last watch on idle' '$ROOT/src/global.ts'"
+check "global menu opens standalone window" \
+  rg -q 'openStandalonePanel' "$ROOT/src/global.ts"
+check "standalone shell preloaded at global startup" \
+  rg -q 'initStandaloneShell' "$ROOT/src/global.ts"
+check "no skhd global hotkey installer" \
+  bash -c "! test -f '$ROOT/scripts/install-global-hotkey.sh'"
+check "cmd+shift+y global menu binding" \
+  rg -q 'Meta\+Shift\+Y' "$ROOT/src/keybindings.ts"
+check "global entry does not spawn player for panel" \
+  bash -c "! rg -n 'createPlayerInstance' '$ROOT/src/global.ts'"
 check "on_load hook always calls next in finally" \
   rg -q 'finally' "$ROOT/src/index.ts" && rg -q 'next\?\.' "$ROOT/src/index.ts"
 check "shutdown guard in on_load" \
   rg -q 'isShuttingDown' "$ROOT/src/index.ts"
 check "open-url poller can be stopped" \
   rg -q 'stopOpenUrlQueuePoller' "$ROOT/src/open-url-global.ts"
-check "global stops poller on playerClosed" \
-  rg -q 'stopOpenUrlQueuePoller' "$ROOT/src/global.ts"
+check "global does not stop poller on playerClosed" \
+  bash -c "! rg -n 'stopOpenUrlQueuePoller' '$ROOT/src/global.ts'"
 
 echo "--- panel ---"
 PANEL_SKIP_BUILD=1 check "panel audit" bash "$ROOT/scripts/audit-panel.sh"

@@ -2,47 +2,100 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>YouTube (Safari Cookies)</title>
+  <title>YouTube</title>
   <style>
+    :root {
+      --pref-bg: #ffffff;
+      --pref-text: #1f1f1f;
+      --pref-help-text: rgba(0, 0, 0, 0.72);
+      --pref-field-bg: #ffffff;
+      --pref-field-border: rgba(0, 0, 0, 0.22);
+      --pref-accent: #cc0000;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --pref-bg: #1a1a1a;
+        --pref-text: #f1f1f1;
+        --pref-help-text: rgba(255, 255, 255, 0.6);
+        --pref-field-bg: #0f0f0f;
+        --pref-field-border: rgba(255, 255, 255, 0.2);
+        --pref-accent: #ff3b30;
+      }
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 16px;
-      font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 13px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      background: var(--pref-bg);
+      color: var(--pref-text);
     }
     .pref-section { margin-bottom: 14px; }
+    .pref-label {
+      display: block;
+      margin-top: 6px;
+      font-weight: 600;
+      color: var(--pref-text);
+    }
+    .pref-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--pref-text);
+    }
+    .pref-checkbox-label.pref-top-gap {
+      margin-top: 8px;
+    }
     .pref-help {
       margin: 4px 0 6px;
       font-size: 11px;
-      color: rgba(0, 0, 0, 0.55);
+      color: var(--pref-help-text);
     }
-    input[type="text"], select { width: 100%; margin-top: 4px; }
-    label { display: block; margin-top: 6px; }
+    input[type="text"], select {
+      width: 100%;
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--pref-field-border);
+      background: var(--pref-field-bg);
+      color: var(--pref-text);
+    }
+    input[type="checkbox"] {
+      accent-color: var(--pref-accent);
+    }
+    input[type="text"]:focus-visible,
+    input[type="checkbox"]:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--pref-accent);
+      outline: 2px solid AccentColor;
+      outline-offset: 1px;
+    }
   </style>
 </head>
 <body>
   <div class="pref-section">
-    <strong>yt-dlp binary</strong>
+    <label class="pref-label" for="pref-ytdl-path">yt-dlp binary</label>
     <p class="pref-help">Use the IINA yt-dlp-iina wrapper so JSON output stays small.</p>
-    <input type="text" data-pref-key="ytdl_path" />
+    <input id="pref-ytdl-path" type="text" data-pref-key="ytdl_path" />
   </div>
 
   <div class="pref-section">
-    <strong>Cookies file</strong>
-    <p class="pref-help">Exported from Safari via Refresh Safari Cookies menu item.</p>
-    <input type="text" data-pref-key="cookies_path" />
+    <label class="pref-label" for="pref-cookies-path">Cookies file</label>
+    <p class="pref-help">Exported from Safari via Plugin → Refresh YouTube.</p>
+    <input id="pref-cookies-path" type="text" data-pref-key="cookies_path" />
   </div>
 
   <div class="pref-section">
-    <strong>Forced Referer</strong>
+    <label class="pref-label" for="pref-force-referer">Forced Referer</label>
     <p class="pref-help">Applied to every googlevideo.com stream (required for playback).</p>
-    <input type="text" data-pref-key="force_referer" />
+    <input id="pref-force-referer" type="text" data-pref-key="force_referer" />
   </div>
 
   <div class="pref-section">
-    <strong>Quality</strong>
+    <label class="pref-label" for="pref-quality-height">Quality</label>
     <p class="pref-help">Maximum resolution. Codecs are chosen automatically (AV1 → VP9 → H.264).</p>
-    <select data-pref-key="quality_height">
+    <select id="pref-quality-height" data-pref-key="quality_height">
       <option value="0">Auto (up to 4K)</option>
       <option value="2160">4K (2160p)</option>
       <option value="1440">1440p</option>
@@ -54,8 +107,8 @@
   </div>
 
   <div class="pref-section">
-    <label>
-      <input type="checkbox" data-pref-key="try_ytdl_first" />
+    <label class="pref-checkbox-label" for="pref-try-ytdl-first">
+      <input id="pref-try-ytdl-first" type="checkbox" data-pref-key="try_ytdl_first" />
       Resolve YouTube on load (priority 15 hook)
     </label>
     <p class="pref-help">When off, only runs on_load_fail instead of on_load.</p>
@@ -64,14 +117,14 @@
   <div class="pref-section">
     <strong>Browse (advanced)</strong>
     <p class="pref-help">Optional YouTube Data API v3 key for search when enabled below. Default search uses InnerTube + Safari cookies.</p>
-    <label>Data API key</label>
-    <input type="text" data-pref-key="data_api_key" placeholder="Optional" />
-    <label style="margin-top:8px;">
-      <input type="checkbox" data-pref-key="browse_use_data_api" />
+    <label class="pref-label" for="pref-data-api-key">Data API key</label>
+    <input id="pref-data-api-key" type="text" data-pref-key="data_api_key" placeholder="Optional" />
+    <label class="pref-checkbox-label pref-top-gap" for="pref-browse-use-data-api">
+      <input id="pref-browse-use-data-api" type="checkbox" data-pref-key="browse_use_data_api" />
       Use Data API for search (when key is set)
     </label>
-    <label>Cache TTL (minutes)</label>
-    <input type="text" data-pref-key="browse_cache_ttl_minutes" placeholder="30" />
+    <label class="pref-label" for="pref-browse-cache-ttl-minutes">Cache TTL (minutes)</label>
+    <input id="pref-browse-cache-ttl-minutes" type="text" data-pref-key="browse_cache_ttl_minutes" placeholder="30" />
   </div>
 </body>
 </html>
