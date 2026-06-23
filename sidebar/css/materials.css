@@ -11,6 +11,26 @@
   --material-blur: blur(0.75rem) saturate(1.25);
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --glass-bg: color-mix(in srgb, var(--bg-base) 84%, transparent);
+    --glass-clear-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --material-thin-bg: color-mix(in srgb, var(--bg-base) 76%, transparent);
+    --material-regular-bg: color-mix(in srgb, var(--bg-base) 84%, transparent);
+    --material-thick-bg: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --glass-clear-bg: color-mix(in srgb, var(--bg-base) 36%, transparent);
+    --material-thin-bg: color-mix(in srgb, var(--bg-base) 48%, transparent);
+    --material-regular-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --material-thick-bg: color-mix(in srgb, var(--bg-raised) 68%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .shell-header,
   .view-nav,
@@ -33,7 +53,7 @@
   .subs-filter,
   .search-row,
   .icon-btn {
-    background: color-mix(in srgb, var(--bg-raised) 62%, transparent);
+    background: var(--glass-control-bg);
   }
 
   .shell {

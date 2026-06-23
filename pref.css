@@ -10,6 +10,25 @@
   --pref-control-height: 2rem;
   --pref-blur: blur(0.75rem) saturate(1.25);
 }
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --pref-bg: color-mix(in srgb, Canvas 84%, transparent);
+    --pref-field-bg: color-mix(in srgb, Field 88%, transparent);
+    --pref-help-text: color-mix(in srgb, CanvasText 52%, Canvas);
+    --pref-field-border: color-mix(in srgb, ButtonBorder 88%, CanvasText);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pref-bg: color-mix(in srgb, Canvas 56%, transparent);
+    --pref-field-bg: color-mix(in srgb, Field 66%, transparent);
+    --pref-help-text: color-mix(in srgb, CanvasText 66%, Canvas);
+    --pref-field-border: color-mix(in srgb, CanvasText 22%, ButtonBorder);
+  }
+}
+
 * { box-sizing: border-box; }
 html { font-size: 100%; }
 body {
