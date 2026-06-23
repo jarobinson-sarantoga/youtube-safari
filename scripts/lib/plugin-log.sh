@@ -1,7 +1,7 @@
 # Plugin log helpers for Listen integration tests.
 
-PLUGIN_LOG="${HOME}/Library/Application Support/com.colliderli.iina/plugins/.data/com.jarobinson.youtube-safari/youtube-safari.log"
-PLUGIN_DATA_DIR="${HOME}/Library/Application Support/com.colliderli.iina/plugins/.data/com.jarobinson.youtube-safari"
+PLUGIN_LOG="${HOME}/Library/Application Support/com.colliderli.iina/plugins/.data/com.jarobinson-sarantoga.youtube-safari/youtube-safari.log"
+PLUGIN_DATA_DIR="${HOME}/Library/Application Support/com.colliderli.iina/plugins/.data/com.jarobinson-sarantoga.youtube-safari"
 LOG_OFFSET=0
 
 plugin_log_init() {

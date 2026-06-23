@@ -62,6 +62,6 @@ jobs:
           SARANTOGA_PROJECT_CONTEXT: >-
             youtube-safari — IINA YouTube plugin (npm + Parcel, not Safari extension).
             Uses global iina API. Read AGENTS.md for launch guardrails and build commands.
-            PRs must pass Ubuntu verify (npm run build && npm test) and studio-m4-max
+            PRs must pass Ubuntu verify (npm run build && npm test) and macos-latest
             mac-audit (full scripts/audit.sh with IINA + cookies).
         run: npx tsx orchestrate.ts

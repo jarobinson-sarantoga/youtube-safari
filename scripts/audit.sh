@@ -47,7 +47,7 @@ check "list-formats oxZeLM9rx7s (minimal env)" \
 check "dist/index.js exists" test -f "$ROOT/dist/index.js"
 check "plugin symlink" test -L "$HOME/Library/Application Support/com.colliderli.iina/plugins/youtube-safari.iinaplugin-dev"
 check "official ytdl disabled" test "$(defaults read com.colliderli.iina PluginEnabled.io.iina.ytdl 2>/dev/null || echo 1)" = "0"
-check "youtube-safari enabled" test "$(defaults read com.colliderli.iina PluginEnabled.com.jarobinson.youtube-safari 2>/dev/null || echo 0)" = "1"
+check "youtube-safari enabled" test "$(defaults read com.colliderli.iina PluginEnabled.com.jarobinson-sarantoga.youtube-safari 2>/dev/null || echo 0)" = "1"
 check "cookies file readable" test -r "$HOME/.config/yt-dlp/cookies.txt"
 
 echo "--- launch guardrails (June 2026 IINA crash pattern) ---"
