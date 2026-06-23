@@ -1,0 +1,120 @@
+/* Liquid Glass (nav/controls) + standard materials (content) — Apple HIG */
+
+:root {
+  --glass-bg: color-mix(in srgb, var(--bg-base) 68%, transparent);
+  --glass-blur: blur(1.25rem) saturate(1.8);
+  --glass-clear-bg: color-mix(in srgb, var(--bg-base) 42%, transparent);
+  --glass-clear-blur: blur(1.5rem) saturate(2);
+  --material-thin-bg: color-mix(in srgb, var(--bg-base) 52%, transparent);
+  --material-regular-bg: color-mix(in srgb, var(--bg-base) 68%, transparent);
+  --material-thick-bg: color-mix(in srgb, var(--bg-raised) 78%, transparent);
+  --material-blur: blur(0.75rem) saturate(1.25);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --glass-bg: color-mix(in srgb, var(--bg-base) 84%, transparent);
+    --glass-clear-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --material-thin-bg: color-mix(in srgb, var(--bg-base) 76%, transparent);
+    --material-regular-bg: color-mix(in srgb, var(--bg-base) 84%, transparent);
+    --material-thick-bg: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --glass-clear-bg: color-mix(in srgb, var(--bg-base) 36%, transparent);
+    --material-thin-bg: color-mix(in srgb, var(--bg-base) 48%, transparent);
+    --material-regular-bg: color-mix(in srgb, var(--bg-base) 58%, transparent);
+    --material-thick-bg: color-mix(in srgb, var(--bg-raised) 68%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-header,
+  .view-nav,
+  .browse-view .toolbar,
+  .segmented,
+  .subs-filter,
+  .search-row,
+  .icon-btn {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  .shell-header,
+  .browse-view .toolbar {
+    background: var(--glass-bg);
+  }
+
+  .view-nav,
+  .segmented,
+  .subs-filter,
+  .search-row,
+  .icon-btn {
+    background: var(--glass-control-bg);
+  }
+
+  .shell {
+    background: var(--material-thin-bg);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+  }
+
+  .panel-select {
+    background-color: var(--material-thin-bg);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+  }
+
+  .panel-select:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--material-thin-bg) 85%, var(--bg-hover));
+  }
+
+  .player-hero:not(:has(.player-thumb:not(.hidden))) {
+    background: var(--material-regular-bg);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-reduced-motion: reduce) {
+  :root {
+    --glass-bg: var(--bg-raised);
+    --material-thin-bg: var(--bg-base);
+    --material-regular-bg: var(--bg-base);
+    --material-thick-bg: var(--bg-raised);
+  }
+
+  .shell-header,
+  .view-nav,
+  .browse-view .toolbar,
+  .segmented,
+  .subs-filter,
+  .search-row,
+  .icon-btn,
+  .shell,
+  .panel-select,
+  .player-hero {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .shell-header,
+  .browse-view .toolbar {
+    background: var(--bg-raised);
+  }
+
+  .view-nav,
+  .segmented,
+  .subs-filter,
+  .search-row,
+  .icon-btn {
+    background: var(--bg-raised);
+  }
+
+  .shell {
+    background: var(--bg-base);
+  }
+}

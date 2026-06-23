@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "lib": ["es6", "es7", "esnext", "es2020"],
+    "sourceMap": true,
+    "target": "esnext",
+    "module": "es6",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules/iina-plugin-definition"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "./node_modules/iina-plugin-definition/iina/**/*.d.ts"
+  ],
+  "exclude": [
+    "src/sidebar/**/*"
+  ],
+  "compileOnSave": false
+}

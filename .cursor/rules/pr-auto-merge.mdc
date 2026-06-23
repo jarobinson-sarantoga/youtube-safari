@@ -1,0 +1,16 @@
+---
+description: Auto-merge pull requests after creating them when checks pass or immediately if clean
+alwaysApply: true
+---
+
+# PR workflow — auto-merge
+
+When creating a pull request for this repo:
+
+1. Create the PR with `gh pr create` as usual.
+2. **Always merge it** — do not leave PRs open for manual merge unless the user explicitly says not to.
+3. If CI checks are still running, use `gh pr merge --auto --merge --delete-branch` (or re-check and merge once checks pass).
+4. If the branch is mergeable with no required checks pending, merge immediately with `gh pr merge --merge --delete-branch`.
+5. Report the merged PR URL to the user.
+
+Only skip auto-merge when the user explicitly requests review first, or merge is blocked by failing required checks (report the blocker instead of leaving the PR silently open).

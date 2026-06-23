@@ -1,0 +1,1 @@
+export { bootstrapGlobalEntry } from "./bootstrap";

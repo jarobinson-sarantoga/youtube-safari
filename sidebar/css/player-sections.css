@@ -1,0 +1,95 @@
+.player-progress-block {
+  flex-shrink: 0;
+  padding: var(--sp-3) var(--sp-3) var(--sp-1);
+}
+
+.player-description-section {
+  flex-shrink: 0;
+  padding: var(--sp-1) var(--sp-3) 0;
+  margin: 0;
+  border-bottom: none;
+}
+
+.player-progress-block.hidden {
+  display: none;
+}
+
+.progress-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--brand);
+  transition: width 0.3s ease;
+}
+
+.progress-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-sections {
+  padding: var(--sp-2) var(--sp-3) var(--sp-4);
+}
+
+.section {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.section.hidden {
+  display: none;
+}
+
+.section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+
+.section-title {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.quality-status {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  display: none;
+}
+
+.quality-status.visible {
+  display: inline;
+}
+
+.quality-status.error {
+  color: var(--danger);
+}
+
+.quality-retry {
+  margin-left: var(--sp-2);
+  vertical-align: baseline;
+}

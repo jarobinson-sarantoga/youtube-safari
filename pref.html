@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube</title>
+  <link rel="stylesheet" href="pref.css" />
+</head>
+<body>
+  <div class="pref-section">
+    <div class="pref-row">
+      <label class="pref-label" for="pref-ytdl-path">yt-dlp binary</label>
+      <input id="pref-ytdl-path" type="text" data-pref-key="ytdl_path" aria-describedby="pref-ytdl-path-help" />
+    </div>
+    <p id="pref-ytdl-path-help" class="pref-help">Use the IINA yt-dlp-iina wrapper so JSON output stays small.</p>
+  </div>
+
+  <div class="pref-section">
+    <div class="pref-row">
+      <label class="pref-label" for="pref-cookies-path">Cookies file</label>
+      <input id="pref-cookies-path" type="text" data-pref-key="cookies_path" aria-describedby="pref-cookies-path-help" />
+    </div>
+    <p id="pref-cookies-path-help" class="pref-help">Exported from Safari via Plugin → Refresh YouTube.</p>
+  </div>
+
+  <div class="pref-section">
+    <div class="pref-row">
+      <label class="pref-label" for="pref-force-referer">Forced Referer</label>
+      <input id="pref-force-referer" type="text" data-pref-key="force_referer" aria-describedby="pref-force-referer-help" />
+    </div>
+    <p id="pref-force-referer-help" class="pref-help">Applied to every googlevideo.com stream (required for playback).</p>
+  </div>
+
+  <div class="pref-section">
+    <div class="pref-row">
+      <label class="pref-label" for="pref-quality-height">Quality</label>
+      <select id="pref-quality-height" data-pref-key="quality_height" aria-describedby="pref-quality-height-help">
+        <option value="0">Auto (up to 4K)</option>
+        <option value="2160">4K (2160p)</option>
+        <option value="1440">1440p</option>
+        <option value="1080">1080p</option>
+        <option value="720">720p</option>
+        <option value="480">480p</option>
+        <option value="360">360p</option>
+      </select>
+    </div>
+    <p id="pref-quality-height-help" class="pref-help">Maximum resolution. Codecs are chosen automatically (AV1 → VP9 → H.264).</p>
+  </div>
+
+  <div class="pref-section">
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row" for="pref-try-ytdl-first">
+        <input id="pref-try-ytdl-first" type="checkbox" data-pref-key="try_ytdl_first" aria-describedby="pref-try-ytdl-first-help" />
+        Resolve YouTube on load (priority 15 hook)
+      </label>
+    </div>
+    <p id="pref-try-ytdl-first-help" class="pref-help">When off, only runs on on_load_fail instead of on_load.</p>
+  </div>
+
+  <div class="pref-section">
+    <h2 class="pref-section-heading">Browse (advanced)</h2>
+    <p class="pref-section-lead pref-help">Optional YouTube Data API v3 key for search when enabled below. Default search uses InnerTube + Safari cookies.</p>
+    <div class="pref-row">
+      <label class="pref-label" for="pref-data-api-key">Data API key</label>
+      <input id="pref-data-api-key" type="text" data-pref-key="data_api_key" placeholder="Optional" aria-describedby="pref-data-api-key-help" />
+    </div>
+    <p id="pref-data-api-key-help" class="pref-help">Leave blank to use InnerTube search only.</p>
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row pref-top-gap" for="pref-browse-use-data-api">
+        <input id="pref-browse-use-data-api" type="checkbox" data-pref-key="browse_use_data_api" />
+        Use Data API for search (when key is set)
+      </label>
+    </div>
+    <div class="pref-row">
+      <label class="pref-label" for="pref-browse-cache-ttl-minutes">Cache TTL (minutes)</label>
+      <input id="pref-browse-cache-ttl-minutes" type="text" data-pref-key="browse_cache_ttl_minutes" placeholder="30" />
+    </div>
+  </div>
+</body>
+</html>

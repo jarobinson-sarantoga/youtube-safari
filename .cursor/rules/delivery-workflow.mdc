@@ -1,0 +1,22 @@
+---
+description: After code changes — rebuild, test, commit, PR, and merge to main
+alwaysApply: true
+---
+
+# Delivery workflow — rebuild and merge
+
+When you finish making **code changes** in this repo, do not stop at the diff. Complete delivery:
+
+1. **Rebuild** — run `npm run build` (outside the sandbox; Parcel needs full permissions).
+2. **Test** — run `npm test` when changes could affect behavior or bundles.
+3. **Commit** — create a focused commit on a feature branch (not directly on `main` unless the user says so).
+4. **Push & PR** — `git push -u origin HEAD`, then `gh pr create`.
+5. **Merge to main** — follow `.cursor/rules/pr-auto-merge.mdc`: merge the PR (auto-merge if checks are pending; merge immediately if clean). Delete the branch.
+6. **Report** — tell the user the merged PR URL and confirm `main` is updated.
+
+Skip only when:
+- The task was **read-only** (questions, reviews, no file edits).
+- The user explicitly says not to commit, push, or merge.
+- Merge is blocked by failing required checks (report the blocker).
+
+Do not leave rebuilt-but-unmerged work on a local branch when the user expected it landed on `main`.

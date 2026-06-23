@@ -1,0 +1,25 @@
+/* macOS WebKit scrollbars for panel scroll regions */
+.feed-list::-webkit-scrollbar,
+.player-view::-webkit-scrollbar,
+.description::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.feed-list::-webkit-scrollbar-track,
+.player-view::-webkit-scrollbar-track,
+.description::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feed-list::-webkit-scrollbar-thumb,
+.player-view::-webkit-scrollbar-thumb,
+.description::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background: var(--scrollbar-thumb);
+}
+
+.feed-list::-webkit-scrollbar-thumb:hover,
+.player-view::-webkit-scrollbar-thumb:hover,
+.description::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
