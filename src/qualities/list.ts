@@ -5,6 +5,8 @@ import { commonYtdlpFlags, execBashJsonLine } from "../ytdlp-script";
 import { getCachedQualities, setCachedQualities } from "./cache";
 import { parseListedData, type ListedQualities } from "./parse";
 
+const { preferences } = iina;
+
 const LIST_SCRIPT = "scripts/list-formats.sh";
 
 function listScriptPath(): string {
