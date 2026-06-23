@@ -23,17 +23,16 @@
     <section class="view browse-view" id="browse-view" role="tabpanel" hidden>
       <div class="toolbar">
         <div class="search-row">
+          <label class="visually-hidden" for="search-input">Search YouTube</label>
           <span class="search-icon" aria-hidden="true">⌕</span>
           <input
             type="search"
             class="search-input"
             id="search-input"
             placeholder="Search YouTube"
-            aria-label="Search YouTube"
             autocomplete="off"
             spellcheck="false"
           />
-          <button type="button" class="search-btn" id="search-btn">Search</button>
         </div>
         <button type="button" class="icon-btn" id="feed-refresh" title="Refresh feed" aria-label="Refresh feed">↻</button>
       </div>
@@ -51,7 +50,7 @@
       </div>
 
       <div class="feed-status" id="feed-status" aria-live="polite"></div>
-      <div class="feed-list" id="feed-list"></div>
+      <div class="feed-list" id="feed-list" tabindex="0" role="listbox" aria-label="Video feed"></div>
     </section>
 
     <!-- Player view -->
@@ -82,15 +81,15 @@
       <div class="player-sections">
         <div class="section" id="quality-section">
           <div class="section-head">
-            <p class="section-title">Quality</p>
+            <label class="section-title" for="quality-list">Quality</label>
             <span class="quality-status" id="quality-status"></span>
           </div>
-          <select id="quality-list" class="panel-select" aria-label="Video quality"></select>
+          <select id="quality-list" class="panel-select"></select>
         </div>
 
         <div class="section" id="chapters-section">
-          <p class="section-title">Chapters</p>
-          <select id="chapter-list" class="panel-select" aria-label="Video chapters" disabled>
+          <label class="section-title" for="chapter-list">Chapters</label>
+          <select id="chapter-list" class="panel-select" disabled>
             <option value="">Open a video in IINA to see chapters.</option>
           </select>
         </div>

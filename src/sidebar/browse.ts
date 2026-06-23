@@ -72,13 +72,10 @@ function setFeedBusy(busy: boolean): void {
 
 function setSearchBusy(busy: boolean): void {
   const searchRow = document.querySelector(".search-row");
-  const searchBtn = $("search-btn") as HTMLButtonElement;
   if (busy) {
     searchRow?.setAttribute("aria-busy", "true");
-    searchBtn.disabled = true;
   } else {
     searchRow?.removeAttribute("aria-busy");
-    searchBtn.disabled = false;
   }
 }
 
@@ -137,22 +134,28 @@ function playItem(
 }
 
 function updateFeedSelection(): void {
+  const listEl = $("feed-list");
   const selectedIndex = getSelectedIndex();
-  let selectedRow: HTMLElement | null = null;
+  let activeId: string | null = null;
 
   document.querySelectorAll<HTMLElement>(".feed-row[data-index]").forEach((row) => {
     const index = Number.parseInt(row.dataset.index || "", 10);
     const isSelected = index === selectedIndex;
     row.classList.toggle("selected", isSelected);
+    row.tabIndex = -1;
     if (isSelected) {
-      row.setAttribute("aria-current", "true");
-      selectedRow = row;
+      row.setAttribute("aria-selected", "true");
+      activeId = row.id || null;
     } else {
-      row.removeAttribute("aria-current");
+      row.removeAttribute("aria-selected");
     }
   });
 
-  selectedRow?.focus();
+  if (activeId) {
+    listEl.setAttribute("aria-activedescendant", activeId);
+  } else {
+    listEl.removeAttribute("aria-activedescendant");
+  }
 }
 
 function renderFeedList(): void {
@@ -217,17 +220,21 @@ function renderFeedList(): void {
       onClick: (clickedItem, clickedIndex) => {
         setSelectedIndex(clickedIndex);
         updateFeedSelection();
+        listEl.focus();
         playItem(clickedItem);
       },
       onBackgroundPlay: (clickedItem, clickedIndex) => {
         setSelectedIndex(clickedIndex);
         updateFeedSelection();
+        listEl.focus();
         playItem(clickedItem, { background: true });
       },
     });
 
     listEl.appendChild(row);
   });
+
+  updateFeedSelection();
 }
 
 function runSearch(): void {
@@ -338,9 +345,7 @@ function setupSubsFilter(): void {
 
 function setupSearch(): void {
   const input = $("search-input") as HTMLInputElement;
-  const btn = $("search-btn");
 
-  btn.addEventListener("click", () => runSearch());
   input.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -369,6 +374,10 @@ function setupKeyboard(): void {
     }
 
     if (document.activeElement === $("search-input")) {
+      return;
+    }
+
+    if (document.activeElement !== listEl) {
       return;
     }
 
@@ -412,16 +421,15 @@ function setupKeyboard(): void {
     }
   });
 
-  // Use "focusin" (bubbles) so entering the list via its now directly
-  // focusable child rows still auto-selects the first item. The list
-  // container is intentionally no longer tabbable (macOS HIG: avoid a
-  // redundant tab stop), so a plain "focus" listener would never fire.
-  listEl.addEventListener("focusin", () => {
+  listEl.addEventListener("focus", () => {
     const feedItems = getFeedItems();
-    if (getSelectedIndex() < 0 && feedItems.length) {
-      setSelectedIndex(0);
-      updateFeedSelection();
+    if (!feedItems.length) {
+      return;
     }
+    if (getSelectedIndex() < 0) {
+      setSelectedIndex(0);
+    }
+    updateFeedSelection();
   });
 }
 

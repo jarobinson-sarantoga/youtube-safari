@@ -318,10 +318,27 @@ function updateProgress(position: number, duration: number, paused: boolean): vo
 }
 
 function updateRelatedSelection(): void {
+  const listEl = $("related-preview");
   const rows = document.querySelectorAll<HTMLElement>(".related-row");
+  let activeId: string | null = null;
+
   rows.forEach((row, index) => {
-    row.classList.toggle("selected", index === relatedSelectedIndex);
+    const isSelected = index === relatedSelectedIndex;
+    row.classList.toggle("selected", isSelected);
+    row.tabIndex = -1;
+    if (isSelected) {
+      row.setAttribute("aria-selected", "true");
+      activeId = row.id || null;
+    } else {
+      row.removeAttribute("aria-selected");
+    }
   });
+
+  if (activeId) {
+    listEl.setAttribute("aria-activedescendant", activeId);
+  } else {
+    listEl.removeAttribute("aria-activedescendant");
+  }
 }
 
 export function renderRelatedPreview(
@@ -355,6 +372,10 @@ export function renderRelatedPreview(
 
   if (error) {
     el.classList.remove("empty");
+    el.tabIndex = -1;
+    el.removeAttribute("role");
+    el.removeAttribute("aria-label");
+    el.removeAttribute("aria-activedescendant");
     el.appendChild(
       createErrorWithRetry(error, () => {
         requestRelatedPreviewForCurrentWatch(true);
@@ -366,16 +387,24 @@ export function renderRelatedPreview(
   if (!items.length) {
     el.textContent = IDLE_COPY.related;
     el.classList.add("empty");
+    el.tabIndex = -1;
+    el.removeAttribute("role");
+    el.removeAttribute("aria-label");
+    el.removeAttribute("aria-activedescendant");
     return;
   }
 
   el.classList.remove("empty");
+  el.tabIndex = 0;
+  el.setAttribute("role", "listbox");
+  el.setAttribute("aria-label", "Related videos");
 
   items.forEach((item, index) => {
     const row = createFeedRow({
       item,
       index,
       rowClassName: "feed-row related-row",
+      rowIdPrefix: "related",
       showDuration: false,
       showResume: false,
       showExtra: false,
@@ -383,6 +412,7 @@ export function renderRelatedPreview(
       onClick: (clickedItem) => {
         relatedSelectedIndex = index;
         updateRelatedSelection();
+        el.focus();
         previewNowPlayingFromFeed(clickedItem);
         postToPlugin("playVideo", {
           videoId: clickedItem.videoId,
@@ -395,6 +425,7 @@ export function renderRelatedPreview(
       onBackgroundPlay: (clickedItem) => {
         relatedSelectedIndex = index;
         updateRelatedSelection();
+        el.focus();
         previewNowPlayingFromFeed(clickedItem);
         postToPlugin("playVideo", {
           videoId: clickedItem.videoId,
@@ -409,12 +440,19 @@ export function renderRelatedPreview(
 
     el.appendChild(row);
   });
+
+  relatedSelectedIndex = 0;
+  updateRelatedSelection();
 }
 
 function setupRelatedKeyboard(): void {
   const relatedEl = $("related-preview");
 
   relatedEl.addEventListener("keydown", (event) => {
+    if (document.activeElement !== relatedEl) {
+      return;
+    }
+
     const rows = relatedEl.querySelectorAll<HTMLElement>(".related-row");
     if (!rows.length) {
       return;
@@ -424,15 +462,34 @@ function setupRelatedKeyboard(): void {
       event.preventDefault();
       relatedSelectedIndex = Math.min(rows.length - 1, relatedSelectedIndex + 1);
       updateRelatedSelection();
-      rows[relatedSelectedIndex]?.focus();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       relatedSelectedIndex = Math.max(0, relatedSelectedIndex < 0 ? 0 : relatedSelectedIndex - 1);
       updateRelatedSelection();
-      rows[relatedSelectedIndex]?.focus();
     } else if (event.key === "Enter" && relatedSelectedIndex >= 0) {
       event.preventDefault();
       rows[relatedSelectedIndex]?.click();
+    } else if (
+      (event.key === "l" || event.key === "L") &&
+      relatedSelectedIndex >= 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      const bgBtn = rows[relatedSelectedIndex]?.querySelector<HTMLButtonElement>(".thumb-action-btn");
+      bgBtn?.click();
+    }
+  });
+
+  relatedEl.addEventListener("focus", () => {
+    const rows = relatedEl.querySelectorAll<HTMLElement>(".related-row");
+    if (!rows.length) {
+      return;
+    }
+    if (relatedSelectedIndex < 0) {
+      relatedSelectedIndex = 0;
+      updateRelatedSelection();
     }
   });
 }
