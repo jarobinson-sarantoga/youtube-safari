@@ -7,10 +7,18 @@ const { core, mpv } = iina;
 
 let playerStateTimer: ReturnType<typeof setInterval> | null = null;
 
+function readMpvSeconds(property: string): number {
+  const raw = mpv.getNumber(property);
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return 0;
+  }
+  return Math.max(0, raw);
+}
+
 function buildPlayerState(): PlayerStateMessage {
   const watchUrl = getLastWatchUrl();
-  const position = mpv.getNumber("time-pos") || 0;
-  const duration = mpv.getNumber("duration") || 0;
+  const position = readMpvSeconds("time-pos");
+  const duration = readMpvSeconds("duration");
   const paused = mpv.getFlag("pause");
 
   let title = "";

@@ -7,6 +7,7 @@ import { postToPlugin } from "../messaging";
 import { renderChapters } from "./chapters";
 import { updateDescriptionSection } from "./description";
 import { getDisplayedHeroTitle, updateHero } from "./hero";
+import { coercePlaybackSeconds } from "./playback-time";
 import { updateProgress } from "./progress";
 import { renderQualities } from "./quality";
 import { requestRelatedPreviewForCurrentWatch } from "./related-request";
@@ -53,8 +54,8 @@ export function renderPanel(data: PanelPayload): void {
 export function handlePlayerState(state: PlayerStateMessage): void {
   const title = state.title || "";
   const watchUrl = state.watchUrl || "";
-  const position = typeof state.position === "number" ? state.position : 0;
-  const duration = typeof state.duration === "number" ? state.duration : 0;
+  const position = coercePlaybackSeconds(state.position);
+  const duration = coercePlaybackSeconds(state.duration);
   const paused = !!state.paused;
 
   if (watchUrl) {

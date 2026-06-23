@@ -1,4 +1,5 @@
 export {
+  getStandaloneCoordinator,
   isStandaloneShellInitialized,
   isStandaloneWebViewReady,
   markStandaloneShellLoaded,
