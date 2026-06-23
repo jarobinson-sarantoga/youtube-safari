@@ -11,6 +11,7 @@ export interface FeedRowOptions {
   index?: number;
   selected?: boolean;
   rowClassName?: string;
+  rowIdPrefix?: string;
   showDuration?: boolean;
   showResume?: boolean;
   showExtra?: boolean;
@@ -19,12 +20,13 @@ export interface FeedRowOptions {
   onBackgroundPlay?: FeedRowBackgroundHandler;
 }
 
-export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
+export function createFeedRow(options: FeedRowOptions): HTMLElement {
   const {
     item,
     index = -1,
     selected = false,
     rowClassName = "feed-row",
+    rowIdPrefix = "feed",
     showDuration = true,
     showResume = true,
     showExtra = true,
@@ -33,12 +35,14 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
     onBackgroundPlay,
   } = options;
 
-  const row = document.createElement("button");
-  row.type = "button";
+  const row = document.createElement("div");
   row.className = `${rowClassName}${selected ? " selected" : ""}`;
+  row.setAttribute("role", "option");
+  row.tabIndex = -1;
   row.setAttribute("aria-label", item.title);
   if (index >= 0) {
     row.dataset.index = String(index);
+    row.id = `${rowIdPrefix}-row-${index}`;
   }
 
   const thumbWrap = document.createElement("div");
@@ -72,6 +76,7 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
     bgPlay.className = "thumb-action-btn thumb-bg-play";
     bgPlay.setAttribute("aria-label", "Listen in background");
     bgPlay.title = "Listen in background (L)";
+    bgPlay.tabIndex = -1;
     bgPlay.innerHTML =
       '<span class="thumb-bg-play-icon" aria-hidden="true"></span><span class="thumb-action-label">Listen</span>';
     bgPlay.addEventListener("click", (event) => {
@@ -137,6 +142,16 @@ export function createFeedRow(options: FeedRowOptions): HTMLButtonElement {
 
   row.addEventListener("click", () => {
     onClick(item, index);
+  });
+
+  row.addEventListener("keydown", (event) => {
+    if (event.target !== row) {
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick(item, index);
+    }
   });
 
   return row;

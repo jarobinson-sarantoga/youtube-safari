@@ -35,7 +35,7 @@ fi
 
 # 2. Required DOM ids referenced by sidebar TS
 REQUIRED_IDS=(
-  browse-view player-view search-input search-btn feed-refresh
+  browse-view player-view search-input feed-refresh
   feed-status feed-list video-title player-thumb player-hero-sub
   progress-fill player-time-pos player-time-dur player-progress-block
   quality-status quality-list chapter-list description related-preview
