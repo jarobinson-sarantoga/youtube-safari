@@ -7,7 +7,10 @@ export function setupBrowseKeyboard(): void {
   const listEl = $("feed-list");
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "/" && document.activeElement !== $("search-input")) {
+    if (
+      (event.key === "/" || (event.key === "f" && event.metaKey)) &&
+      document.activeElement !== $("search-input")
+    ) {
       event.preventDefault();
       ($("search-input") as HTMLInputElement).focus();
       return;
@@ -51,6 +54,9 @@ export function setupBrowseKeyboard(): void {
       event.preventDefault();
       playItem(feedItems[getSelectedIndex()], { background: true });
     } else if (event.key === "Enter" && getSelectedIndex() >= 0) {
+      event.preventDefault();
+      playItem(feedItems[getSelectedIndex()]);
+    } else if (event.key === " " && getSelectedIndex() >= 0) {
       event.preventDefault();
       playItem(feedItems[getSelectedIndex()]);
     }

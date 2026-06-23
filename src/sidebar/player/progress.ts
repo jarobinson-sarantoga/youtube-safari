@@ -1,4 +1,4 @@
-import { $, formatClock } from "../dom";
+import { $, formatClock, setPanelHidden } from "../dom";
 
 export function updateProgress(position: number, duration: number, paused: boolean): void {
   const block = $("player-progress-block");
@@ -8,7 +8,7 @@ export function updateProgress(position: number, duration: number, paused: boole
   const durEl = $("player-time-dur");
 
   if (duration <= 0) {
-    block.classList.add("hidden");
+    setPanelHidden(block, true);
     track.removeAttribute("role");
     track.removeAttribute("aria-label");
     track.removeAttribute("aria-valuemin");
@@ -17,7 +17,7 @@ export function updateProgress(position: number, duration: number, paused: boole
     return;
   }
 
-  block.classList.remove("hidden");
+  setPanelHidden(block, false);
   const pct = Math.min(100, Math.max(0, (position / duration) * 100));
   fill.style.width = `${pct}%`;
   posEl.textContent = formatClock(position);

@@ -1,6 +1,6 @@
 import type { DescriptionChapter } from "../../description-chapters";
 import { IDLE_COPY } from "../copy";
-import { $ } from "../dom";
+import { $, setPanelHidden } from "../dom";
 import { postToPlugin } from "../messaging";
 
 export function renderChapters(chapters: DescriptionChapter[], hasVideo: boolean): void {
@@ -9,7 +9,7 @@ export function renderChapters(chapters: DescriptionChapter[], hasVideo: boolean
   selectEl.innerHTML = "";
 
   if (!chapters.length) {
-    sectionEl.classList.add("hidden");
+    setPanelHidden(sectionEl, true);
     const option = document.createElement("option");
     option.value = "";
     option.textContent = hasVideo ? "No chapters in this description." : IDLE_COPY.chapters;
@@ -18,7 +18,7 @@ export function renderChapters(chapters: DescriptionChapter[], hasVideo: boolean
     return;
   }
 
-  sectionEl.classList.remove("hidden");
+  setPanelHidden(sectionEl, false);
   const placeholder = document.createElement("option");
   placeholder.value = "";
   placeholder.textContent = "Jump to chapter…";

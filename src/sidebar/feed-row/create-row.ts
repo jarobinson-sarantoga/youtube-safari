@@ -43,15 +43,5 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
     onClick(item, index);
   });
 
-  row.addEventListener("keydown", (event) => {
-    if (event.target !== row) {
-      return;
-    }
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onClick(item, index);
-    }
-  });
-
   return row;
 }

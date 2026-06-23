@@ -7,18 +7,39 @@ import {
   requestFeed,
   switchSegmentTab,
 } from "../feed-controller";
+import { bindArrowNav } from "../arrow-nav";
 import { $ } from "../dom";
 import { runSearch } from "./playback";
 import { updateSegButtons, updateSubsFilterUI } from "./ui";
 
+let syncSegTabindex: () => void = () => {};
+let syncSubsTabindex: () => void = () => {};
+
 export function syncBrowseControls(): void {
   updateSegButtons(getActiveTab());
   updateSubsFilterUI(getActiveTab(), getActiveSubsFilter());
+  syncSegTabindex();
+  syncSubsTabindex();
+}
+
+function activeSegIndex(): number {
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn")];
+  return tabs.findIndex((btn) => btn.classList.contains("active"));
+}
+
+function activeSubsIndex(): number {
+  const bar = $("subs-filter");
+  const tabs = [...bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn")];
+  return tabs.findIndex((btn) => btn.classList.contains("active"));
 }
 
 export function setupTabs(): void {
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn");
-  buttons.forEach((btn) => {
+  const segmented = document.querySelector<HTMLElement>(".segmented");
+  if (!segmented) {
+    return;
+  }
+
+  segmented.querySelectorAll<HTMLButtonElement>(".seg-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.tab as FeedTab | undefined;
       if (tab) {
@@ -27,34 +48,24 @@ export function setupTabs(): void {
     });
   });
 
-  const segmented = document.querySelector<HTMLElement>(".segmented");
-  segmented?.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-      return;
-    }
-    const tabs = [...document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn")];
-    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
-    if (currentIndex < 0) {
-      return;
-    }
-    event.preventDefault();
-    const delta = event.key === "ArrowRight" ? 1 : -1;
-    const nextIndex = currentIndex + delta;
-    if (nextIndex < 0 || nextIndex >= tabs.length) {
-      return;
-    }
-    const tab = tabs[nextIndex].dataset.tab as FeedTab | undefined;
-    if (tab) {
-      switchSegmentTab(tab);
-      tabs[nextIndex].focus();
-    }
-  });
+  ({ syncTabindex: syncSegTabindex } = bindArrowNav({
+    container: segmented,
+    itemSelector: ".seg-btn",
+    getActiveIndex: activeSegIndex,
+    rovingTabindex: true,
+    onMove: (index) => {
+      const tabs = [...document.querySelectorAll<HTMLButtonElement>(".segmented .seg-btn")];
+      const tab = tabs[index]?.dataset.tab as FeedTab | undefined;
+      if (tab) {
+        switchSegmentTab(tab);
+      }
+    },
+  }));
 }
 
 export function setupSubsFilter(): void {
   const bar = $("subs-filter");
-  const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
-  buttons.forEach((btn) => {
+  bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const filter = btn.dataset.subsFilter as SubsFilter | undefined;
       if (!filter || getActiveTab() !== "subscriptions") {
@@ -67,36 +78,26 @@ export function setupSubsFilter(): void {
     });
   });
 
-  bar.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-      return;
-    }
-    if (getActiveTab() !== "subscriptions") {
-      return;
-    }
-
-    const tabs = [...bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn")];
-    const currentIndex = tabs.findIndex((btn) => btn.classList.contains("active"));
-    if (currentIndex < 0) {
-      return;
-    }
-
-    event.preventDefault();
-    const nextIndex = currentIndex + (event.key === "ArrowRight" ? 1 : -1);
-    if (nextIndex < 0 || nextIndex >= tabs.length) {
-      return;
-    }
-    const filter = tabs[nextIndex].dataset.subsFilter as SubsFilter | undefined;
-    if (!filter) {
-      return;
-    }
-    if (filter === getActiveSubsFilter() && isSubsFilterLoaded(filter)) {
-      tabs[nextIndex].focus();
-      return;
-    }
-    requestFeed("subscriptions", "", filter);
-    tabs[nextIndex].focus();
-  });
+  ({ syncTabindex: syncSubsTabindex } = bindArrowNav({
+    container: bar,
+    itemSelector: ".subs-filter-btn",
+    getActiveIndex: activeSubsIndex,
+    rovingTabindex: true,
+    onMove: (index) => {
+      if (getActiveTab() !== "subscriptions") {
+        return;
+      }
+      const tabs = [...bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn")];
+      const filter = tabs[index]?.dataset.subsFilter as SubsFilter | undefined;
+      if (!filter) {
+        return;
+      }
+      if (filter === getActiveSubsFilter() && isSubsFilterLoaded(filter)) {
+        return;
+      }
+      requestFeed("subscriptions", "", filter);
+    },
+  }));
 }
 
 export function setupSearch(): void {

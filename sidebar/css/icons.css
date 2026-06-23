@@ -1,0 +1,17 @@
+/* SF-style inline SVG icons for toolbar controls */
+.icon-svg {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.search-icon .icon-svg {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  opacity: 0.72;
+}

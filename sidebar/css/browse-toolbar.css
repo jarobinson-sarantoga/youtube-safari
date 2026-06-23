@@ -1,7 +1,7 @@
 /* Browse */
 .browse-view {
-  padding: 10px 12px 0;
-  gap: 8px;
+  padding: 0.625rem 0.75rem 0;
+  gap: 0.5rem;
   overflow: hidden;
 }
 
@@ -15,26 +15,27 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   flex-shrink: 0;
+  padding-bottom: 0.125rem;
+  background: color-mix(in srgb, var(--bg-base) 92%, transparent);
 }
 
 .search-row {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 2.75rem;
-  padding: 0 10px;
-  border-radius: var(--radius-lg);
+  gap: 0.375rem;
+  min-height: var(--control-height);
+  padding: 0 0.625rem;
+  border-radius: 999px;
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .search-row:focus-within {
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .feed-list:focus-visible,
@@ -51,10 +52,8 @@
 .panel-select:focus-visible,
 .thumb-action-btn:focus-visible,
 .desc-link:focus-visible {
-  outline: 2px solid var(--accent-border);
   outline: 2px solid AccentColor;
-  outline-offset: 2px;
-  box-shadow: none;
+  outline-offset: 0.125rem;
 }
 
 .seg-btn:focus-visible,
@@ -62,7 +61,6 @@
 .feed-row:focus-visible,
 .related-row:focus-visible,
 .icon-btn:focus-visible,
-.search-input:focus-visible,
 .feed-retry:focus-visible,
 .quality-retry:focus-visible,
 .panel-select:focus-visible,
@@ -72,17 +70,17 @@
 
 .search-icon {
   color: var(--text-muted);
-  font-size: 0.875rem;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .search-input {
   flex: 1;
-  appearance: none;
   border: none;
   background: transparent;
   color: var(--text-primary);
-  padding: 9px 0;
+  padding: 0.375rem 0;
   font: inherit;
   outline: none;
   min-width: 0;
@@ -92,17 +90,29 @@
   color: var(--text-muted);
 }
 
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 0.875rem;
+  width: 0.875rem;
+  background: color-mix(in srgb, CanvasText 45%, transparent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='black' d='M2 2l8 8M10 2L2 10' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='black' d='M2 2l8 8M10 2L2 10' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  cursor: pointer;
+}
+
 .icon-btn {
   appearance: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-raised);
   color: var(--text-secondary);
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  font-size: 1rem;
+  width: var(--control-height);
+  height: var(--control-height);
+  min-width: var(--control-height);
+  min-height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
 }
