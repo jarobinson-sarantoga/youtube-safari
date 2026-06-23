@@ -9,7 +9,7 @@
 .related-preview {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
   min-height: 0;
 }
 
@@ -25,7 +25,7 @@
   border: none;
   background: transparent;
   text-align: left;
-  padding: 8px;
+  padding: var(--sp-2);
 }
 
 .related-row:hover {
@@ -46,21 +46,21 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding-bottom: 0.625rem;
+  gap: var(--sp-1);
+  padding-bottom: var(--sp-2-5);
 }
 
 .feed-row {
   display: grid;
   grid-template-columns: 112px 1fr;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 100%;
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
   color: inherit;
   text-align: left;
-  padding: 8px;
+  padding: var(--sp-2);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.12s ease, transform 0.12s ease;

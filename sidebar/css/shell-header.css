@@ -4,18 +4,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem 0.5rem;
+  gap: var(--sp-2-5);
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-base) 88%, transparent);
-  backdrop-filter: blur(0.75rem) saturate(1.2);
-  -webkit-backdrop-filter: blur(0.75rem) saturate(1.2);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   min-width: 0;
 }
 
@@ -46,10 +43,9 @@
 
 .view-nav {
   display: flex;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--sp-05);
+  padding: var(--sp-05);
   border-radius: var(--radius-md);
-  background: var(--bg-raised);
   border: 1px solid var(--border);
 }
 
@@ -60,7 +56,7 @@
   background: transparent;
   color: var(--text-secondary);
   min-height: var(--control-height);
-  padding: 0.25rem 0.625rem;
+  padding: var(--sp-1) var(--sp-2-5);
   font: 0.6875rem var(--font);
   font-weight: 600;
   cursor: pointer;
@@ -68,7 +64,7 @@
 }
 
 .view-btn.active {
-  background: var(--bg-base);
+  background: color-mix(in srgb, var(--bg-base) 75%, transparent);
   color: var(--text-primary);
   box-shadow: 0 0.0625rem 0.125rem color-mix(in srgb, CanvasText 14%, transparent);
 }
