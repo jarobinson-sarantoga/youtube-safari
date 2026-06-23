@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube</title>
+  <link rel="stylesheet" href="shell.css" />
+</head>
+<body>
+  <div class="shell panel-booting" id="shell-root">
+    <header class="shell-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">YouTube</span>
+      </div>
+      <nav class="view-nav" role="tablist" aria-label="Panel views">
+        <button type="button" class="view-btn" id="view-tab-browse" data-view="browse" role="tab" aria-selected="false" aria-controls="browse-view" aria-label="Browse">Browse</button>
+        <button type="button" class="view-btn active" data-view="player" id="view-tab-player" role="tab" aria-selected="true" aria-controls="player-view" aria-label="Now Playing">Now Playing</button>
+      </nav>
+    </header>
+
+    <!-- Browse view -->
+    <section class="view browse-view" id="browse-view" role="tabpanel" aria-labelledby="view-tab-browse" hidden>
+      <div class="toolbar">
+        <div class="search-row">
+          <label class="visually-hidden" for="search-input">Search YouTube</label>
+          <span class="search-icon" aria-hidden="true">
+            <svg class="icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="6.75" cy="6.75" r="4.25"></circle>
+              <path d="M10.25 10.25L14 14"></path>
+            </svg>
+          </span>
+          <input
+            type="search"
+            class="search-input"
+            id="search-input"
+            placeholder="Search YouTube"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <button type="button" class="icon-btn" id="feed-refresh" title="Refresh feed" aria-label="Refresh feed">
+          <svg class="icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M13 3v3H10"></path>
+            <path d="M3 13V10H6"></path>
+            <path d="M12.5 6.5A5 5 0 0 0 4 5.5L3 7"></path>
+            <path d="M3.5 9.5A5 5 0 0 0 12 10.5l1-1.5"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="segmented" role="radiogroup" aria-label="Feeds">
+        <button type="button" class="seg-btn active" data-tab="home" role="radio" aria-checked="true">Home</button>
+        <button type="button" class="seg-btn" data-tab="subscriptions" role="radio" aria-checked="false" aria-label="Subscriptions">Subs</button>
+        <button type="button" class="seg-btn" data-tab="related" role="radio" aria-checked="false">Related</button>
+        <button type="button" class="seg-btn" data-tab="history" role="radio" aria-checked="false">History</button>
+      </div>
+
+      <div class="subs-filter hidden" id="subs-filter" role="radiogroup" aria-label="Subscription filter">
+        <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="radio" aria-checked="true">All</button>
+        <button type="button" class="subs-filter-btn" data-subs-filter="shorts" role="radio" aria-checked="false">Shorts</button>
+      </div>
+
+      <div class="feed-status" id="feed-status" aria-live="polite"></div>
+      <div class="feed-list" id="feed-list" tabindex="-1" role="grid" aria-label="Video feed"></div>
+    </section>
+
+    <!-- Player view -->
+    <section class="view player-view active" id="player-view" role="tabpanel" aria-labelledby="view-tab-player">
+      <div class="player-hero" id="player-hero">
+        <img class="player-thumb hidden" id="player-thumb" alt="" />
+        <div class="player-hero-overlay">
+          <p class="player-hero-title" id="video-title">No YouTube video</p>
+          <p class="player-hero-sub" id="player-hero-sub">Open a video in IINA to see details</p>
+        </div>
+      </div>
+
+      <div class="player-progress-block" id="player-progress-block">
+        <div class="progress-track" id="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-times">
+          <span id="player-time-pos">0:00</span>
+          <span id="player-time-dur">0:00</span>
+        </div>
+      </div>
+
+      <div class="section player-description-section" id="description-section">
+        <p class="section-title">Description</p>
+        <div class="description empty" id="description" tabindex="0" aria-label="Video description">Open a video in IINA to see its description.</div>
+      </div>
+
+      <div class="player-sections">
+        <div class="section" id="quality-section">
+          <div class="section-head">
+            <label class="section-title" for="quality-list">Quality</label>
+            <span class="quality-status" id="quality-status" role="status" aria-live="polite"></span>
+          </div>
+          <select id="quality-list" class="panel-select"></select>
+        </div>
+
+        <div class="section" id="chapters-section">
+          <label class="section-title" for="chapter-list">Chapters</label>
+          <select id="chapter-list" class="panel-select" disabled>
+            <option value="">Open a video in IINA to see chapters.</option>
+          </select>
+        </div>
+
+        <div class="section" id="related-preview-section">
+          <p class="section-title">Related</p>
+          <div class="related-preview empty" id="related-preview">Open a video in IINA to see related videos.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../dist/sidebar/shell.js"></script>
+</body>
+</html>

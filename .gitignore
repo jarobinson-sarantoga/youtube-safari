@@ -1,0 +1,22 @@
+node_modules/
+.parcel-cache/
+dist/
+.DS_Store
+*.log
+
+# Secrets & environment files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+
+# User data & session exports (cookies, yt-dlp sessions)
+cookies.txt
+*cookies*.txt
+*.session
+
+# IDE / editor metadata
+.vscode/
+.idea/
+.cursor/

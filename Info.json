@@ -1,0 +1,26 @@
+{
+  "name": "YouTube",
+  "identifier": "com.jarobinson-sarantoga.youtube-safari",
+  "version": "0.2.7",
+  "author": { "name": "jarobinson-sarantoga" },
+  "entry": "dist/index.js",
+  "globalEntry": "dist/global.js",
+  "permissions": ["show-osd", "file-system", "network-request"],
+  "allowedDomains": ["*"],
+  "preferencesPage": "pref.html",
+  "sidebarTab": { "name": "YouTube" },
+  "preferenceDefaults": {
+    "ytdl_path": "~/Library/Application Support/com.colliderli.iina/yt-dlp-iina",
+    "cookies_path": "~/.config/yt-dlp/cookies.txt",
+    "force_referer": "https://www.youtube.com/",
+    "quality_height": 0,
+    "last_watch_url": "",
+    "try_ytdl_first": true,
+    "resolve_script": "",
+    "list_formats_script": "",
+    "refresh_script": "",
+    "data_api_key": "",
+    "browse_use_data_api": false,
+    "browse_cache_ttl_minutes": 30
+  }
+}
