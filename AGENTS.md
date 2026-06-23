@@ -52,6 +52,16 @@ When a module grows past the limit, split into a **directory + `index.ts` barrel
 
 Verify with: `find . -type f \( -name '*.ts' -o -name '*.mjs' -o -name '*.css' -o -name '*.html' -o -name '*.sh' \) ! -path './node_modules/*' ! -path './dist/*' ! -path './.parcel-cache/*' ! -path './scripts/sarantoga/node_modules/*' -exec sh -c 'test $(wc -l < "$1") -le 150 || echo FAIL "$1"' _ {} \;`
 
+## Delivery
+
+After making code changes, **rebuild and land on `main`**:
+
+1. `npm run build` (outside sandbox) and `npm test` when relevant.
+2. Commit on a branch, open a PR, merge to `main`, delete the branch.
+3. Report the merged PR URL.
+
+See `.cursor/rules/delivery-workflow.mdc` and `.cursor/rules/pr-auto-merge.mdc`. Skip only for read-only tasks or when the user says not to commit/merge.
+
 ## Conventions
 
 - Match existing code style and structure; keep changes **minimal in scope**.
