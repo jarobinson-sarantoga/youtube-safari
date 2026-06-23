@@ -46,11 +46,11 @@ macOS Human Interface Guidelines apply to `pref.html` and everything in `sidebar
 
 ## File size (150 LOC)
 
-Every source file (`.ts`, `.mjs`, `.css`, `.html`, `.sh` under `src/`, `sidebar/`, `scripts/`) must be **≤150 lines** (`wc -l`). Excludes `node_modules/`, `dist/`, `.parcel-cache/`, `scripts/sarantoga/node_modules/`.
+Every source file (`.ts`, `.mjs`, `.css`, `.html`, `.sh` under `src/`, `sidebar/`, `scripts/`) must be **≤150 lines** (`wc -l`). Excludes `node_modules/`, `dist/`, `.parcel-cache/`.
 
 When a module grows past the limit, split into a **directory + `index.ts` barrel** (e.g. `qualities/` with `parse.ts`, `cache.ts`, `list.ts`) so existing import paths like `./qualities` keep working. Top-level shims (`qualities.ts` → `export * from "./qualities"`) are OK for audit/grep probes. CSS: keep `sidebar/shell.css` as a thin `@import` entry; split sections into `sidebar/css/`.
 
-Verify with: `find . -type f \( -name '*.ts' -o -name '*.mjs' -o -name '*.css' -o -name '*.html' -o -name '*.sh' \) ! -path './node_modules/*' ! -path './dist/*' ! -path './.parcel-cache/*' ! -path './scripts/sarantoga/node_modules/*' -exec sh -c 'test $(wc -l < "$1") -le 150 || echo FAIL "$1"' _ {} \;`
+Verify with: `find . -type f \( -name '*.ts' -o -name '*.mjs' -o -name '*.css' -o -name '*.html' -o -name '*.sh' \) ! -path './node_modules/*' ! -path './dist/*' ! -path './.parcel-cache/*' -exec sh -c 'test $(wc -l < "$1") -le 150 || echo FAIL "$1"' _ {} \;`
 
 ## Delivery
 
