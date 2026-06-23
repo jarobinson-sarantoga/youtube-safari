@@ -40,6 +40,8 @@ macOS Human Interface Guidelines apply to `pref.html` and everything in `sidebar
   - Visible **focus rings**; proper `tabindex` / keyboard navigation.
   - Accessible **labels** on all controls.
   - Respect **reduced motion** (`prefers-reduced-motion`).
+  - **Materials (HIG):** Liquid Glass for nav/controls only (`sidebar/css/materials.css`); standard translucent materials for content. Never flat opaque `Canvas`/`ButtonFace` panels in the normal path.
+  - Spacing via `--sp-*` tokens in `sidebar/css/base.css` — no raw rem/px for layout gaps/padding (1px hairlines and fixed thumbnail dimensions excepted).
 - Partial improvements are NOT compliance. Produce a pass/fail checklist; any FAIL = not done.
 
 ## File size (150 LOC)

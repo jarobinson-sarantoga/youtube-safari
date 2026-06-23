@@ -83,7 +83,7 @@ export function renderRelatedPreview(
 
   el.classList.remove("empty");
   el.tabIndex = 0;
-  el.setAttribute("role", "listbox");
+  el.setAttribute("role", "grid");
   el.setAttribute("aria-label", "Related videos");
   items.forEach((item, index) => {
     el.appendChild(

@@ -19,7 +19,8 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
 
   const row = document.createElement("div");
   row.className = `${rowClassName}${selected ? " selected" : ""}`;
-  row.setAttribute("role", "option");
+  row.setAttribute("role", "row");
+  row.setAttribute("aria-selected", selected ? "true" : "false");
   row.tabIndex = -1;
   row.setAttribute("aria-label", item.title);
   if (index >= 0) {

@@ -6,10 +6,9 @@
 .player-hero {
   position: relative;
   flex-shrink: 0;
-  margin: 10px 12px 0;
+  margin: var(--sp-3) var(--sp-3) 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--bg-raised);
   border: 1px solid var(--border);
   aspect-ratio: 16 / 9;
   max-height: 180px;
@@ -36,7 +35,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 12px;
+  padding: var(--sp-3);
   background: linear-gradient(
     to bottom,
     transparent 0%,
@@ -47,8 +46,22 @@
   pointer-events: none;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .player-hero:has(.player-thumb:not(.hidden)) .player-hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 30%,
+      rgba(0, 0, 0, 0.55) 68%,
+      rgba(0, 0, 0, 0.78) 100%
+    );
+    backdrop-filter: var(--glass-clear-blur);
+    -webkit-backdrop-filter: var(--glass-clear-blur);
+  }
+}
+
 @media (prefers-color-scheme: light) {
-  .player-hero-overlay {
+  .player-hero:has(.player-thumb:not(.hidden)) .player-hero-overlay {
     background: linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0.05) 0%,
@@ -72,7 +85,7 @@
 }
 
 .player-hero-sub {
-  margin: 0.25rem 0 0;
+  margin: var(--sp-1) 0 0;
   font-size: 0.6875rem;
   color: var(--overlay-text-muted);
 }

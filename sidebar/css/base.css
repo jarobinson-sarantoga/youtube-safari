@@ -9,13 +9,29 @@
   --bg-active: color-mix(in srgb, CanvasText 12%, Canvas);
   --text-primary: CanvasText;
   --text-secondary: color-mix(in srgb, CanvasText 72%, Canvas);
-  --text-muted: color-mix(in srgb, CanvasText 55%, Canvas);
+  --text-muted: color-mix(in srgb, CanvasText 62%, Canvas);
   --accent: AccentColor;
   --accent-soft: color-mix(in srgb, AccentColor 18%, transparent);
   --accent-border: color-mix(in srgb, AccentColor 45%, transparent);
   --brand: #cc0000;
   --danger: #e06060;
-  --control-height: 1.75rem;
+  --control-height: 2rem;
+  --sp-05: 0.125rem;
+  --sp-1: 0.25rem;
+  --sp-1-5: 0.375rem;
+  --sp-2: 0.5rem;
+  --sp-2-5: 0.625rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 2rem;
+  /* Media overlays — fixed dark scrims over unpredictable thumbnail luminance (HIG Materials) */
+  --media-dim: color-mix(in srgb, black 35%, transparent);
+  --media-scrim: color-mix(in srgb, black 78%, transparent);
+  --media-control: color-mix(in srgb, black 88%, transparent);
+  --media-control-hover: color-mix(in srgb, black 94%, transparent);
+  --media-control-border: color-mix(in srgb, white 32%, transparent);
+  --media-control-border-hover: color-mix(in srgb, white 50%, transparent);
   --border: color-mix(in srgb, CanvasText 12%, transparent);
   --on-accent: HighlightText;
   --overlay-text: HighlightText;
@@ -78,7 +94,6 @@ body {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--bg-base);
 }
 
 .shell.panel-booting > * {

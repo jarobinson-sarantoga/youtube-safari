@@ -1,13 +1,14 @@
 :root {
   color-scheme: light dark;
-  --pref-bg: Canvas;
+  --pref-bg: color-mix(in srgb, Canvas 68%, transparent);
   --pref-text: CanvasText;
-  --pref-help-text: color-mix(in srgb, CanvasText 55%, Canvas);
-  --pref-field-bg: Field;
+  --pref-help-text: color-mix(in srgb, CanvasText 62%, Canvas);
+  --pref-field-bg: color-mix(in srgb, Field 72%, transparent);
   --pref-field-text: FieldText;
   --pref-field-border: ButtonBorder;
   --pref-accent: AccentColor;
-  --pref-control-height: 1.75rem;
+  --pref-control-height: 2rem;
+  --pref-blur: blur(0.75rem) saturate(1.25);
 }
 * { box-sizing: border-box; }
 html { font-size: 100%; }
@@ -17,6 +18,16 @@ body {
   font: 0.8125rem/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   background: var(--pref-bg);
   color: var(--pref-text);
+}
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    backdrop-filter: var(--pref-blur);
+    -webkit-backdrop-filter: var(--pref-blur);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-reduced-motion: reduce) {
+  :root { --pref-bg: Canvas; --pref-field-bg: Field; }
+  body { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 .pref-section { margin-bottom: 1rem; }
 .pref-section-heading {
