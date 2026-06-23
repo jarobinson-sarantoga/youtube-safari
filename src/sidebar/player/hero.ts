@@ -46,8 +46,6 @@ export function updateHero(title: string, watchUrl: string): void {
     thumbEl.removeAttribute("src");
     thumbEl.alt = "";
   }
-
-  subEl.textContent = "Now playing in IINA";
 }
 
 export function applyWatchUrlToNowPlaying(watchUrl: string): void {

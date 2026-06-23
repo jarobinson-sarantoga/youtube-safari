@@ -1,6 +1,7 @@
 import { getSelectedHeight } from "./qualities";
 import { defaultPanelPayload } from "./sidebar-state";
 import {
+  getStandaloneCoordinator,
   installStandaloneBridge,
   isStandaloneShellInitialized,
   isStandaloneWebViewReady,
@@ -14,7 +15,15 @@ import { invalidateBrowseSessionCaches } from "./browse/session-invalidate";
 import { primePanelCookiesOnFirstLoad } from "./youtube-refresh";
 import { appendLog } from "./ytdl";
 
-const { standaloneWindow } = iina;
+const { global, standaloneWindow } = iina;
+
+function requestActivePlayerNowPlayingSync(): void {
+  const coordinator = getStandaloneCoordinator();
+  const playerId = coordinator?.getActivePlayerId() ?? null;
+  if (playerId !== null && coordinator?.isPlayerConfirmedReady()) {
+    global.postMessage(playerId, "syncNowPlaying", {});
+  }
+}
 
 /** Pre-load shell at global startup (same pattern as IINA User Scripts / Cmd+Shift+U). */
 export function initStandaloneShell(): void {
@@ -73,6 +82,7 @@ onStandaloneSidebarReady(() => {
 
     postToStandalone("browseReady", {});
     postToStandalone("panel", defaultPanelPayload(getSelectedHeight()));
+    requestActivePlayerNowPlayingSync();
 
     const pending = takePendingStandaloneFocus();
     if (pending === "browse") {

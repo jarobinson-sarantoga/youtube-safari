@@ -1,6 +1,12 @@
 import { $, formatClock, setPanelHidden } from "../dom";
 
-export function updateProgress(position: number, duration: number, paused: boolean): void {
+let lastPosition = 0;
+let lastDuration = 0;
+let lastPaused = true;
+let lastSyncMs = 0;
+let tickTimer: ReturnType<typeof setInterval> | null = null;
+
+function paintProgress(position: number, duration: number, paused: boolean): void {
   const block = $("player-progress-block");
   const track = $("progress-track");
   const fill = $("progress-fill");
@@ -31,4 +37,39 @@ export function updateProgress(position: number, duration: number, paused: boole
 
   const subEl = $("player-hero-sub");
   subEl.textContent = paused ? "Paused" : "Playing";
+}
+
+function stopProgressTick(): void {
+  if (tickTimer) {
+    clearInterval(tickTimer);
+    tickTimer = null;
+  }
+}
+
+function ensureProgressTick(): void {
+  if (tickTimer) {
+    return;
+  }
+  tickTimer = setInterval(() => {
+    if (lastPaused || lastDuration <= 0) {
+      return;
+    }
+    const elapsed = (Date.now() - lastSyncMs) / 1000;
+    const position = Math.min(lastDuration, lastPosition + elapsed);
+    paintProgress(position, lastDuration, lastPaused);
+  }, 250);
+}
+
+export function updateProgress(position: number, duration: number, paused: boolean): void {
+  lastPosition = position;
+  lastDuration = duration;
+  lastPaused = paused;
+  lastSyncMs = Date.now();
+  paintProgress(position, duration, paused);
+
+  if (duration > 0 && !paused) {
+    ensureProgressTick();
+    return;
+  }
+  stopProgressTick();
 }
