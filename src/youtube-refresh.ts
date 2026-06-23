@@ -1,8 +1,9 @@
+import { pluginScriptPath } from "./plugin-script-path";
 import { appendLog } from "./ytdl";
 
-const { preferences, utils } = iina;
+const { utils } = iina;
 
-const DEFAULT_REFRESH_SCRIPT = "~/Projects/youtube-safari/scripts/refresh-cookies.sh";
+const DEFAULT_REFRESH_SCRIPT = "scripts/refresh-cookies.sh";
 
 let refreshInFlight: Promise<boolean> | null = null;
 let panelCookiesPrimed = false;
@@ -23,8 +24,7 @@ export async function refreshYouTubeCookies(): Promise<boolean> {
   }
 
   refreshInFlight = (async () => {
-    const configured = preferences.get("refresh_script") as string | undefined;
-    const script = utils.resolvePath(configured || DEFAULT_REFRESH_SCRIPT);
+    const script = pluginScriptPath("refresh_script", DEFAULT_REFRESH_SCRIPT);
     if (!utils.fileInPath(script)) {
       appendLog(`Missing refresh script: ${script}`);
       return false;
