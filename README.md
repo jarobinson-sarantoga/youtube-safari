@@ -33,25 +33,35 @@ and pick quality without leaving IINA.
 
 ## Install
 
+### Packaged plugin (recommended)
+
+1. Download the latest **`youtube-safari-*.iinaplgz`** from [Releases](https://github.com/jarobinson-sarantoga/youtube-safari/releases/latest) (under Assets).
+2. Open the file in IINA (double-click, or drag it onto the IINA icon).
+3. Install [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) if you have not already: `brew install yt-dlp`.
+4. Sign into YouTube in Safari and grant IINA **Full Disk Access** so cookies can be exported.
+5. Restart IINA, then press `Cmd+Shift+Y` or use **Plugin → Open YouTube Panel**.
+
+After installing, disable IINA's bundled **Online Media** plugin if YouTube URLs still open there instead (**IINA → Settings → Plugins**).
+
+If playback fails after a while, your cookies may have expired — use **Plugin → Refresh YouTube** to re-export them from Safari.
+
+### From source (developers)
+
 ```bash
 git clone https://github.com/jarobinson-sarantoga/youtube-safari.git
 cd youtube-safari
 bash scripts/install.sh
 ```
 
-`install.sh` builds the plugin, links it into IINA, binds `Cmd+Shift+Y`, and disables
-IINA's bundled Online Media plugin so the two don't race on YouTube URLs. Restart IINA
-afterward, then press `Cmd+Shift+Y` or use **Plugin → Open YouTube Panel**.
-
-If playback fails after a while, your cookies may have expired — use
-**Plugin → Refresh YouTube** to re-export them from Safari.
+`install.sh` builds the plugin, links it into IINA for development, binds `Cmd+Shift+Y`, and disables IINA's bundled Online Media plugin so the two don't race on YouTube URLs.
 
 ## Build from source
 
 ```bash
 npm install
-npm run build   # parcel build + node --check on the bundles
-npm test        # parse-core tests + bundle smoke check
+npm run build    # parcel build + node --check on the bundles
+npm run package  # build release/youtube-safari-<version>.iinaplgz
+npm test         # parse-core tests + bundle smoke check
 ```
 
 The plugin is written in TypeScript and bundled with [Parcel](https://parceljs.org).
