@@ -36,6 +36,8 @@
   --media-control-hover: color-mix(in srgb, black 94%, transparent);
   --media-control-border: color-mix(in srgb, white 32%, transparent);
   --media-control-border-hover: color-mix(in srgb, white 50%, transparent);
+  --media-fg: #ffffff;
+  --media-fg-muted: color-mix(in srgb, #ffffff 78%, transparent);
   --border: color-mix(in srgb, CanvasText 12%, transparent);
   --on-accent: HighlightText;
   --overlay-text: HighlightText;
