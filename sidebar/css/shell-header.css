@@ -64,7 +64,7 @@
 }
 
 .view-btn.active {
-  background: color-mix(in srgb, var(--bg-base) 75%, transparent);
+  background: var(--control-active-bg);
   color: var(--text-primary);
   box-shadow: 0 0.0625rem 0.125rem color-mix(in srgb, CanvasText 14%, transparent);
 }

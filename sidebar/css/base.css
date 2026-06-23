@@ -13,6 +13,10 @@
   --accent: AccentColor;
   --accent-soft: color-mix(in srgb, AccentColor 18%, transparent);
   --accent-border: color-mix(in srgb, AccentColor 45%, transparent);
+  --control-active-bg: color-mix(in srgb, var(--bg-base) 78%, transparent);
+  --glass-control-bg: color-mix(in srgb, var(--bg-raised) 62%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, CanvasText 22%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, CanvasText 32%, transparent);
   --brand: #cc0000;
   --danger: #e06060;
   --control-height: 2rem;
@@ -47,10 +51,22 @@
   :root {
     --brand: #cc0000;
     --danger: #c62828;
+    --bg-hover: color-mix(in srgb, CanvasText 5%, Canvas);
+    --bg-active: color-mix(in srgb, CanvasText 11%, Canvas);
+    --text-secondary: color-mix(in srgb, CanvasText 68%, Canvas);
+    --text-muted: color-mix(in srgb, CanvasText 52%, Canvas);
+    --border: color-mix(in srgb, CanvasText 14%, transparent);
+    --accent-soft: color-mix(in srgb, AccentColor 14%, transparent);
+    --accent-border: color-mix(in srgb, AccentColor 40%, transparent);
+    --control-active-bg: color-mix(in srgb, Canvas 94%, transparent);
+    --glass-control-bg: color-mix(in srgb, var(--bg-raised) 78%, transparent);
+    --scrollbar-thumb: color-mix(in srgb, CanvasText 28%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, CanvasText 40%, transparent);
+    --shadow: 0 0.25rem 1rem color-mix(in srgb, CanvasText 12%, transparent);
   }
 
   .panel-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23606060' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555555' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   }
 }
 
@@ -58,6 +74,22 @@
   :root {
     --brand: #ff3b30;
     --danger: #e06060;
+    --bg-hover: color-mix(in srgb, CanvasText 9%, Canvas);
+    --bg-active: color-mix(in srgb, CanvasText 16%, Canvas);
+    --text-secondary: color-mix(in srgb, CanvasText 78%, Canvas);
+    --text-muted: color-mix(in srgb, CanvasText 64%, Canvas);
+    --border: color-mix(in srgb, CanvasText 20%, transparent);
+    --accent-soft: color-mix(in srgb, AccentColor 22%, transparent);
+    --accent-border: color-mix(in srgb, AccentColor 50%, transparent);
+    --control-active-bg: color-mix(in srgb, Canvas 72%, transparent);
+    --glass-control-bg: color-mix(in srgb, var(--bg-raised) 52%, transparent);
+    --scrollbar-thumb: color-mix(in srgb, CanvasText 30%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, CanvasText 44%, transparent);
+    --shadow: 0 0.25rem 1.25rem color-mix(in srgb, black 42%, transparent);
+  }
+
+  .panel-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b8b8b8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   }
 }
 

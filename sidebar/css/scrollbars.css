@@ -15,11 +15,11 @@
 .player-view::-webkit-scrollbar-thumb,
 .description::-webkit-scrollbar-thumb {
   border-radius: 0.25rem;
-  background: color-mix(in srgb, CanvasText 22%, transparent);
+  background: var(--scrollbar-thumb);
 }
 
 .feed-list::-webkit-scrollbar-thumb:hover,
 .player-view::-webkit-scrollbar-thumb:hover,
 .description::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, CanvasText 32%, transparent);
+  background: var(--scrollbar-thumb-hover);
 }
