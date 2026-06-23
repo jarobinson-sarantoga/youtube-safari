@@ -1,83 +1,25 @@
 import {
-  attachAudioInLoadHook,
-  clearQueuedAudio,
-  queueAudioTrack,
-} from "./audio-track";
-import { applyStreamHeaders } from "./headers";
-import {
   cancelScheduledRefresh,
   initQualityUI,
   registerFileLoadedRefresh,
-  scheduleRefreshQualityUI,
-  pushNowPlayingUpdate,
-  saveWatchUrl,
 } from "./quality-ui";
-import { queueMpvChapters, registerChapterHooks } from "./chapters-mpv";
-import { attachSubtitlesInLoadHook } from "./subtitles";
-import { openYouTubePlaylist } from "./playlist";
-import { openLinkedUrl, peekPendingSeek, setPendingSeek } from "./youtube-open";
+import { registerChapterHooks } from "./chapters-mpv";
+import { openLinkedUrl } from "./youtube-open";
 import {
-  isGoogleVideoURL,
-  getYouTubePlaylistId,
-  isYouTubePlaylistURL,
   isYouTubeWatchURL,
-  normalizeMediaURL,
-  parseYouTubeTimestamp,
 } from "./youtube";
 import { installBrowse } from "./browse/init";
 import {
   isShuttingDown,
-  shouldHonorClose,
-  syncPlayGeneration,
-  bumpPlayGeneration,
 } from "./lifecycle";
 import { getLastWatchUrl } from "./preferences";
-import {
-  isBackgroundHidePending,
-  rehideBackgroundPlayer,
-  requestBackgroundPlayerWindow,
-  restoreForegroundPlayerWindow,
-  retireBackgroundPlayerWindow,
-} from "./background-play";
-import { closeManagedPlayerWindow } from "./player-close";
 import { registerPlayerPanelShortcut } from "./player-shortcut";
-import { appendLog, extractYouTube, type ResolvedStream } from "./ytdl";
+import { appendLog } from "./ytdl";
+import { createPlayerMessageHandlers } from "./index/messages";
+import { handleLoadCore } from "./index/load";
+import { maybeOpenLastWatchOnIdleLaunch } from "./index/idle";
 
-const { core, console, event, global, menu, mpv, preferences } = iina;
-
-const SAFE_PROTOCOLS = new Set(["http", "https"]);
-
-function isSafeURL(url: string): boolean {
-  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):\/\//);
-  if (!match) {
-    return false;
-  }
-  return SAFE_PROTOCOLS.has(match[1].toLowerCase());
-}
-
-/** Apply resolved stream URLs and metadata to mpv (shared by on_load hook). */
-export function applyResolvedStream(resolved: ResolvedStream): void {
-  applyStreamHeaders(resolved.headers);
-  clearQueuedAudio();
-
-  if (resolved.audioUrl && isSafeURL(resolved.audioUrl)) {
-    queueAudioTrack(resolved.audioUrl);
-    attachAudioInLoadHook(resolved.audioUrl);
-  }
-
-  const startAt = peekPendingSeek();
-  if (startAt !== null) {
-    mpv.set("file-local-options/start", String(startAt));
-    appendLog(`Set file-local-options/start=${startAt}`);
-  }
-
-  queueMpvChapters(resolved.chapters);
-
-  mpv.set("stream-open-filename", resolved.videoUrl);
-  mpv.set("file-local-options/force-media-title", resolved.title);
-  attachSubtitlesInLoadHook(resolved.subtitles);
-  appendLog(`Opened: ${resolved.title}`);
-}
+const { core, console, event, global, mpv, preferences } = iina;
 
 async function handleLoad(next?: () => void): Promise<void> {
   try {
@@ -86,74 +28,7 @@ async function handleLoad(next?: () => void): Promise<void> {
       mpv.set("stream-open-filename", "null://");
       return;
     }
-
-    const rawUrl = mpv.getString("stream-open-filename");
-    const url = normalizeMediaURL(rawUrl);
-    appendLog(`on_load hook: ${rawUrl}`);
-    appendLog(
-      `normalized: ${url} youtube=${isYouTubeWatchURL(rawUrl)} googlevideo=${isGoogleVideoURL(rawUrl)}`,
-    );
-
-    if (isGoogleVideoURL(rawUrl)) {
-      appendLog("googlevideo pass-through (headers only)");
-      applyStreamHeaders();
-      return;
-    }
-
-    if (isYouTubeWatchURL(rawUrl)) {
-      const startSeconds = parseYouTubeTimestamp(url);
-
-      if (isYouTubePlaylistURL(url)) {
-        appendLog(`Playlist URL detected (list=${getYouTubePlaylistId(url)})`);
-        core.osd("Loading YouTube playlist…");
-        try {
-          await openYouTubePlaylist(url, startSeconds);
-          return;
-        } catch (err) {
-          appendLog(`Playlist load failed: ${err}`);
-          core.osd("Playlist load failed — opening video");
-          if (startSeconds !== null) {
-            setPendingSeek(startSeconds);
-          }
-        }
-      } else if (startSeconds !== null) {
-        setPendingSeek(startSeconds);
-      }
-
-      if (isShuttingDown()) {
-        appendLog("on_load aborted before resolve: player shutting down");
-        mpv.set("stream-open-filename", "null://");
-        return;
-      }
-
-      core.osd("Resolving YouTube…");
-      try {
-        const resolved = await extractYouTube(url);
-        if (isShuttingDown()) {
-          appendLog("on_load resolve aborted: player shutting down");
-          mpv.set("stream-open-filename", "null://");
-          return;
-        }
-        if (resolved && isSafeURL(resolved.videoUrl)) {
-          applyResolvedStream(resolved);
-          if (activePlaybackBackground && isBackgroundHidePending()) {
-            rehideBackgroundPlayer("after-resolve");
-          }
-          saveWatchUrl(url, resolved.title, resolved.description, resolved.chapters);
-          scheduleRefreshQualityUI();
-        } else {
-          appendLog("Extraction returned no safe playable URL");
-          console.error("YouTube Safari: no playable stream URL");
-          core.osd("YouTube failed — Plugin → Refresh YouTube");
-          mpv.set("stream-open-filename", "null://");
-        }
-      } catch (err) {
-        appendLog(`Extraction error: ${err}`);
-        console.error(`YouTube Safari extraction failed: ${err}`);
-        core.osd("YouTube resolution failed");
-        mpv.set("stream-open-filename", "null://");
-      }
-    }
+    await handleLoadCore(() => activePlaybackBackground);
   } finally {
     // Unblock mpv even when quit arrives during yt-dlp resolve.
     next?.();
@@ -186,63 +61,22 @@ const isManagedPlayer = managedPlayerLabel.startsWith("youtube-");
 let idleBootstrapDone = false;
 let activePlaybackBackground = false;
 
-global.onMessage("openYouTubeWatch", (data: {
-  url?: string;
-  background?: boolean;
-  playGeneration?: number;
-}) => {
-  const url = data?.url;
-  if (typeof url !== "string" || !url.trim()) {
-    return;
-  }
-  if (typeof data.playGeneration === "number") {
-    syncPlayGeneration(data.playGeneration);
-  } else {
-    bumpPlayGeneration();
-  }
-  idleBootstrapDone = true;
-  activePlaybackBackground = !!data.background;
-  cancelScheduledRefresh();
-  if (data.background) {
-    requestBackgroundPlayerWindow();
-    openLinkedUrl(url.trim());
-    return;
-  }
-  restoreForegroundPlayerWindow();
-  openLinkedUrl(url.trim(), { replace: true });
+const handlers = createPlayerMessageHandlers({
+  bootIdle,
+  setIdleBootstrapDone: (done) => {
+    idleBootstrapDone = done;
+  },
+  setActivePlaybackBackground: (background) => {
+    activePlaybackBackground = background;
+  },
 });
 
-global.onMessage("suppressIdleBootstrap", () => {
-  idleBootstrapDone = true;
-});
-
-global.onMessage("retireBackgroundPlayer", () => {
-  retireBackgroundPlayerWindow();
-});
-
-global.onMessage("closeManagedPlayer", (data?: {
-  allowWindowQuit?: boolean;
-  playGeneration?: number;
-}) => {
-  if (!shouldHonorClose(data?.playGeneration)) {
-    appendLog(
-      `closeManagedPlayer ignored (stale gen ${data?.playGeneration ?? "?"} < current)`,
-    );
-    return;
-  }
-  closeManagedPlayerWindow(data);
-});
-
-global.onMessage("syncNowPlaying", () => {
-  pushNowPlayingUpdate();
-});
-
-global.onMessage("globalPing", () => {
-  const label =
-    typeof global.getLabel === "function" ? global.getLabel() : "";
-  global.postMessage("playerReady", { idle: bootIdle, label });
-  appendLog(`Posted playerReady (ping, idle=${bootIdle}, label=${label || "default"})`);
-});
+global.onMessage("openYouTubeWatch", handlers.openYouTubeWatch);
+global.onMessage("suppressIdleBootstrap", handlers.suppressIdleBootstrap);
+global.onMessage("retireBackgroundPlayer", handlers.retireBackgroundPlayer);
+global.onMessage("closeManagedPlayer", handlers.closeManagedPlayer);
+global.onMessage("syncNowPlaying", handlers.syncNowPlaying);
+global.onMessage("globalPing", handlers.globalPing);
 
 // Signal global before heavier UI init — createPlayerInstance waits on this message.
 global.postMessage("playerReady", {
@@ -255,19 +89,13 @@ initQualityUI();
 registerPlayerPanelShortcut();
 installBrowse();
 
-function maybeOpenLastWatchOnIdleLaunch(): void {
-  if (idleBootstrapDone || !bootIdle || isShuttingDown() || isManagedPlayer) {
-    return;
-  }
-  const lastWatch = getLastWatchUrl();
-  if (!isYouTubeWatchURL(lastWatch)) {
-    return;
-  }
-  idleBootstrapDone = true;
-  appendLog(`Idle dock bootstrap: ${lastWatch}`);
-  openLinkedUrl(lastWatch);
-}
-
 event.on("iina.window-loaded", () => {
-  maybeOpenLastWatchOnIdleLaunch();
+  maybeOpenLastWatchOnIdleLaunch(
+    idleBootstrapDone,
+    bootIdle,
+    isManagedPlayer,
+    (done) => {
+      idleBootstrapDone = done;
+    },
+  );
 });

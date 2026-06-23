@@ -1,0 +1,75 @@
+/* Loading skeleton */
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.skeleton-block {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-raised) 0%,
+    var(--bg-hover) 50%,
+    var(--bg-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-thumb {
+  width: 112px;
+  height: 63px;
+}
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.skeleton-line {
+  height: 10px;
+  border-radius: 4px;
+}
+
+.skeleton-line.wide { width: 95%; }
+.skeleton-line.mid { width: 70%; }
+.skeleton-line.narrow { width: 40%; }
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skeleton-block {
+    animation: none;
+    background: var(--bg-raised);
+  }
+
+  .icon-btn.spinning {
+    animation: none;
+  }
+
+  .progress-fill {
+    transition: none;
+  }
+}

@@ -1,0 +1,95 @@
+.feed-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.duration-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, CanvasText 82%, transparent);
+  color: var(--on-accent);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.resume-badge {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.feed-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+
+.feed-title {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feed-channel {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-extra {
+  margin: 0;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+.feed-empty,
+.feed-error {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.feed-error {
+  color: var(--accent);
+}
+
+.feed-retry {
+  appearance: none;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  margin-top: 10px;
+  min-height: 2.75rem;
+  padding: 0.4375rem 0.875rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
