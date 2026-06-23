@@ -23,7 +23,7 @@ RUNNER_NAME="${RUNNER_NAME:-studio-m4-max-youtube-safari}"
 
 NODE_DIR="${HOME}/local/node-v22.16.0-darwin-arm64"
 cat > .env <<EOF
-PATH=${NODE_DIR}/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+PATH=${NODE_DIR}/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 EOF
 
 echo "Install and start the service:"
