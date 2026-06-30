@@ -61,9 +61,17 @@ if [ ! -s "$TMP_COOKIES" ]; then
   exit 1
 fi
 
-if ! grep -qE '^\.youtube\.com\t.*\t(LOGIN_INFO|__Secure-1PSID)\t' "$TMP_COOKIES"; then
-  echo "Warning: exported cookies may be missing YouTube login (no LOGIN_INFO or __Secure-1PSID on .youtube.com)" >&2
+if ! grep -qE '^\.youtube\.com\t.*\t(LOGIN_INFO|__Secure-1PSID|__Secure-3PSID)\t' "$TMP_COOKIES"; then
+  echo "Warning: exported cookies may be missing YouTube login (no LOGIN_INFO or PSID on .youtube.com)" >&2
 fi
+
+FILTERED="$(mktemp)"
+trap 'rm -f "$ERR_FILE" "$TMP_COOKIES" "$FILTERED"' EXIT
+awk -F'\t' '
+  /^#/ || /^$/ { print; next }
+  $1 ~ /\.youtube\.com$/ || $1 == "youtube.com" || $1 ~ /\.google\.com$/ || $1 == "accounts.google.com" { print }
+' "$TMP_COOKIES" > "$FILTERED"
+mv -f "$FILTERED" "$TMP_COOKIES"
 
 mv -f "$TMP_COOKIES" "$COOKIES"
 

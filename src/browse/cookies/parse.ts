@@ -1,22 +1,16 @@
 import { appendLog } from "../../ytdl";
-import { YOUTUBE_DOMAINS, type NetscapeCookie } from "./constants";
+import { isYoutubeDomain, type NetscapeCookie } from "./constants";
 import { cookiesPath } from "./path";
 
 const { file } = iina;
 
 export function domainMatches(domain: string): boolean {
-  return [...YOUTUBE_DOMAINS].some(
-    (d) => domain === d || domain.endsWith(d) || domain.endsWith(".youtube.com"),
-  );
+  return isYoutubeDomain(domain);
 }
 
 /** True for youtube.com host cookies (not accounts.google.com, etc.). */
 export function youtubeDomainMatches(domain: string): boolean {
-  return (
-    domain === ".youtube.com" ||
-    domain === "youtube.com" ||
-    domain.endsWith(".youtube.com")
-  );
+  return isYoutubeDomain(domain);
 }
 
 export function parseNetscapeCookies(text: string): NetscapeCookie[] {

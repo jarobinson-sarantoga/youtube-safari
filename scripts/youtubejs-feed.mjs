@@ -5,13 +5,16 @@
  */
 import fs from "node:fs";
 import {
-  REFRESH_COOKIES_HINT,
   authEmptyHint,
-  fetchTabItems,
+  REFRESH_COOKIES_HINT,
+} from "./lib/youtubejs-feed-auth.mjs";
+import { fetchTabItems, parseArgs } from "./lib/youtubejs-feed-lib.mjs";
+import {
   getYouTubeClient,
+  hasBrowseAuth,
   hasYouTubeAuth,
-  parseArgs,
-} from "./lib/youtubejs-feed-lib.mjs";
+  resetYouTubeClient,
+} from "./lib/youtubejs-client.mjs";
 
 function emit(result) {
   process.stdout.write(`${JSON.stringify(result)}\n`);
@@ -29,12 +32,13 @@ async function main() {
     return;
   }
 
-  if (!hasYouTubeAuth(args.cookies)) {
+  if (!hasYouTubeAuth(args.cookies) || !hasBrowseAuth(args.cookies)) {
     emit({ items: [], emptyHint: authEmptyHint(args.cookies) });
     return;
   }
 
   try {
+    resetYouTubeClient();
     const yt = await getYouTubeClient(args.cookies);
     const result = await fetchTabItems(yt, args);
     if (result.exitCode) {

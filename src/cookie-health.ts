@@ -1,9 +1,9 @@
-import { cookiesPath, hasYouTubeAuth } from "./browse/cookies";
+import { cookiesPath, hasBrowseAuth, hasYouTubeAuth } from "./browse/cookies";
 import { appendLog } from "./ytdl";
 
 const { core, file } = iina;
 
-export type CookieHealth = "ok" | "missing" | "unauthenticated";
+export type CookieHealth = "ok" | "missing" | "unauthenticated" | "partial";
 
 export function getCookieHealth(): CookieHealth {
   const path = cookiesPath();
@@ -12,6 +12,9 @@ export function getCookieHealth(): CookieHealth {
   }
   if (!hasYouTubeAuth()) {
     return "unauthenticated";
+  }
+  if (!hasBrowseAuth()) {
+    return "partial";
   }
   return "ok";
 }
@@ -22,6 +25,9 @@ function messageFor(health: CookieHealth): string {
   }
   if (health === "unauthenticated") {
     return "YouTube cookies need refresh — Plugin → Refresh YouTube";
+  }
+  if (health === "partial") {
+    return "YouTube cookies incomplete — sign in via Safari, then Plugin → Refresh YouTube";
   }
   return "";
 }
