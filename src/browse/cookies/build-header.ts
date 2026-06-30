@@ -1,29 +1,24 @@
 import {
-  GOOGLE_AUTH_COOKIE_NAMES,
-  isGoogleAuthDomain,
   isYoutubeDomain,
+  YOUTUBE_SID_AUTH_COOKIE_NAMES,
+  type NetscapeCookie,
 } from "./constants";
-import type { NetscapeCookie } from "./constants";
 
-/** Cookie header for InnerTube browse: youtube.com session + .google.com SAPISID auth. */
+/** Cookie header for InnerTube browse — youtube.com only (no .google.com mix). */
 export function buildBrowseCookieHeader(cookies: NetscapeCookie[]): string {
-  const byName = new Map<string, string>();
+  return cookies
+    .filter((cookie) => isYoutubeDomain(cookie.domain))
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
+}
 
-  for (const cookie of cookies) {
-    if (isYoutubeDomain(cookie.domain)) {
-      byName.set(cookie.name, cookie.value);
+export function resolveSidAuthValue(cookies: NetscapeCookie[]): string {
+  const youtube = cookies.filter((cookie) => isYoutubeDomain(cookie.domain));
+  for (const name of YOUTUBE_SID_AUTH_COOKIE_NAMES) {
+    const match = youtube.find((cookie) => cookie.name === name && cookie.value.length > 0);
+    if (match) {
+      return match.value;
     }
   }
-
-  for (const cookie of cookies) {
-    if (
-      isGoogleAuthDomain(cookie.domain) &&
-      GOOGLE_AUTH_COOKIE_NAMES.has(cookie.name) &&
-      !byName.has(cookie.name)
-    ) {
-      byName.set(cookie.name, cookie.value);
-    }
-  }
-
-  return [...byName.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
+  return "";
 }

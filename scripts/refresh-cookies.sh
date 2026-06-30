@@ -69,7 +69,7 @@ FILTERED="$(mktemp)"
 trap 'rm -f "$ERR_FILE" "$TMP_COOKIES" "$FILTERED"' EXIT
 awk -F'\t' '
   /^#/ || /^$/ { print; next }
-  $1 ~ /\.youtube\.com$/ || $1 == "youtube.com" || $1 ~ /\.google\.com$/ || $1 == "accounts.google.com" { print }
+  $1 ~ /\.youtube\.com$/ || $1 == "youtube.com" { print }
 ' "$TMP_COOKIES" > "$FILTERED"
 mv -f "$FILTERED" "$TMP_COOKIES"
 

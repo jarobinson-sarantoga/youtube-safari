@@ -6,20 +6,11 @@ export const YOUTUBE_AUTH_COOKIE_NAMES = new Set([
   "__Secure-3PSID",
 ]);
 
-export const GOOGLE_AUTH_COOKIE_NAMES = new Set([
-  "SID",
-  "HSID",
-  "SSID",
-  "APISID",
+export const YOUTUBE_SID_AUTH_COOKIE_NAMES = [
   "SAPISID",
-  "__Secure-1PSID",
-  "__Secure-3PSID",
-  "__Secure-1PAPISID",
   "__Secure-3PAPISID",
-  "__Secure-1PSIDTS",
-  "__Secure-3PSIDTS",
-  "LOGIN_INFO",
-]);
+  "__Secure-1PAPISID",
+];
 
 export function isYoutubeDomain(domain) {
   return (
@@ -27,10 +18,6 @@ export function isYoutubeDomain(domain) {
     domain === "youtube.com" ||
     domain.endsWith(".youtube.com")
   );
-}
-
-export function isGoogleAuthDomain(domain) {
-  return domain === ".google.com" || domain === "google.com";
 }
 
 export function parseNetscapeCookies(raw) {
@@ -44,27 +31,23 @@ export function parseNetscapeCookies(raw) {
     .filter((cookie) => cookie.name && cookie.value !== undefined);
 }
 
-/** Cookie header for InnerTube browse: youtube.com session + .google.com SAPISID auth. */
+/** Cookie header for InnerTube browse — youtube.com only (no .google.com mix). */
 export function buildBrowseCookieHeader(cookies) {
-  const byName = new Map();
+  return cookies
+    .filter((cookie) => isYoutubeDomain(cookie.domain))
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
+}
 
-  for (const cookie of cookies) {
-    if (isYoutubeDomain(cookie.domain)) {
-      byName.set(cookie.name, cookie.value);
+export function resolveSidAuthValue(cookies) {
+  const youtube = cookies.filter((cookie) => isYoutubeDomain(cookie.domain));
+  for (const name of YOUTUBE_SID_AUTH_COOKIE_NAMES) {
+    const match = youtube.find((cookie) => cookie.name === name && cookie.value.length > 0);
+    if (match) {
+      return match.value;
     }
   }
-
-  for (const cookie of cookies) {
-    if (
-      isGoogleAuthDomain(cookie.domain) &&
-      GOOGLE_AUTH_COOKIE_NAMES.has(cookie.name) &&
-      !byName.has(cookie.name)
-    ) {
-      byName.set(cookie.name, cookie.value);
-    }
-  }
-
-  return [...byName.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
+  return "";
 }
 
 export function hasYouTubeAuthCookies(cookies) {
@@ -77,16 +60,7 @@ export function hasYouTubeAuthCookies(cookies) {
 }
 
 export function hasBrowseAuthCookies(cookies) {
-  if (!hasYouTubeAuthCookies(cookies)) {
-    return false;
-  }
-
-  return cookies.some(
-    (cookie) =>
-      (isGoogleAuthDomain(cookie.domain) || isYoutubeDomain(cookie.domain)) &&
-      cookie.name === "SAPISID" &&
-      cookie.value.length > 0,
-  );
+  return hasYouTubeAuthCookies(cookies) && resolveSidAuthValue(cookies).length > 0;
 }
 
 export function keepBrowseExportDomains(raw) {
@@ -97,11 +71,7 @@ export function keepBrowseExportDomains(raw) {
         return true;
       }
       const domain = line.split("\t")[0] || "";
-      return (
-        isYoutubeDomain(domain) ||
-        isGoogleAuthDomain(domain) ||
-        domain === "accounts.google.com"
-      );
+      return isYoutubeDomain(domain);
     })
     .join("\n");
 }
