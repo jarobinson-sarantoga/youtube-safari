@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rm -rf dist && parcel build . && node --check dist/index.js && node --check dist/global.js",
     "package": "bash scripts/package.sh",
-    "test": "node --test scripts/parse.test.mjs && node --check dist/index.js",
+    "test": "node --test scripts/parse.test.mjs scripts/cookies.test.mjs && node --check dist/index.js",
     "watch": "parcel watch ."
   },
   "author": "jarobinson-sarantoga",

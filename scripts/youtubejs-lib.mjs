@@ -22,6 +22,7 @@ export {
   fetchWatchNextItems,
   readBrowseCookieHeader,
   hasYouTubeAuth,
+  hasBrowseAuth,
   getYouTubeClient,
   resetYouTubeClient,
 } from "./lib/youtubejs-client.mjs";
