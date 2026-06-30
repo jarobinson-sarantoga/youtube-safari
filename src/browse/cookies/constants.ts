@@ -14,20 +14,11 @@ export const YOUTUBE_AUTH_COOKIE_NAMES = new Set([
   "__Secure-3PSID",
 ]);
 
-export const GOOGLE_AUTH_COOKIE_NAMES = new Set([
-  "SID",
-  "HSID",
-  "SSID",
-  "APISID",
+export const YOUTUBE_SID_AUTH_COOKIE_NAMES = [
   "SAPISID",
-  "__Secure-1PSID",
-  "__Secure-3PSID",
-  "__Secure-1PAPISID",
   "__Secure-3PAPISID",
-  "__Secure-1PSIDTS",
-  "__Secure-3PSIDTS",
-  "LOGIN_INFO",
-]);
+  "__Secure-1PAPISID",
+];
 
 export interface NetscapeCookie {
   domain: string;
@@ -41,8 +32,4 @@ export function isYoutubeDomain(domain: string): boolean {
     domain === "youtube.com" ||
     domain.endsWith(".youtube.com")
   );
-}
-
-export function isGoogleAuthDomain(domain: string): boolean {
-  return domain === ".google.com" || domain === "google.com";
 }

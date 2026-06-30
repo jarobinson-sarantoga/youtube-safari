@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import { Innertube, Parser, YTNodes } from "youtubei.js";
 import {
@@ -5,10 +6,37 @@ import {
   hasBrowseAuthCookies,
   hasYouTubeAuthCookies,
   parseNetscapeCookies,
+  resolveSidAuthValue,
 } from "./youtube-cookies.mjs";
 import { mapWatchNext } from "./youtubejs-map-feeds.mjs";
 
 const { NavigationEndpoint, TwoColumnWatchNextResults, ItemSection } = YTNodes;
+
+function sidAuthHeader(sid) {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const input = [timestamp, sid, "https://www.youtube.com"].join(" ");
+  const hash = crypto.createHash("sha1").update(input).digest("hex");
+  return `SAPISIDHASH ${timestamp}_${hash}`;
+}
+
+function createBrowseFetch(sidAuthValue, baseFetch = globalThis.fetch) {
+  return async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (!url.includes("youtubei/v1") || !sidAuthValue) {
+      return baseFetch(input, init);
+    }
+
+    const headers = new Headers(
+      init?.headers || (input instanceof Request ? input.headers : undefined),
+    );
+    if (!headers.has("Authorization")) {
+      headers.set("Authorization", sidAuthHeader(sidAuthValue));
+      headers.set("X-Goog-Authuser", "0");
+    }
+
+    return baseFetch(input, { ...init, headers });
+  };
+}
 
 /** Lighter than getInfo — only calls YouTube's watch-next endpoint. */
 export async function fetchWatchNextItems(yt, videoId, limit = 0) {
@@ -46,11 +74,16 @@ export async function getYouTubeClient(cookiePath) {
     return clientPromise;
   }
 
+  const cookies = parseNetscapeCookies(fs.readFileSync(cookiePath, "utf8"));
+  const cookie = buildBrowseCookieHeader(cookies);
+  const sidAuthValue = resolveSidAuthValue(cookies);
+
   clientCookiePath = cookiePath;
   clientPromise = Innertube.create({
     lang: "en",
     location: "US",
-    cookie: readBrowseCookieHeader(cookiePath),
+    cookie,
+    fetch: createBrowseFetch(sidAuthValue),
     retrieve_player: false,
     enable_session_cache: false,
   });
