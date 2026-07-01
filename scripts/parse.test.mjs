@@ -46,6 +46,16 @@ test("parseFeedResult filters invalid items and keeps valid ones", () => {
   assert.equal(result.items[1].videoId, "abc123xyz12");
 });
 
+test("parseFeedResult ignores append on non-shorts tabs", () => {
+  const result = parseFeedResult({
+    tab: "home",
+    items: [validItem],
+    append: true,
+  });
+  assert.ok(result);
+  assert.equal(result.append, undefined);
+});
+
 test("parseFeedResult accepts shorts tab and continuation", () => {
   const result = parseFeedResult({
     tab: "shorts",

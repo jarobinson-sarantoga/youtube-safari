@@ -15,6 +15,7 @@ export interface FeedRowOptions {
   showExtra?: boolean;
   showBackgroundPlay?: boolean;
   portrait?: boolean;
+  listboxOption?: boolean;
   onClick: FeedRowClickHandler;
   onBackgroundPlay?: FeedRowBackgroundHandler;
 }

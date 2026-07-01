@@ -6,14 +6,14 @@ import {
   onFeedsStale,
   onHistoryStale,
   onWatchUrlChanged,
-  setSelectedIndex,
 } from "../feed-controller";
 import { $ } from "../dom";
 import { onPluginMessage, postToPlugin } from "../messaging";
 import { parseFeedResult } from "../parse";
 import { getCurrentWatchUrl, renderRelatedPreview } from "../player";
 import { setActiveView } from "../views";
-import { renderFeedList, scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
+import { renderFeedList } from "./feed-list";
+import { handleShortsQueueState } from "./shorts-queue-sync";
 import { setupBrowseKeyboard } from "./keyboard";
 import { setupShortsLayoutToggle } from "./shorts-layout";
 import { setupRefresh, setupSearch, setupSubsFilter, setupTabs, syncBrowseControls } from "./setup-controls";
@@ -76,15 +76,7 @@ export function initBrowsePanel(): void {
   onPluginMessage("watchUrlChanged", onWatchUrlChanged);
   onPluginMessage("historyStale", onHistoryStale);
   onPluginMessage("feedsStale", onFeedsStale);
-  onPluginMessage("shortsQueueState", (raw) => {
-    const data = raw as { videoId?: string; index?: number } | null;
-    if (!data || typeof data.index !== "number" || data.index < 0) {
-      return;
-    }
-    setSelectedIndex(data.index);
-    updateFeedSelection();
-    scrollSelectedIntoView();
-  });
+  onPluginMessage("shortsQueueState", handleShortsQueueState);
   onPluginMessage("browseReady", () => {
     const view = completePanelBoot();
     if (view) {

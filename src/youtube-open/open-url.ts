@@ -6,6 +6,7 @@ import {
   parseYouTubeTimestamp,
 } from "../youtube";
 import { openYouTubePlaylist } from "../playlist";
+import { exitShortsQueue } from "../shorts-queue";
 import { isShuttingDown } from "../lifecycle";
 import { appendLog } from "../ytdl";
 import { setPendingSeek } from "./pending-seek";
@@ -76,10 +77,12 @@ export function openLinkedUrl(url: string, options?: OpenLinkedUrlOptions): void
   const playlistId = getYouTubePlaylistId(normalized);
 
   if (playlistId && isYouTubePlaylistURL(normalized)) {
+    exitShortsQueue();
     void loadYouTubePlaylist(normalized, startSeconds);
     return;
   }
 
+  exitShortsQueue();
   setPendingSeek(startSeconds);
   const replace = !!options?.replace && hasActiveStream();
   if (replace) {

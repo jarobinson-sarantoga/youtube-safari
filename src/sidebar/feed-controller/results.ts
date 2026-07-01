@@ -1,6 +1,7 @@
 import type { FeedResultMessage } from "../../browse/messages";
 import { getYouTubeVideoId } from "../../youtube";
 import { postToPlugin } from "../messaging";
+import { resolveFeedSelectionIndex } from "../browse/selection";
 import {
   feedCacheKey,
   feedSnapshots,
@@ -50,6 +51,7 @@ export function handleFeedResult(data: FeedResultMessage): void {
       postToPlugin("appendShortsQueue", { videoIds: added });
     }
     deps.setStatus(deps.formatFeedCount(feedState.feedItems.length));
+    saveFeedSnapshot(data.tab, feedState.activeSubsFilter, "");
     deps.renderFeedList();
     return;
   }
@@ -71,8 +73,12 @@ export function handleFeedResult(data: FeedResultMessage): void {
   }
 
   feedState.lastFeedError = "";
+  const previousVideoId =
+    feedState.selectedIndex >= 0
+      ? feedState.feedItems[feedState.selectedIndex]?.videoId || null
+      : null;
   feedState.feedItems = data.items || [];
-  feedState.selectedIndex = feedState.feedItems.length > 0 ? 0 : -1;
+  feedState.selectedIndex = resolveFeedSelectionIndex(feedState.feedItems, previousVideoId);
   feedState.feedEmptyHint = !feedState.feedItems.length ? data.emptyHint || "" : "";
   if (data.tab === "shorts") {
     feedState.shortsContinuation = data.continuation || "";

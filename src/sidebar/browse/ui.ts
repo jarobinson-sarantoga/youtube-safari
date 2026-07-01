@@ -1,7 +1,9 @@
 import type { FeedTab, SubsFilter } from "../../browse/types";
 import { $, setPanelHidden } from "../dom";
+import { getActiveTab } from "../feed-controller";
 import { createSkeletonRows } from "../feed-row";
-import { updateShortsLayoutVisibility } from "./shorts-layout";
+import { createShortsGridSkeleton } from "../feed-row/skeleton-shorts";
+import { applyShortsLayoutClass, getShortsLayout, updateShortsLayoutVisibility } from "./shorts-layout";
 
 const SECTION_LABELS: Record<string, string> = {
   relevant: "Most relevant",
@@ -84,5 +86,14 @@ export function renderSkeleton(): void {
   const listEl = $("feed-list");
   listEl.innerHTML = "";
   listEl.tabIndex = -1;
+  const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
+  applyShortsLayoutClass(listEl, getActiveTab());
+  if (grid) {
+    listEl.setAttribute("role", "grid");
+    listEl.setAttribute("aria-busy", "true");
+    listEl.appendChild(createShortsGridSkeleton(4));
+    return;
+  }
+  listEl.removeAttribute("aria-busy");
   listEl.appendChild(createSkeletonRows(5));
 }

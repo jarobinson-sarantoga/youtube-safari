@@ -8,6 +8,7 @@ import { appendLog } from "../ytdl";
 import { isYouTubeWatchURL } from "../youtube";
 import { setPendingSeek } from "../youtube-open";
 import { buildPanelPayload, postSidebarPanel } from "../sidebar-host";
+import { exitShortsQueue, getActiveShortsQueue, openShortsQueue } from "../shorts-queue";
 import { scheduleRefreshQualityUI } from "./refresh";
 
 const { core, mpv, preferences } = iina;
@@ -39,6 +40,17 @@ export async function switchQuality(height: number): Promise<void> {
 
   core.osd(`Quality: ${heightLabel(height)}`);
   suppressNextWatchEnd();
+
+  const active = getActiveShortsQueue();
+  if (active) {
+    const pos = Math.max(0, mpv.getNumber("playlist-pos") || 0);
+    const index = Math.min(pos, active.videoIds.length - 1);
+    exitShortsQueue();
+    openShortsQueue(active.videoIds, index, active.source);
+    scheduleRefreshQualityUI();
+    return;
+  }
+
   mpv.command("loadfile", [watchUrl, "replace"]);
   scheduleRefreshQualityUI();
 }

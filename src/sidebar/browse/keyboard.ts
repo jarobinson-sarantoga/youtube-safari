@@ -1,7 +1,42 @@
 import { $ } from "../dom";
-import { getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
+import { getActiveTab, getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
 import { playItem } from "./playback";
+import { getShortsLayout } from "./shorts-layout";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
+
+const SHORTS_GRID_COLUMNS = 2;
+
+function moveSelection(delta: number): void {
+  const feedItems = getFeedItems();
+  if (!feedItems.length) {
+    return;
+  }
+  setSelectedIndex(Math.min(feedItems.length - 1, Math.max(0, getSelectedIndex() + delta)));
+  updateFeedSelection();
+  scrollSelectedIntoView();
+}
+
+function moveGridSelection(rowDelta: number, colDelta: number): void {
+  const feedItems = getFeedItems();
+  if (!feedItems.length) {
+    return;
+  }
+  const current = getSelectedIndex();
+  const row = Math.floor(current / SHORTS_GRID_COLUMNS);
+  const col = current % SHORTS_GRID_COLUMNS;
+  const nextRow = row + rowDelta;
+  const nextCol = col + colDelta;
+  if (nextCol < 0 || nextCol >= SHORTS_GRID_COLUMNS) {
+    return;
+  }
+  const nextIndex = nextRow * SHORTS_GRID_COLUMNS + nextCol;
+  if (nextIndex < 0 || nextIndex >= feedItems.length) {
+    return;
+  }
+  setSelectedIndex(nextIndex);
+  updateFeedSelection();
+  scrollSelectedIntoView();
+}
 
 export function setupBrowseKeyboard(): void {
   const listEl = $("feed-list");
@@ -24,16 +59,28 @@ export function setupBrowseKeyboard(): void {
       return;
     }
 
-    if (event.key === "ArrowDown") {
+    const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
+
+    if (grid && event.key === "ArrowRight") {
       event.preventDefault();
-      setSelectedIndex(Math.min(feedItems.length - 1, getSelectedIndex() + 1));
-      updateFeedSelection();
-      scrollSelectedIntoView();
+      moveGridSelection(0, 1);
+    } else if (grid && event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveGridSelection(0, -1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (grid) {
+        moveGridSelection(1, 0);
+      } else {
+        moveSelection(1);
+      }
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setSelectedIndex(Math.max(0, getSelectedIndex() - 1));
-      updateFeedSelection();
-      scrollSelectedIntoView();
+      if (grid) {
+        moveGridSelection(-1, 0);
+      } else {
+        moveSelection(-1);
+      }
     } else if (event.key === "Home") {
       event.preventDefault();
       setSelectedIndex(0);
@@ -63,8 +110,8 @@ export function setupBrowseKeyboard(): void {
   });
 
   listEl.addEventListener("focus", () => {
-    const feedItems = getFeedItems();
-    if (!feedItems.length) {
+    const items = getFeedItems();
+    if (!items.length) {
       return;
     }
     if (getSelectedIndex() < 0) {

@@ -13,5 +13,7 @@ export function saveFeedSnapshot(tab: FeedTab, subsFilter: SubsFilter, query: st
     items: feedState.feedItems,
     statusText: feedState.feedItems.length > 0 ? deps.formatFeedCount(feedState.feedItems.length) : "",
     emptyHint: feedState.feedEmptyHint,
+    shortsContinuation: tab === "shorts" ? feedState.shortsContinuation : undefined,
+    selectedIndex: feedState.selectedIndex,
   });
 }

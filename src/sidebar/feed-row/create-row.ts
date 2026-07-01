@@ -14,13 +14,14 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
     showExtra = true,
     showBackgroundPlay = false,
     portrait = false,
+    listboxOption = false,
     onClick,
     onBackgroundPlay,
   } = options;
 
   const row = document.createElement("div");
   row.className = `${rowClassName}${selected ? " selected" : ""}${portrait || item.isShort ? " feed-row--portrait" : ""}`;
-  row.setAttribute("role", "row");
+  row.setAttribute("role", listboxOption ? "option" : "row");
   row.setAttribute("aria-selected", selected ? "true" : "false");
   row.tabIndex = -1;
   row.setAttribute("aria-label", item.title);

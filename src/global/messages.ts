@@ -12,6 +12,7 @@ import {
 import { normalizePlayerId } from "../player-id";
 import { forwardPanelRelay, openStandalonePanel } from "../standalone-host";
 import { appendLog } from "../ytdl";
+import { exitShortsQueue } from "../shorts-queue";
 import {
   clearActivePlayer,
   decrementLivePlayerCount,
@@ -103,6 +104,7 @@ export function registerGlobalMessageHandlers(): void {
       return;
     }
     const trimmed = url.trim();
+    exitShortsQueue();
     openYouTubeWatchUrl(trimmed, playerCoordinator, {
       background: !!data.background,
     });

@@ -9,6 +9,7 @@ export interface PlayVideoMessage {
   background?: boolean;
   shortsQueue?: {
     videoIds: string[];
+    titles?: string[];
     startIndex: number;
     source: "shorts" | "subs-shorts";
   };

@@ -4,6 +4,8 @@ export interface FeedSnapshot {
   items: FeedItem[];
   statusText: string;
   emptyHint: string;
+  shortsContinuation?: string;
+  selectedIndex?: number;
 }
 
 export interface FeedControllerDeps {
