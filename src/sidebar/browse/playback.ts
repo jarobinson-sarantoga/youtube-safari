@@ -39,6 +39,7 @@ export function playItem(item: FeedItem, options?: { background?: boolean }): vo
   previewNowPlayingFromFeed(item);
   const queue = !options?.background ? shortsQueueSource() : null;
   const startIndex = queue ? queue.videoIds.indexOf(item.videoId) : -1;
+  const titles = queue ? getFeedItems().map((row) => row.title) : undefined;
   postToPlugin("playVideo", {
     videoId: item.videoId,
     url,
@@ -46,6 +47,7 @@ export function playItem(item: FeedItem, options?: { background?: boolean }): vo
     shortsQueue: queue && startIndex >= 0
       ? {
           videoIds: queue.videoIds,
+          titles,
           startIndex,
           source: queue.source,
         }

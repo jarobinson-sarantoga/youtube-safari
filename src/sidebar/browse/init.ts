@@ -9,16 +9,15 @@ import {
   onQueueStale,
   onBlocklistStale,
   onWatchUrlChanged,
-  setSelectedIndex,
   getActiveTab,
-  getFeedItems,
 } from "../feed-controller";
 import { $ } from "../dom";
 import { onPluginMessage, postToPlugin } from "../messaging";
 import { parseFeedResult } from "../parse";
 import { getCurrentWatchUrl, renderRelatedPreview } from "../player";
 import { setActiveView } from "../views";
-import { renderFeedList, scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
+import { renderFeedList } from "./feed-list";
+import { handleShortsQueueState } from "./shorts-queue-sync";
 import { setupBrowseKeyboard } from "./keyboard";
 import { setupShortsLayoutToggle } from "./shorts-layout";
 import { setupSearchFilters, syncSearchFilterVisibility } from "./search-filters";
@@ -102,8 +101,7 @@ export function initBrowsePanel(): void {
     if (data) {
       handleFeedResult(data);
       syncSearchFilterVisibility();
-      const exportBtn = document.getElementById("export-history");
-      exportBtn?.classList.toggle("hidden", getActiveTab() !== "history");
+      document.getElementById("export-history")?.classList.toggle("hidden", getActiveTab() !== "history");
     }
   });
 
@@ -125,15 +123,7 @@ export function initBrowsePanel(): void {
   onPluginMessage("libraryState", () => {
     renderFeedList();
   });
-  onPluginMessage("shortsQueueState", (raw) => {
-    const data = raw as { videoId?: string; index?: number } | null;
-    if (!data || typeof data.index !== "number" || data.index < 0) {
-      return;
-    }
-    setSelectedIndex(data.index);
-    updateFeedSelection();
-    scrollSelectedIntoView();
-  });
+  onPluginMessage("shortsQueueState", handleShortsQueueState);
   onPluginMessage("browseReady", () => {
     const view = completePanelBoot();
     if (view) {

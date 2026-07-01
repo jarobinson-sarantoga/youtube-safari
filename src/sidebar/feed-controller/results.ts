@@ -1,6 +1,8 @@
 import type { FeedResultMessage } from "../../browse/messages";
 import { getYouTubeVideoId } from "../../youtube";
 import { postToPlugin } from "../messaging";
+import { resolveFeedSelectionIndex } from "../browse/selection";
+import { mergeAppendFeedItems } from "./merge-feed";
 import {
   feedCacheKey,
   feedSnapshots,
@@ -36,20 +38,17 @@ export function handleFeedResult(data: FeedResultMessage): void {
       return;
     }
     feedState.lastFeedError = "";
-    const seen = new Set(feedState.feedItems.map((item) => item.videoId));
-    const added: string[] = [];
-    for (const item of data.items || []) {
-      if (!seen.has(item.videoId)) {
-        seen.add(item.videoId);
-        feedState.feedItems.push(item);
-        added.push(item.videoId);
-      }
-    }
+    const { items, added } = mergeAppendFeedItems(
+      feedState.feedItems,
+      data.items || [],
+    );
+    feedState.feedItems = items;
     feedState.shortsContinuation = data.continuation || "";
     if (added.length) {
       postToPlugin("appendShortsQueue", { videoIds: added });
     }
     deps.setStatus(deps.formatFeedCount(feedState.feedItems.length));
+    saveFeedSnapshot(data.tab, feedState.activeSubsFilter, "");
     deps.renderFeedList();
     return;
   }
@@ -71,8 +70,12 @@ export function handleFeedResult(data: FeedResultMessage): void {
   }
 
   feedState.lastFeedError = "";
+  const previousVideoId =
+    feedState.selectedIndex >= 0
+      ? feedState.feedItems[feedState.selectedIndex]?.videoId || null
+      : null;
   feedState.feedItems = data.items || [];
-  feedState.selectedIndex = feedState.feedItems.length > 0 ? 0 : -1;
+  feedState.selectedIndex = resolveFeedSelectionIndex(feedState.feedItems, previousVideoId);
   feedState.feedEmptyHint = !feedState.feedItems.length ? data.emptyHint || "" : "";
   if (data.tab === "shorts") {
     feedState.shortsContinuation = data.continuation || "";

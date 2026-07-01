@@ -15,6 +15,7 @@ import {
 import { refreshNativeChapterPanel } from "../chapters-mpv";
 import { appendLog } from "../ytdl";
 import { isYouTubeWatchURL } from "../youtube";
+import { isShortsQueueActive } from "../shorts-queue";
 import {
   buildPanelPayload,
   getLastPanelPayload,
@@ -92,6 +93,9 @@ export async function refreshQualityUI(): Promise<void> {
 }
 
 export function scheduleRefreshQualityUI(): void {
+  if (isShortsQueueActive()) {
+    return;
+  }
   if (refreshTimer) {
     clearTimeout(refreshTimer);
   }

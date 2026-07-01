@@ -1,8 +1,7 @@
 import { getYouTubeVideoId } from "../youtube";
 import { postSidebarPanelMessage } from "../panel-relay";
-import { findShortsQueueIndex, getActiveShortsQueue } from "./state";
-
-const { mpv } = iina;
+import { getActiveShortsQueue } from "./state";
+import { resolveQueueIndexByVideoId } from "./sync-index";
 
 export function postShortsQueueStateFromPlayer(watchUrl: string): void {
   const active = getActiveShortsQueue();
@@ -11,18 +10,9 @@ export function postShortsQueueStateFromPlayer(watchUrl: string): void {
   }
 
   const videoId = getYouTubeVideoId(watchUrl) || "";
-  if (!videoId) {
-    return;
-  }
-
-  let index = findShortsQueueIndex(videoId);
+  const index = resolveQueueIndexByVideoId(videoId, active.videoIds);
   if (index < 0) {
-    const pos = mpv.getNumber("playlist-pos");
-    if (Number.isFinite(pos) && pos >= 0 && pos < active.videoIds.length) {
-      index = pos;
-    } else {
-      return;
-    }
+    return;
   }
 
   postSidebarPanelMessage("shortsQueueState", {

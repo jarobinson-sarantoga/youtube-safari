@@ -36,37 +36,6 @@
   border-color: var(--accent-border);
 }
 
-.feed-list:focus-visible,
-.related-preview:focus-visible,
-.view-btn:focus-visible,
-.seg-btn:focus-visible,
-.subs-filter-btn:focus-visible,
-.feed-row:focus-visible,
-.related-row:focus-visible,
-.icon-btn:focus-visible,
-.search-input:focus-visible,
-.feed-retry:focus-visible,
-.quality-retry:focus-visible,
-.panel-select:focus-visible,
-.thumb-action-btn:focus-visible,
-.desc-link:focus-visible,
-.description:focus-visible {
-  outline: 2px solid AccentColor;
-  outline-offset: 0.125rem;
-}
-
-.seg-btn:focus-visible,
-.subs-filter-btn:focus-visible,
-.feed-row:focus-visible,
-.related-row:focus-visible,
-.icon-btn:focus-visible,
-.feed-retry:focus-visible,
-.quality-retry:focus-visible,
-.panel-select:focus-visible,
-.thumb-action-btn:focus-visible {
-  border-color: var(--accent-border);
-}
-
 .search-icon {
   color: var(--text-muted);
   flex-shrink: 0;

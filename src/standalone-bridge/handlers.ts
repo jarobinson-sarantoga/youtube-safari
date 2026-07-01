@@ -47,10 +47,12 @@ export function registerStandaloneInboundHandlers(): void {
       return;
     }
     if (data.shortsQueue?.videoIds.length) {
+      global.postMessage("closeManagedPlayers", {});
       proxyToPlayer("playVideo", data);
       postToStandalone("watchUrlChanged", { watchUrl: url });
       return;
     }
+    global.postMessage("closeManagedPlayers", {});
     openYouTubeWatchUrl(url, coordinator, {
       background: !!data.background,
     });
@@ -99,6 +101,10 @@ export function registerStandaloneInboundHandlers(): void {
 
   standaloneWindow.onMessage("openUrl", (data: { url?: string }) => {
     proxyToPlayer("openUrl", data);
+  });
+
+  standaloneWindow.onMessage("appendShortsQueue", (data: { videoIds?: string[] }) => {
+    proxyToPlayer("appendShortsQueue", data);
   });
 
   registerStandaloneLibraryHandlers(proxyToPlayer);

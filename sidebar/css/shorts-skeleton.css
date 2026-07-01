@@ -1,0 +1,16 @@
+.skeleton-shorts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.skeleton-shorts-card {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.skeleton-shorts-thumb {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+}

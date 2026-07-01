@@ -53,7 +53,13 @@ export function requestFeed(
     feedState.feedEmptyHint = snapshot.emptyHint;
     feedState.lastFeedError = "";
     feedState.feedLoading = true;
-    feedState.selectedIndex = feedState.feedItems.length > 0 ? 0 : -1;
+    feedState.shortsContinuation = snapshot.shortsContinuation || "";
+    feedState.selectedIndex =
+      typeof snapshot.selectedIndex === "number"
+        ? snapshot.selectedIndex
+        : feedState.feedItems.length > 0
+          ? 0
+          : -1;
     deps.setStatus(snapshot.statusText || "Refreshing…");
     deps.setFeedBusy(false);
     deps.setSearchBusy(false);
@@ -62,6 +68,7 @@ export function requestFeed(
   } else if (append) {
     feedState.shortsLoadingMore = true;
     deps.setStatus("Loading more…");
+    deps.renderFeedList();
   } else {
     deps.setStatus("Loading…");
     feedState.feedLoading = true;

@@ -4,7 +4,7 @@ import { resolvePlayVideoUrl } from "../panel-handlers";
 import { postSidebarPanelMessage } from "../panel-relay";
 import { setPlaybackSpeed } from "../playback-speed";
 import { cancelSleepTimer, startSleepTimer } from "../sleep-timer";
-import { appendShortsToQueue, openShortsQueue } from "../shorts-queue";
+import { appendShortsToQueue, exitShortsQueue, playShortsQueue } from "../shorts-queue";
 import { fetchTranscript } from "../transcript";
 import { getBookmarksForVideo } from "../browse/store/bookmarks";
 import { getLastWatchUrl } from "../preferences";
@@ -17,10 +17,8 @@ function postToSidebar(name: string, data: unknown): void {
   postSidebarPanelMessage(name, data);
 }
 
-export function handlePanelProxy(payload: {
-  action?: string;
-  data?: unknown;
-}): void {
+/** Route standalone panelProxy actions to player handlers. */
+export function handlePanelProxy(payload: { action?: string; data?: unknown }): void {
   const action = payload?.action;
   const data = payload?.data;
   switch (action) {
@@ -45,6 +43,7 @@ export function handlePanelProxy(payload: {
     case "openUrl": {
       const url = (data as { url?: string } | undefined)?.url;
       if (typeof url === "string") {
+        exitShortsQueue();
         openLinkedUrl(url);
       }
       break;
@@ -56,13 +55,15 @@ export function handlePanelProxy(payload: {
         break;
       }
       if (msg.shortsQueue?.videoIds.length) {
-        openShortsQueue(
+        playShortsQueue(
           msg.shortsQueue.videoIds,
           msg.shortsQueue.startIndex,
           msg.shortsQueue.source,
+          msg.shortsQueue.titles,
         );
         break;
       }
+      exitShortsQueue();
       openLinkedUrl(url);
       break;
     }

@@ -12,6 +12,7 @@ import {
 } from "../native-menus";
 import { appendLog } from "../ytdl";
 import { isYouTubeWatchURL, normalizeMediaURL } from "../youtube";
+import { isShortsQueueActive } from "../shorts-queue";
 import { applyPendingSeek } from "../youtube-open";
 import { ensureSidebarLoaded, isSidebarHtmlLoaded } from "../sidebar-host";
 import { postSidebarPanelMessage } from "../panel-relay";
@@ -65,7 +66,9 @@ export function registerFileLoadedRefresh(eventApi: IINA.API.Event): void {
       clearListedMetadata();
       replaceChapterMenu([]);
     }
-    scheduleRefreshQualityUI();
+    if (!isShortsQueueActive()) {
+      scheduleRefreshQualityUI();
+    }
     notifyPlayerStateFromFileLoaded();
   };
 

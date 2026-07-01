@@ -1,15 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
-function buildWatchUrlM3U(entries) {
-  const lines = ["#EXTM3U"];
-  for (const entry of entries) {
-    const title = entry.title.replace(/[\r\n]+/g, " ").trim() || "YouTube";
-    lines.push(`#EXTINF:0,${title}`);
-    lines.push(entry.url);
-  }
-  return lines.join("\n");
-}
+import { buildWatchUrlM3U } from "../dist/test-lib/index.js";
 
 test("buildWatchUrlM3U emits watch URLs", () => {
   const m3u = buildWatchUrlM3U([

@@ -1,7 +1,12 @@
+/** Browse feed keyboard: search focus shortcut, list/grid navigation, play keys.
+ *  @see keyboard-move.ts — selection delta helpers
+ *  @see grid-nav.ts — pure grid index math
+ */
 import { $ } from "../dom";
-import { getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
-import type { FeedItem } from "../../browse/types";
+import { getActiveTab, getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
 import { playItem } from "./playback";
+import { getShortsLayout } from "./shorts-layout";
+import { moveFeedGridSelection, moveFeedSelection } from "./keyboard-move";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
 import { postToPlugin } from "../messaging";
 
@@ -9,10 +14,7 @@ export function setupBrowseKeyboard(): void {
   const listEl = $("feed-list");
 
   document.addEventListener("keydown", (event) => {
-    if (
-      (event.key === "/" || (event.key === "f" && event.metaKey)) &&
-      document.activeElement !== $("search-input")
-    ) {
+    if (event.key === "/" && document.activeElement !== $("search-input")) {
       event.preventDefault();
       ($("search-input") as HTMLInputElement).focus();
       return;
@@ -50,16 +52,28 @@ export function setupBrowseKeyboard(): void {
       return;
     }
 
-    if (event.key === "ArrowDown") {
+    const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
+
+    if (grid && event.key === "ArrowRight") {
       event.preventDefault();
-      setSelectedIndex(Math.min(feedItems.length - 1, getSelectedIndex() + 1));
-      updateFeedSelection();
-      scrollSelectedIntoView();
+      moveFeedGridSelection(0, 1);
+    } else if (grid && event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveFeedGridSelection(0, -1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (grid) {
+        moveFeedGridSelection(1, 0);
+      } else {
+        moveFeedSelection(1);
+      }
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setSelectedIndex(Math.max(0, getSelectedIndex() - 1));
-      updateFeedSelection();
-      scrollSelectedIntoView();
+      if (grid) {
+        moveFeedGridSelection(-1, 0);
+      } else {
+        moveFeedSelection(-1);
+      }
     } else if (event.key === "Home") {
       event.preventDefault();
       setSelectedIndex(0);
@@ -89,8 +103,8 @@ export function setupBrowseKeyboard(): void {
   });
 
   listEl.addEventListener("focus", () => {
-    const feedItems = getFeedItems();
-    if (!feedItems.length) {
+    const items = getFeedItems();
+    if (!items.length) {
       return;
     }
     if (getSelectedIndex() < 0) {

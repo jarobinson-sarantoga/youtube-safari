@@ -10,13 +10,20 @@ export function updateFeedSelection(): void {
     const index = Number.parseInt(row.dataset.index || "", 10);
     const isSelected = index === selectedIndex;
     row.classList.toggle("selected", isSelected);
-    if (row instanceof HTMLButtonElement || row.getAttribute("role") === "row") {
+    const card = row.querySelector<HTMLElement>(".shorts-grid-card");
+    if (card) {
+      card.classList.toggle("selected", isSelected);
+      card.setAttribute("aria-selected", isSelected ? "true" : "false");
+    }
+    if (row instanceof HTMLButtonElement || row.getAttribute("role") === "row" || row.getAttribute("role") === "option") {
       row.tabIndex = -1;
     }
     if (isSelected) {
-      row.setAttribute("aria-selected", "true");
+      if (row.getAttribute("role") === "option" || row.getAttribute("role") === "row") {
+        row.setAttribute("aria-selected", "true");
+      }
       activeId = row.id || null;
-    } else {
+    } else if (row.getAttribute("role") === "option" || row.getAttribute("role") === "row") {
       row.removeAttribute("aria-selected");
     }
   });

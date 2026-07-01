@@ -1,3 +1,7 @@
+/** Quality UI bootstrap: sidebar handlers, panel proxy, window lifecycle.
+ *  @see panel-proxy.ts — standalone panelProxy routing
+ *  @see refresh.ts, switch-quality.ts — panel updates
+ */
 import { appendLog } from "../ytdl";
 import {
   enableNativeMenuUpdates,

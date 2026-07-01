@@ -5,12 +5,15 @@ import { getWatchLaterItems } from "../store/watch-later";
 import { getQueueItems } from "../store/queue";
 import { getLastWatchUrl } from "../../preferences";
 import { getYouTubeVideoId } from "../../youtube";
-import { fetchSearchItems, fetchShortsItems, fetchTabItems } from "./youtubejs-exec";
+import { fetchSearchItems, fetchTabItems } from "./youtubejs-exec";
 import { getRelatedItems } from "./related";
 import { postProcessFeedItems } from "./post-process";
-import { fetchWithCache, type FeedFetchResult } from "./cache-fetch";
+import { fetchWithCache } from "./fetch-cache";
+import { clearFeedInflight, type FeedFetchResult } from "./fetch-result";
+import { fetchShortsContinuation, fetchShortsWithCache } from "./shorts-fetch";
 
-export { clearFeedInflight } from "./cache-fetch";
+export { clearFeedInflight };
+export type { FeedFetchResult } from "./fetch-result";
 
 function normalizeSearchQuery(query: string): string {
   return query.trim().toLowerCase();
@@ -36,15 +39,10 @@ export async function fetchFeed(
       result = await fetchWithCache(cacheKey("home", "v1"), () => fetchTabItems("home"), force);
       break;
     case "shorts": {
-      const key = continuation
-        ? cacheKey("shorts", `cont:${continuation.slice(0, 24)}`)
-        : cacheKey("shorts", "v1");
       if (continuation) {
-        result = await fetchShortsItems(continuation);
-      } else {
-        result = await fetchWithCache(key, () => fetchShortsItems(), force);
+        return finalize(await fetchShortsContinuation(continuation));
       }
-      break;
+      return finalize(await fetchShortsWithCache(force));
     }
     case "subscriptions": {
       const filter = subsFilter === "shorts" ? "shorts" : "all";

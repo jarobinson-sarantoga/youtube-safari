@@ -6,6 +6,7 @@ import {
 import { getLastWatchUrl } from "../../preferences";
 import { postSidebarPanelMessage } from "../../panel-relay";
 import {
+  exitShortsQueue,
   postShortsQueueStateFromPlayer,
 } from "../../shorts-queue";
 import {
@@ -13,7 +14,11 @@ import {
   recordWatchStart,
   updateWatchProgress,
 } from "../store/history";
-import { fetchSponsorSegments, startSponsorBlockMonitor, stopSponsorBlockMonitor } from "../../sponsorblock";
+import {
+  fetchSponsorSegments,
+  startSponsorBlockMonitor,
+  stopSponsorBlockMonitor,
+} from "../../sponsorblock";
 import { setPlaybackSpeed } from "../../playback-speed";
 import { getDefaultPlaybackSpeed } from "../../preferences";
 import { playNextInQueue } from "../../queue/auto-play";
@@ -58,6 +63,7 @@ export function registerPlaybackHooks(): void {
     markWatchEnded();
     postPlayerState();
     if (core.status.idle) {
+      exitShortsQueue();
       stopPlayerStatePolling();
       return;
     }
