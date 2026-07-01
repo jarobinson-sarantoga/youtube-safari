@@ -26,6 +26,7 @@ export function createShortsGridCard(options: GridCardOptions): HTMLElement {
   card.className = `shorts-grid-card${selected ? " selected" : ""}`;
   card.setAttribute("aria-selected", selected ? "true" : "false");
   card.setAttribute("aria-label", item.title);
+  card.tabIndex = -1;
 
   card.appendChild(
     createThumbnail({

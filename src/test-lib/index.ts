@@ -18,3 +18,8 @@ export { buildSnapshotFields } from "../sidebar/feed-controller/snapshot-fields"
 export { toShortsFeedCache, fromShortsFeedCache } from "../browse/feeds/shorts-cache";
 export { shouldRunPlaybackSideEffects } from "../playback-side-effects";
 export { buildWatchUrlM3U } from "../m3u/build";
+export { exitShortsQueue } from "../shorts-queue/exit";
+export {
+  getActiveShortsQueue,
+  setActiveShortsQueue,
+} from "../shorts-queue/state";
