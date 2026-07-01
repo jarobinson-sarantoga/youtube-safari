@@ -2,16 +2,20 @@ import { $ } from "../dom";
 import { getActiveTab, getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
 import { playItem } from "./playback";
 import { getShortsLayout } from "./shorts-layout";
+import {
+  computeGridSelectionIndex,
+  computeListSelectionIndex,
+} from "./grid-nav";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
-
-const SHORTS_GRID_COLUMNS = 2;
 
 function moveSelection(delta: number): void {
   const feedItems = getFeedItems();
   if (!feedItems.length) {
     return;
   }
-  setSelectedIndex(Math.min(feedItems.length - 1, Math.max(0, getSelectedIndex() + delta)));
+  setSelectedIndex(
+    computeListSelectionIndex(getSelectedIndex(), delta, feedItems.length),
+  );
   updateFeedSelection();
   scrollSelectedIntoView();
 }
@@ -21,19 +25,16 @@ function moveGridSelection(rowDelta: number, colDelta: number): void {
   if (!feedItems.length) {
     return;
   }
-  const current = getSelectedIndex();
-  const row = Math.floor(current / SHORTS_GRID_COLUMNS);
-  const col = current % SHORTS_GRID_COLUMNS;
-  const nextRow = row + rowDelta;
-  const nextCol = col + colDelta;
-  if (nextCol < 0 || nextCol >= SHORTS_GRID_COLUMNS) {
+  const next = computeGridSelectionIndex(
+    getSelectedIndex(),
+    rowDelta,
+    colDelta,
+    feedItems.length,
+  );
+  if (next === null) {
     return;
   }
-  const nextIndex = nextRow * SHORTS_GRID_COLUMNS + nextCol;
-  if (nextIndex < 0 || nextIndex >= feedItems.length) {
-    return;
-  }
-  setSelectedIndex(nextIndex);
+  setSelectedIndex(next);
   updateFeedSelection();
   scrollSelectedIntoView();
 }

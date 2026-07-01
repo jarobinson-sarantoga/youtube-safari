@@ -6,33 +6,20 @@ import {
   requestLoadMoreShorts,
   setSelectedIndex,
 } from "../feed-controller";
+import { feedListA11y, usePortraitRows } from "./feed-list-role";
 import { playItem } from "./playback";
 import { updateFeedSelection } from "./feed-list-selection";
 
-export function usePortraitRows(
-  tab: ReturnType<typeof getActiveTab>,
-  subsFilter: string,
-): boolean {
-  return tab === "shorts" || (tab === "subscriptions" && subsFilter === "shorts");
-}
+export { feedListA11y, usePortraitRows };
 
 export function syncFeedListRole(
   listEl: HTMLElement,
   grid: boolean,
   listbox: boolean,
 ): void {
-  if (grid) {
-    listEl.setAttribute("role", "grid");
-    listEl.setAttribute("aria-label", "Shorts feed");
-    return;
-  }
-  if (listbox) {
-    listEl.setAttribute("role", "listbox");
-    listEl.setAttribute("aria-label", "Video feed");
-    return;
-  }
-  listEl.setAttribute("role", "grid");
-  listEl.setAttribute("aria-label", "Video feed");
+  const { role, label } = feedListA11y(grid, listbox);
+  listEl.setAttribute("role", role);
+  listEl.setAttribute("aria-label", label);
 }
 
 export function handleRowPlay(

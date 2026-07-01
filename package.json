@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rm -rf dist && parcel build . && node --check dist/index.js && node --check dist/global.js",
     "package": "bash scripts/package.sh",
-    "test": "node --test scripts/parse.test.mjs scripts/cookies.test.mjs scripts/shorts-map.test.mjs scripts/shorts-cache.test.mjs scripts/m3u.test.mjs && node --check dist/index.js",
+    "test": "node --test scripts/batch-a-queue.test.mjs scripts/batch-a-selection.test.mjs scripts/batch-b-cache.test.mjs scripts/batch-b-sequence.test.mjs scripts/batch-c.test.mjs scripts/batch-d.test.mjs scripts/parse.test.mjs scripts/cookies.test.mjs scripts/shorts-map.test.mjs scripts/m3u.test.mjs && node --check dist/index.js",
     "watch": "parcel watch ."
   },
   "author": "jarobinson-sarantoga",
@@ -45,6 +45,13 @@
     "shortsCache": {
       "distDir": "./dist/",
       "source": "src/browse/feeds/shorts-cache.ts",
+      "context": "node",
+      "isLibrary": true,
+      "outputFormat": "esmodule"
+    },
+    "testLib": {
+      "distDir": "./dist/",
+      "source": "src/test-lib/index.ts",
       "context": "node",
       "isLibrary": true,
       "outputFormat": "esmodule"
