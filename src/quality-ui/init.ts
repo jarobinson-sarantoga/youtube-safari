@@ -17,7 +17,7 @@ import { setRelatedPreviewReadyCheck } from "../related-preview-bridge";
 import { openLinkedUrl, seekPlayback } from "../youtube-open";
 import type { PlayVideoMessage } from "../browse/messages";
 import { resolvePlayVideoUrl } from "../panel-handlers";
-import { openShortsQueue, appendShortsToQueue } from "../shorts-queue";
+import { appendShortsToQueue, exitShortsQueue, playShortsQueue } from "../shorts-queue";
 import { refreshQualityUI, scheduleRefreshQualityUI, cancelScheduledRefresh } from "./refresh";
 import { switchQuality } from "./switch-quality";
 
@@ -74,6 +74,7 @@ export function initQualityUI(): void {
       case "openUrl": {
         const url = (data as { url?: string } | undefined)?.url;
         if (typeof url === "string") {
+          exitShortsQueue();
           openLinkedUrl(url);
         }
         break;
@@ -85,13 +86,15 @@ export function initQualityUI(): void {
           break;
         }
         if (msg.shortsQueue?.videoIds.length) {
-          openShortsQueue(
+          playShortsQueue(
             msg.shortsQueue.videoIds,
             msg.shortsQueue.startIndex,
             msg.shortsQueue.source,
+            msg.shortsQueue.titles,
           );
           break;
         }
+        exitShortsQueue();
         openLinkedUrl(url);
         break;
       }

@@ -6,22 +6,20 @@ import {
   getFeedItems,
   getLastFeedError,
   getSelectedIndex,
-  getShortsContinuation,
   isFeedLoading,
-  isShortsLoadingMore,
-  refreshCurrentFeed,
-  requestLoadMoreShorts,
-  setSelectedIndex,
 } from "../feed-controller";
 import { createErrorWithRetry } from "../dom";
 import { createFeedRow } from "../feed-row";
 import { createShortsGridCard } from "../feed-row/shorts-grid";
-import { playItem } from "./playback";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list-selection";
 import {
-  applyShortsLayoutClass,
-  getShortsLayout,
-} from "./shorts-layout";
+  appendLoadMoreButton,
+  handleRowPlay,
+  syncFeedListRole,
+  syncFeedListTabindex,
+  usePortraitRows,
+} from "./feed-list-helpers";
+import { applyShortsLayoutClass, getShortsLayout } from "./shorts-layout";
 import {
   clearStatus,
   renderSkeleton,
@@ -30,45 +28,21 @@ import {
   setFeedRefreshSpinning,
   setSearchBusy,
 } from "./ui";
+import { refreshCurrentFeed } from "../feed-controller";
 
 export { scrollSelectedIntoView, updateFeedSelection };
-
-function usePortraitRows(): boolean {
-  const tab = getActiveTab();
-  return tab === "shorts" || (tab === "subscriptions" && getActiveSubsFilter() === "shorts");
-}
-
-function handleRowPlay(item: import("../../browse/types").FeedItem, index: number, listEl: HTMLElement, background = false): void {
-  setSelectedIndex(index);
-  updateFeedSelection();
-  listEl.focus();
-  playItem(item, { background });
-}
-
-function syncFeedListTabindex(listEl: HTMLElement, interactive: boolean): void {
-  listEl.tabIndex = interactive ? 0 : -1;
-}
-
-function appendLoadMoreButton(listEl: HTMLElement): void {
-  if (getActiveTab() !== "shorts" || !getShortsContinuation()) {
-    return;
-  }
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "feed-load-more";
-  btn.textContent = isShortsLoadingMore() ? "Loading…" : "Load more Shorts";
-  btn.disabled = isShortsLoadingMore();
-  btn.addEventListener("click", () => requestLoadMoreShorts());
-  listEl.appendChild(btn);
-}
 
 export function renderFeedList(): void {
   const listEl = $("feed-list");
   const feedItems = getFeedItems();
-  const portrait = usePortraitRows();
-  const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
+  const tab = getActiveTab();
+  const subsFilter = getActiveSubsFilter();
+  const portrait = usePortraitRows(tab, subsFilter);
+  const grid = tab === "shorts" && getShortsLayout() === "grid";
+  const listbox = tab === "shorts" && !grid;
   listEl.innerHTML = "";
-  applyShortsLayoutClass(listEl, getActiveTab());
+  applyShortsLayoutClass(listEl, tab);
+  syncFeedListRole(listEl, grid, listbox);
   setFeedRefreshSpinning(false);
 
   if (!feedItems.length) {
@@ -99,7 +73,7 @@ export function renderFeedList(): void {
   setSearchBusy(false);
   syncFeedListTabindex(listEl, true);
 
-  const showSectionHeaders = getActiveTab() === "subscriptions" && getActiveSubsFilter() === "all";
+  const showSectionHeaders = tab === "subscriptions" && subsFilter === "all";
   let lastSection = "";
   feedItems.forEach((item, index) => {
     if (showSectionHeaders && item.sectionId && item.sectionId !== lastSection) {
@@ -128,6 +102,7 @@ export function renderFeedList(): void {
         index,
         selected: index === getSelectedIndex(),
         portrait,
+        listboxOption: listbox,
         showBackgroundPlay: true,
         onClick: (clickedItem, clickedIndex) => handleRowPlay(clickedItem, clickedIndex, listEl),
         onBackgroundPlay: (clickedItem, clickedIndex) =>

@@ -11,14 +11,21 @@ interface GridCardOptions {
 
 export function createShortsGridCard(options: GridCardOptions): HTMLElement {
   const { item, index, selected, onClick } = options;
+  const row = document.createElement("div");
+  row.className = "shorts-grid-row";
+  row.setAttribute("role", "row");
+  row.dataset.index = String(index);
+  row.id = `feed-row-${index}`;
+
+  const cell = document.createElement("div");
+  cell.className = "shorts-grid-cell";
+  cell.setAttribute("role", "gridcell");
+
   const card = document.createElement("button");
   card.type = "button";
   card.className = `shorts-grid-card${selected ? " selected" : ""}`;
-  card.setAttribute("role", "row");
   card.setAttribute("aria-selected", selected ? "true" : "false");
   card.setAttribute("aria-label", item.title);
-  card.dataset.index = String(index);
-  card.id = `feed-row-${index}`;
 
   card.appendChild(
     createThumbnail({
@@ -44,5 +51,7 @@ export function createShortsGridCard(options: GridCardOptions): HTMLElement {
   card.appendChild(meta);
 
   card.addEventListener("click", () => onClick(item, index));
-  return card;
+  cell.appendChild(card);
+  row.appendChild(cell);
+  return row;
 }

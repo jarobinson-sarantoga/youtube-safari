@@ -1,6 +1,6 @@
 import type { BrowseRefreshMessage, PlayVideoMessage } from "./messages";
 import { handleBrowseRefresh, resolvePlayVideoUrl } from "../panel-handlers";
-import { openShortsQueue, appendShortsToQueue } from "../shorts-queue";
+import { appendShortsToQueue, exitShortsQueue, playShortsQueue } from "../shorts-queue";
 import { openLinkedUrl } from "../youtube-open";
 import { postSidebarPanelMessage } from "../panel-relay";
 import { appendLog } from "../ytdl";
@@ -23,6 +23,7 @@ export function registerBrowseSidebarHandlers(): void {
       return;
     }
     if (data.background) {
+      exitShortsQueue();
       appendLog("playVideo routed to global (background)");
       global.postMessage("panelPlayVideo", {
         url,
@@ -33,14 +34,16 @@ export function registerBrowseSidebarHandlers(): void {
     }
     global.postMessage("closeManagedPlayers", {});
     if (data.shortsQueue?.videoIds.length) {
-      openShortsQueue(
+      playShortsQueue(
         data.shortsQueue.videoIds,
         data.shortsQueue.startIndex,
         data.shortsQueue.source,
+        data.shortsQueue.titles,
       );
       postSidebarPanelMessage("watchUrlChanged", { watchUrl: url });
       return;
     }
+    exitShortsQueue();
     openLinkedUrl(url);
   });
 

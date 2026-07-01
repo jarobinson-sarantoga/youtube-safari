@@ -7,6 +7,7 @@ import { getLastWatchUrl } from "../../preferences";
 import { postSidebarPanelMessage } from "../../panel-relay";
 import {
   appendShortsToQueue,
+  exitShortsQueue,
   postShortsQueueStateFromPlayer,
 } from "../../shorts-queue";
 import {
@@ -49,6 +50,7 @@ export function registerPlaybackHooks(): void {
     markWatchEnded();
     postPlayerState();
     if (core.status.idle) {
+      exitShortsQueue();
       stopPlayerStatePolling();
     }
   });

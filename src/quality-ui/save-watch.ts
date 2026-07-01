@@ -12,6 +12,7 @@ import {
 } from "../native-menus";
 import { postSidebarPanelMessage } from "../panel-relay";
 import { postRelatedPreview } from "../related-preview-bridge";
+import { isShortsQueueActive } from "../shorts-queue";
 import { buildPanelPayload, getLastPanelPayload, postSidebarPanel, schedulePanelPush } from "../sidebar-host";
 import { isYouTubeWatchURL, normalizeMediaURL } from "../youtube";
 
@@ -53,7 +54,7 @@ export function saveWatchUrl(
   schedulePanelPush();
   syncNowPlayingToPanel();
 
-  if (url !== previousWatchUrl) {
+  if (url !== previousWatchUrl && !isShortsQueueActive()) {
     postSidebarPanelMessage("watchUrlChanged", { watchUrl: url });
     void postRelatedPreview(url);
   }

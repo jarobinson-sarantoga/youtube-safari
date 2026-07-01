@@ -85,6 +85,7 @@ export function renderRelatedPreview(
   el.tabIndex = 0;
   el.setAttribute("role", "grid");
   el.setAttribute("aria-label", "Related videos");
+  const portraitRelated = items.some((item) => item.isShort);
   items.forEach((item, index) => {
     el.appendChild(
       createFeedRow({
@@ -96,6 +97,7 @@ export function renderRelatedPreview(
         showResume: false,
         showExtra: false,
         showBackgroundPlay: true,
+        portrait: portraitRelated,
         onClick: (clickedItem) => playRelated(clickedItem, index),
         onBackgroundPlay: (clickedItem) => playRelated(clickedItem, index, true),
       }),

@@ -61,6 +61,7 @@
 
 .feed-load-more {
   margin: var(--sp-2) auto var(--sp-1);
+  grid-column: 1 / -1;
   appearance: none;
   border: 1px solid var(--border);
   background: var(--bg-raised);
@@ -109,4 +110,26 @@
 
 .shorts-layout[hidden] {
   display: none;
+}
+
+.skeleton-shorts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.skeleton-shorts-card {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.skeleton-shorts-thumb {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+}
+
+.shorts-grid-row.selected .shorts-grid-card {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+  outline: 1px solid var(--accent-border);
 }

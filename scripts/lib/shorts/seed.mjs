@@ -1,6 +1,6 @@
 import { mapHomeFeed } from "../youtubejs-map-feeds.mjs";
 
-const FALLBACK_SEED = "jNQXAC9IVRw";
+const FALLBACK_SEED = "RXpkF-Wbhjo";
 
 /** Pick a seed short ID from the home feed or fall back to a known short. */
 export async function pickSeedShortId(yt) {

@@ -42,3 +42,12 @@ test("extractContinuation prefers continuation_endpoint token", () => {
     token,
   );
 });
+
+test("extractContinuation ignores unstable entry params", () => {
+  assert.equal(
+    extractContinuation({
+      entries: [{ payload: { params: "stale-token" } }],
+    }),
+    null,
+  );
+});

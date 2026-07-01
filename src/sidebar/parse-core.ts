@@ -61,6 +61,6 @@ export function parseFeedResult(raw: unknown): FeedResultMessage | null {
     query: typeof data.query === "string" ? data.query : undefined,
     continuation:
       typeof data.continuation === "string" ? data.continuation : undefined,
-    append: data.append === true ? true : undefined,
+    append: data.append === true && tab === "shorts" ? true : undefined,
   };
 }

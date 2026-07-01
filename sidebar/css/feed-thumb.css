@@ -10,12 +10,12 @@
 }
 
 .thumb-wrap--portrait {
-  width: 45px;
-  height: 80px;
+  width: 56px;
+  height: 99px;
 }
 
 .feed-row--portrait {
-  grid-template-columns: 45px 1fr;
+  grid-template-columns: 56px 1fr;
 }
 
 .thumb-play-hint {

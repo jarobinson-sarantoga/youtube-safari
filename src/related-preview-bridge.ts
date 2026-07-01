@@ -1,6 +1,7 @@
 import { postRelatedPreview as postRelatedPreviewShared, postRelatedPreviewClear as postRelatedPreviewClearShared } from "./panel-handlers";
 import { postPanelMessage, postSidebarPanelMessage } from "./panel-relay";
 import { getLastWatchUrl } from "./preferences";
+import { isShortsQueueActive } from "./shorts-queue";
 import { isYouTubeWatchURL } from "./youtube";
 
 let sidebarReadyCheck: () => boolean = () => false;
@@ -28,6 +29,9 @@ export function postRelatedPreviewClear(): void {
 export function postRelatedPreview(watchUrl: string, force = false): void {
   if (!isYouTubeWatchURL(watchUrl)) {
     postRelatedPreviewClear();
+    return;
+  }
+  if (isShortsQueueActive() && !force) {
     return;
   }
 

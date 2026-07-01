@@ -21,6 +21,14 @@ async function fetchInitialSequence(yt) {
     const bridgeParams = info.watch_next_feed?.at(-1)?.payload?.params;
     if (bridgeParams) {
       const bridge = await executeSequence(yt, bridgeParams);
+      const bridgeItems = mapReelSequenceEntries(bridge.entries);
+      const seen = new Set(items.map((entry) => entry.videoId));
+      for (const entry of bridgeItems) {
+        if (!seen.has(entry.videoId)) {
+          seen.add(entry.videoId);
+          items.push(entry);
+        }
+      }
       continuation = extractContinuation(bridge);
     }
   }

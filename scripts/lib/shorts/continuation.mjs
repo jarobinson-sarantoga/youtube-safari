@@ -13,15 +13,5 @@ export function extractContinuation(response) {
   if (typeof cmd === "string" && cmd.length > 0) {
     return cmd;
   }
-  const entries = response?.entries;
-  if (Array.isArray(entries) && entries.length > 0) {
-    const last = entries[entries.length - 1];
-    const params =
-      last?.command?.reelWatchEndpoint?.sequenceParams ||
-      last?.payload?.params;
-    if (typeof params === "string" && params.length > 0) {
-      return params;
-    }
-  }
   return null;
 }
