@@ -25,6 +25,7 @@ export function mapVideoLike(node, sectionId) {
     publishedAt: textValue(node.published) || undefined,
     durationLabel: textValue(node.length_text) || undefined,
     sectionId,
+    isShort: sectionId === "shorts" ? true : undefined,
   };
 }
 
@@ -51,6 +52,8 @@ export function mapLockupView(node, sectionId) {
     channelTitle: channelTitle || "Unknown channel",
     thumbnailUrl: sources ? thumbUrl(sources) : "",
     sectionId,
+    isShort:
+      contentType === "SHORT" || contentType === "CLIP" ? true : undefined,
   };
 }
 
@@ -72,6 +75,7 @@ export function mapShortsLockupView(node, sectionId) {
     channelTitle: textValue(node.overlay_metadata?.secondary_text) || "Shorts",
     thumbnailUrl: thumbUrl(node.thumbnail),
     sectionId,
+    isShort: true,
   };
 }
 
@@ -94,6 +98,7 @@ export function mapNode(node, sectionId) {
         channelTitle: textValue(node.views) || "Shorts",
         thumbnailUrl: thumbUrl(node.thumbnails),
         sectionId,
+        isShort: true,
       };
     case "RichItem":
       return node.content ? mapNode(node.content, sectionId) : null;

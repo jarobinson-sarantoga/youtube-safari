@@ -1,4 +1,3 @@
-import type { FeedItem } from "../../browse/types";
 import { $ } from "../dom";
 import {
   getActiveSubsFilter,
@@ -7,13 +6,22 @@ import {
   getFeedItems,
   getLastFeedError,
   getSelectedIndex,
+  getShortsContinuation,
   isFeedLoading,
+  isShortsLoadingMore,
   refreshCurrentFeed,
+  requestLoadMoreShorts,
   setSelectedIndex,
 } from "../feed-controller";
 import { createErrorWithRetry } from "../dom";
 import { createFeedRow } from "../feed-row";
+import { createShortsGridCard } from "../feed-row/shorts-grid";
 import { playItem } from "./playback";
+import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list-selection";
+import {
+  applyShortsLayoutClass,
+  getShortsLayout,
+} from "./shorts-layout";
 import {
   clearStatus,
   renderSkeleton,
@@ -23,65 +31,44 @@ import {
   setSearchBusy,
 } from "./ui";
 
-export function updateFeedSelection(): void {
-  const listEl = $("feed-list");
-  const selectedIndex = getSelectedIndex();
-  let activeId: string | null = null;
+export { scrollSelectedIntoView, updateFeedSelection };
 
-  document.querySelectorAll<HTMLElement>(".feed-row[data-index]").forEach((row) => {
-    const index = Number.parseInt(row.dataset.index || "", 10);
-    const isSelected = index === selectedIndex;
-    row.classList.toggle("selected", isSelected);
-    row.tabIndex = -1;
-    if (isSelected) {
-      row.setAttribute("aria-selected", "true");
-      activeId = row.id || null;
-    } else {
-      row.removeAttribute("aria-selected");
-    }
-  });
+function usePortraitRows(): boolean {
+  const tab = getActiveTab();
+  return tab === "shorts" || (tab === "subscriptions" && getActiveSubsFilter() === "shorts");
+}
 
-  if (activeId) {
-    listEl.setAttribute("aria-activedescendant", activeId);
-  } else {
-    listEl.removeAttribute("aria-activedescendant");
-  }
+function handleRowPlay(item: import("../../browse/types").FeedItem, index: number, listEl: HTMLElement, background = false): void {
+  setSelectedIndex(index);
+  updateFeedSelection();
+  listEl.focus();
+  playItem(item, { background });
 }
 
 function syncFeedListTabindex(listEl: HTMLElement, interactive: boolean): void {
   listEl.tabIndex = interactive ? 0 : -1;
 }
 
-export function scrollSelectedIntoView(): void {
-  const row = document.querySelector<HTMLElement>(`.feed-row[data-index="${getSelectedIndex()}"]`);
-  row?.scrollIntoView({ block: "nearest" });
-}
-
-function buildRow(item: FeedItem, index: number, listEl: HTMLElement): HTMLElement {
-  return createFeedRow({
-    item,
-    index,
-    selected: index === getSelectedIndex(),
-    showBackgroundPlay: true,
-    onClick: (clickedItem, clickedIndex) => {
-      setSelectedIndex(clickedIndex);
-      updateFeedSelection();
-      listEl.focus();
-      playItem(clickedItem);
-    },
-    onBackgroundPlay: (clickedItem, clickedIndex) => {
-      setSelectedIndex(clickedIndex);
-      updateFeedSelection();
-      listEl.focus();
-      playItem(clickedItem, { background: true });
-    },
-  });
+function appendLoadMoreButton(listEl: HTMLElement): void {
+  if (getActiveTab() !== "shorts" || !getShortsContinuation()) {
+    return;
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "feed-load-more";
+  btn.textContent = isShortsLoadingMore() ? "Loading…" : "Load more Shorts";
+  btn.disabled = isShortsLoadingMore();
+  btn.addEventListener("click", () => requestLoadMoreShorts());
+  listEl.appendChild(btn);
 }
 
 export function renderFeedList(): void {
   const listEl = $("feed-list");
   const feedItems = getFeedItems();
+  const portrait = usePortraitRows();
+  const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
   listEl.innerHTML = "";
+  applyShortsLayoutClass(listEl, getActiveTab());
   setFeedRefreshSpinning(false);
 
   if (!feedItems.length) {
@@ -122,8 +109,33 @@ export function renderFeedList(): void {
       header.textContent = sectionLabel(item.sectionId);
       listEl.appendChild(header);
     }
-    listEl.appendChild(buildRow(item, index, listEl));
+
+    if (grid) {
+      listEl.appendChild(
+        createShortsGridCard({
+          item,
+          index,
+          selected: index === getSelectedIndex(),
+          onClick: (clickedItem, clickedIndex) => handleRowPlay(clickedItem, clickedIndex, listEl),
+        }),
+      );
+      return;
+    }
+
+    listEl.appendChild(
+      createFeedRow({
+        item,
+        index,
+        selected: index === getSelectedIndex(),
+        portrait,
+        showBackgroundPlay: true,
+        onClick: (clickedItem, clickedIndex) => handleRowPlay(clickedItem, clickedIndex, listEl),
+        onBackgroundPlay: (clickedItem, clickedIndex) =>
+          handleRowPlay(clickedItem, clickedIndex, listEl, true),
+      }),
+    );
   });
 
+  appendLoadMoreButton(listEl);
   updateFeedSelection();
 }

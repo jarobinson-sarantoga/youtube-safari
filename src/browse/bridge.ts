@@ -1,5 +1,6 @@
-import type { BrowseRefreshMessage } from "./messages";
+import type { BrowseRefreshMessage, PlayVideoMessage } from "./messages";
 import { handleBrowseRefresh, resolvePlayVideoUrl } from "../panel-handlers";
+import { openShortsQueue, appendShortsToQueue } from "../shorts-queue";
 import { openLinkedUrl } from "../youtube-open";
 import { postSidebarPanelMessage } from "../panel-relay";
 import { appendLog } from "../ytdl";
@@ -16,11 +17,7 @@ export function registerBrowseSidebarHandlers(): void {
     void handleBrowseRefresh(data, postToSidebar);
   });
 
-  sidebar.onMessage("playVideo", (data: {
-    videoId?: string;
-    url?: string;
-    background?: boolean;
-  }) => {
+  sidebar.onMessage("playVideo", (data: PlayVideoMessage) => {
     const url = resolvePlayVideoUrl(data);
     if (!url) {
       return;
@@ -35,6 +32,22 @@ export function registerBrowseSidebarHandlers(): void {
       return;
     }
     global.postMessage("closeManagedPlayers", {});
+    if (data.shortsQueue?.videoIds.length) {
+      openShortsQueue(
+        data.shortsQueue.videoIds,
+        data.shortsQueue.startIndex,
+        data.shortsQueue.source,
+      );
+      postSidebarPanelMessage("watchUrlChanged", { watchUrl: url });
+      return;
+    }
     openLinkedUrl(url);
+  });
+
+  sidebar.onMessage("appendShortsQueue", (data: { videoIds?: string[] }) => {
+    const ids = Array.isArray(data?.videoIds) ? data.videoIds : [];
+    if (ids.length) {
+      appendShortsToQueue(ids);
+    }
   });
 }

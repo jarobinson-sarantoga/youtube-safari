@@ -9,6 +9,15 @@
   flex-shrink: 0;
 }
 
+.thumb-wrap--portrait {
+  width: 45px;
+  height: 80px;
+}
+
+.feed-row--portrait {
+  grid-template-columns: 45px 1fr;
+}
+
 .thumb-play-hint {
   position: absolute;
   left: 5px;

@@ -19,6 +19,7 @@ export function requestFeed(
   subsFilter: SubsFilter = feedState.activeSubsFilter,
   force = false,
   background = false,
+  options?: { continuation?: string; append?: boolean },
 ): void {
   const deps = requireFeedControllerDeps();
   feedState.activeTab = tab;
@@ -28,8 +29,15 @@ export function requestFeed(
   deps.updateSegButtons();
   deps.updateSubsFilterUI();
 
+  const append = !!options?.append;
+  const continuation = options?.continuation || "";
+
+  if (tab === "shorts" && !append && !continuation) {
+    feedState.shortsContinuation = "";
+  }
+
   const cacheKey = feedCacheKey(tab, subsFilter, tab === "search" ? query : "");
-  const snapshot = !force ? feedSnapshots.get(cacheKey) : undefined;
+  const snapshot = !force && !append && !continuation ? feedSnapshots.get(cacheKey) : undefined;
   const keepVisible = background && feedState.feedItems.length > 0;
 
   if (keepVisible) {
@@ -51,6 +59,9 @@ export function requestFeed(
     deps.setSearchBusy(false);
     deps.renderFeedList();
     deps.setFeedRefreshSpinning(true);
+  } else if (append) {
+    feedState.shortsLoadingMore = true;
+    deps.setStatus("Loading more…");
   } else {
     deps.setStatus("Loading…");
     feedState.feedLoading = true;
@@ -71,5 +82,17 @@ export function requestFeed(
     subsFilter: tab === "subscriptions" ? feedState.activeSubsFilter : undefined,
     force: force || undefined,
     requestId,
+    continuation: continuation || undefined,
+    append: append || undefined,
+  });
+}
+
+export function requestLoadMoreShorts(): void {
+  if (feedState.activeTab !== "shorts" || !feedState.shortsContinuation) {
+    return;
+  }
+  requestFeed("shorts", "", feedState.activeSubsFilter, false, false, {
+    continuation: feedState.shortsContinuation,
+    append: true,
   });
 }

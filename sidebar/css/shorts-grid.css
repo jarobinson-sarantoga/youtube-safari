@@ -1,0 +1,112 @@
+.feed-list--shorts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  align-content: start;
+}
+
+.shorts-grid-card {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: var(--sp-2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.shorts-grid-card:hover {
+  background: var(--bg-hover);
+}
+
+.shorts-grid-card.selected {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+  outline: 1px solid var(--accent-border);
+}
+
+.shorts-grid-card .thumb-wrap--portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
+}
+
+.shorts-grid-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.shorts-grid-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shorts-grid-channel {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-load-more {
+  margin: var(--sp-2) auto var(--sp-1);
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: inherit;
+  border-radius: 999px;
+  padding: var(--sp-2) var(--sp-4);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.feed-load-more:hover {
+  background: var(--bg-hover);
+}
+
+.feed-load-more:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.shorts-layout {
+  display: flex;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-2) var(--sp-1);
+}
+
+.shorts-layout-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shorts-layout-btn.active {
+  color: inherit;
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.shorts-layout[hidden] {
+  display: none;
+}

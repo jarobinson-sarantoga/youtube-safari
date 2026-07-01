@@ -20,6 +20,11 @@ test("isFeedItem rejects rows missing required fields", () => {
   assert.equal(isFeedItem({ ...validItem, title: 42 }), false);
 });
 
+test("isFeedItem accepts optional isShort", () => {
+  assert.equal(isFeedItem({ ...validItem, isShort: true }), true);
+  assert.equal(isFeedItem({ ...validItem, isShort: "yes" }), false);
+});
+
 test("parseFeedResult returns null for invalid payloads", () => {
   assert.equal(parseFeedResult(null), null);
   assert.equal(parseFeedResult({ tab: "nope", items: [] }), null);
@@ -39,6 +44,19 @@ test("parseFeedResult filters invalid items and keeps valid ones", () => {
   assert.equal(result.items.length, 2);
   assert.equal(result.items[0].videoId, validItem.videoId);
   assert.equal(result.items[1].videoId, "abc123xyz12");
+});
+
+test("parseFeedResult accepts shorts tab and continuation", () => {
+  const result = parseFeedResult({
+    tab: "shorts",
+    items: [{ ...validItem, isShort: true }],
+    continuation: "token",
+    append: true,
+  });
+  assert.ok(result);
+  assert.equal(result.tab, "shorts");
+  assert.equal(result.continuation, "token");
+  assert.equal(result.append, true);
 });
 
 test("parseFeedResult preserves error and emptyHint", () => {

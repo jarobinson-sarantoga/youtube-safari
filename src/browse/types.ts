@@ -11,10 +11,13 @@ export interface FeedItem {
   resumeSeconds?: number;
   /** Section grouping for subscriptions feed. */
   sectionId?: string;
+  /** Portrait Shorts row (9:16 thumb + queue mode). */
+  isShort?: boolean;
 }
 
 export type FeedTab =
   | "home"
+  | "shorts"
   | "subscriptions"
   | "related"
   | "history"

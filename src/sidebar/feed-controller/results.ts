@@ -1,5 +1,6 @@
 import type { FeedResultMessage } from "../../browse/messages";
 import { getYouTubeVideoId } from "../../youtube";
+import { postToPlugin } from "../messaging";
 import {
   feedCacheKey,
   feedSnapshots,
@@ -24,6 +25,35 @@ export function handleFeedResult(data: FeedResultMessage): void {
     return;
   }
 
+  const append = data.append === true && data.tab === "shorts";
+  if (append) {
+    feedState.shortsLoadingMore = false;
+    feedState.feedLoading = false;
+    deps.setFeedRefreshSpinning(false);
+    if (data.error) {
+      feedState.lastFeedError = data.error;
+      deps.renderFeedList();
+      return;
+    }
+    feedState.lastFeedError = "";
+    const seen = new Set(feedState.feedItems.map((item) => item.videoId));
+    const added: string[] = [];
+    for (const item of data.items || []) {
+      if (!seen.has(item.videoId)) {
+        seen.add(item.videoId);
+        feedState.feedItems.push(item);
+        added.push(item.videoId);
+      }
+    }
+    feedState.shortsContinuation = data.continuation || "";
+    if (added.length) {
+      postToPlugin("appendShortsQueue", { videoIds: added });
+    }
+    deps.setStatus(deps.formatFeedCount(feedState.feedItems.length));
+    deps.renderFeedList();
+    return;
+  }
+
   feedState.feedLoading = false;
   deps.setFeedRefreshSpinning(false);
 
@@ -44,6 +74,10 @@ export function handleFeedResult(data: FeedResultMessage): void {
   feedState.feedItems = data.items || [];
   feedState.selectedIndex = feedState.feedItems.length > 0 ? 0 : -1;
   feedState.feedEmptyHint = !feedState.feedItems.length ? data.emptyHint || "" : "";
+  if (data.tab === "shorts") {
+    feedState.shortsContinuation = data.continuation || "";
+    feedState.shortsLoadingMore = false;
+  }
   const subsFilter = data.subsFilter || "all";
   const searchQuery = data.tab === "search" ? deps.getSearchQuery() : "";
   loadedTabs.add(feedCacheKey(data.tab, subsFilter, searchQuery));

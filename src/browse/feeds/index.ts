@@ -3,13 +3,14 @@ import { cacheKey, clearCached, peekCachedEntry, setCached } from "../store/cach
 import { getHistoryItems } from "../store/history";
 import { getLastWatchUrl } from "../../preferences";
 import { getYouTubeVideoId } from "../../youtube";
-import { fetchSearchItems, fetchTabItems } from "./youtubejs-exec";
+import { fetchSearchItems, fetchShortsItems, fetchTabItems } from "./youtubejs-exec";
 import { getRelatedItems } from "./related";
 
 type FeedFetchResult = {
   items: import("../types").FeedItem[];
   error?: string;
   emptyHint?: string;
+  continuation?: string;
 };
 
 const inflight = new Map<string, Promise<FeedFetchResult>>();
@@ -80,15 +81,25 @@ export async function fetchFeed(
   query = "",
   subsFilter: SubsFilter = "all",
   force = false,
+  continuation = "",
 ): Promise<FeedFetchResult> {
   switch (tab) {
     case "home":
       return fetchWithCache(cacheKey("home", "v1"), () => fetchTabItems("home"), force);
+    case "shorts": {
+      const key = continuation
+        ? cacheKey("shorts", `cont:${continuation.slice(0, 24)}`)
+        : cacheKey("shorts", "v1");
+      if (continuation) {
+        return fetchShortsItems(continuation);
+      }
+      return fetchWithCache(key, () => fetchShortsItems(), force);
+    }
     case "subscriptions": {
       const filter = subsFilter === "shorts" ? "shorts" : "all";
       return fetchWithCache(
         cacheKey("subscriptions", filter),
-        () => fetchTabItems(filter === "shorts" ? "shorts" : "subscriptions"),
+        () => fetchTabItems(filter === "shorts" ? "subs-shorts" : "subscriptions"),
         force,
       );
     }

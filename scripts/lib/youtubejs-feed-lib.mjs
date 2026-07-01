@@ -6,6 +6,7 @@ import {
   mapSubscriptionsFeed,
   fetchWatchNextItems,
 } from "../youtubejs-lib.mjs";
+import { fetchShortsSequence } from "./shorts/index.mjs";
 import {
   feedNeedsSignIn,
   PARTIAL_COOKIES_HINT,
@@ -19,6 +20,7 @@ export function parseArgs(argv) {
     query: "",
     videoId: "",
     limit: 0,
+    continuation: "",
   };
 
   for (let i = 2; i < argv.length; i += 1) {
@@ -33,6 +35,8 @@ export function parseArgs(argv) {
       out.videoId = argv[++i] || "";
     } else if (arg === "--limit") {
       out.limit = Number(argv[++i]) || 0;
+    } else if (arg === "--continuation") {
+      out.continuation = argv[++i] || "";
     }
   }
 
@@ -59,7 +63,7 @@ export async function fetchTabItems(yt, args) {
       }
       return { items };
     }
-    case "shorts": {
+    case "subs-shorts": {
       const feed = await yt.getSubscriptionsFeed();
       const items = mapShortsFeed(feed).slice(0, 60);
       if (items.length === 0) {
@@ -69,6 +73,21 @@ export async function fetchTabItems(yt, args) {
         };
       }
       return { items };
+    }
+    case "shorts": {
+      const limit = args.limit > 0 ? args.limit : 60;
+      const { items, continuation } = await fetchShortsSequence(
+        yt,
+        args.continuation,
+        limit,
+      );
+      if (items.length === 0) {
+        return {
+          items: [],
+          emptyHint: "No Shorts available right now — try Refresh YouTube",
+        };
+      }
+      return { items, continuation: continuation || undefined };
     }
     case "search": {
       const trimmed = args.query.trim();

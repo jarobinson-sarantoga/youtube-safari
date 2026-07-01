@@ -42,8 +42,15 @@ export function youtubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
-/** YouTube thumbnail URL for a video ID. */
-export function youtubeThumbnailUrl(videoId: string, quality: "hq" | "mq" = "hq"): string {
+export function youtubeThumbnailUrl(videoId: string, quality: "hq" | "mq" | "short" = "hq"): string {
+  if (quality === "short") {
+    return `https://i.ytimg.com/vi/${videoId}/oardefault.jpg`;
+  }
   const suffix = quality === "hq" ? "hqdefault" : "mqdefault";
   return `https://i.ytimg.com/vi/${videoId}/${suffix}.jpg`;
+}
+
+/** Portrait 9:16 thumbnail for Shorts. */
+export function youtubeShortThumbnailUrl(videoId: string): string {
+  return youtubeThumbnailUrl(videoId, "short");
 }
