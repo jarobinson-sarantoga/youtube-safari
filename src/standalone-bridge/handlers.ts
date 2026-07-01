@@ -16,6 +16,7 @@ import {
   runStandaloneSidebarReadyCallback,
   setStandaloneWebViewReady,
 } from "./state";
+import { registerStandaloneLibraryHandlers } from "./library";
 
 const { global, standaloneWindow } = iina;
 
@@ -105,6 +106,8 @@ export function registerStandaloneInboundHandlers(): void {
   standaloneWindow.onMessage("appendShortsQueue", (data: { videoIds?: string[] }) => {
     proxyToPlayer("appendShortsQueue", data);
   });
+
+  registerStandaloneLibraryHandlers(proxyToPlayer);
 }
 
 export function registerStandaloneReadyHandler(): void {

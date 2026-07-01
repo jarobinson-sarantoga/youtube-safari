@@ -49,13 +49,17 @@
         </button>
       </div>
 
-      <div class="segmented" role="radiogroup" aria-label="Feeds">
+      <div class="segmented segmented-scroll" role="radiogroup" aria-label="Feeds">
         <button type="button" class="seg-btn active" data-tab="home" role="radio" aria-checked="true">Home</button>
         <button type="button" class="seg-btn" data-tab="shorts" role="radio" aria-checked="false">Shorts</button>
         <button type="button" class="seg-btn" data-tab="subscriptions" role="radio" aria-checked="false" aria-label="Subscriptions">Subs</button>
+        <button type="button" class="seg-btn" data-tab="later" role="radio" aria-checked="false">Later</button>
+        <button type="button" class="seg-btn" data-tab="queue" role="radio" aria-checked="false">Queue</button>
         <button type="button" class="seg-btn" data-tab="related" role="radio" aria-checked="false">Related</button>
         <button type="button" class="seg-btn" data-tab="history" role="radio" aria-checked="false">History</button>
       </div>
+
+      <div class="search-filters hidden" id="search-filters" role="radiogroup" aria-label="Search filters"></div>
 
       <div class="subs-filter hidden" id="subs-filter" role="radiogroup" aria-label="Subscription filter">
         <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="radio" aria-checked="true">All</button>
@@ -96,7 +100,8 @@
         <div class="description empty" id="description" tabindex="0" aria-label="Video description">Open a video in IINA to see its description.</div>
       </div>
 
-      <div class="player-sections">
+      <div class="player-sections" id="player-sections">
+        <div id="player-extras-mount"></div>
         <div class="section" id="quality-section">
           <div class="section-head">
             <label class="section-title" for="quality-list">Quality</label>

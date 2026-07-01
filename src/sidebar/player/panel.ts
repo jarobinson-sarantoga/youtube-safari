@@ -62,6 +62,8 @@ export function handlePlayerState(state: PlayerStateMessage): void {
     playerState.currentWatchUrl = watchUrl;
   }
 
+  playerState.lastPosition = position;
+
   const resolvedTitle = title || getDisplayedHeroTitle();
   if (resolvedTitle || watchUrl || playerState.currentWatchUrl) {
     updateHero(resolvedTitle, watchUrl || playerState.currentWatchUrl);

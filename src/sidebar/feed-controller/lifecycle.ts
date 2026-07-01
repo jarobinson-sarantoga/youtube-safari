@@ -47,6 +47,28 @@ export function onHistoryStale(): void {
   }
 }
 
+export function onWatchLaterStale(): void {
+  loadedTabs.delete("later");
+  feedSnapshots.delete("later");
+  if (feedState.activeTab === "later") {
+    requestFeed("later");
+  }
+}
+
+export function onQueueStale(): void {
+  loadedTabs.delete("queue");
+  feedSnapshots.delete("queue");
+  if (feedState.activeTab === "queue") {
+    requestFeed("queue");
+  }
+}
+
+export function onBlocklistStale(): void {
+  loadedTabs.clear();
+  feedSnapshots.clear();
+  refreshCurrentFeed();
+}
+
 export function onFeedsStale(): void {
   loadedTabs.clear();
   feedSnapshots.clear();

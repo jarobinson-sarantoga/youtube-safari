@@ -62,7 +62,12 @@ export type SidebarToPluginMessage =
   | { name: "requestRelatedPreview"; data: { force?: boolean; watchUrl?: string } }
   | { name: "refreshPanel"; data: Record<string, never> }
   | { name: "syncNowPlaying"; data: Record<string, never> }
-  | { name: "appendShortsQueue"; data: { videoIds: string[] } };
+  | { name: "appendShortsQueue"; data: { videoIds: string[] } }
+  | { name: "libraryAction"; data: import("../library/handlers").LibraryAction }
+  | { name: "setPlaybackSpeed"; data: { speed?: number } }
+  | { name: "setSleepTimer"; data: { minutes?: number } }
+  | { name: "requestTranscript"; data: { watchUrl?: string } }
+  | { name: "requestBookmarks"; data: { videoId?: string } };
 
 export type PluginToSidebarMessage =
   | { name: "feedResult"; data: FeedResultMessage }
@@ -87,4 +92,26 @@ export type PluginToSidebarMessage =
         index: number;
         source: "shorts" | "subs-shorts";
       };
-    };
+    }
+  | { name: "watchLaterStale"; data: Record<string, never> }
+  | { name: "queueStale"; data: Record<string, never> }
+  | { name: "blocklistStale"; data: Record<string, never> }
+  | { name: "libraryState"; data: {
+      watchLater?: { videoId: string; added: boolean };
+      queue?: { videoId: string; added: boolean };
+    } }
+  | { name: "transcript"; data: {
+      videoId?: string;
+      cues?: { start: number; end: number; text: string }[];
+      error?: string;
+      loading?: boolean;
+    } }
+  | { name: "bookmarks"; data: {
+      videoId?: string;
+      items?: { id: string; seconds: number; label: string }[];
+      added?: { id: string; seconds: number; label: string };
+    } }
+  | { name: "historyExport"; data: { json?: string } }
+  | { name: "playbackSpeed"; data: { speed: number } }
+  | { name: "sleepTimer"; data: { endsAt: number } }
+  | { name: "panelPrefs"; data: { hideRelated?: boolean } };

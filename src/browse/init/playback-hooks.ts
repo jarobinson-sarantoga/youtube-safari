@@ -6,7 +6,6 @@ import {
 import { getLastWatchUrl } from "../../preferences";
 import { postSidebarPanelMessage } from "../../panel-relay";
 import {
-  appendShortsToQueue,
   exitShortsQueue,
   postShortsQueueStateFromPlayer,
 } from "../../shorts-queue";
@@ -15,6 +14,14 @@ import {
   recordWatchStart,
   updateWatchProgress,
 } from "../store/history";
+import {
+  fetchSponsorSegments,
+  startSponsorBlockMonitor,
+  stopSponsorBlockMonitor,
+} from "../../sponsorblock";
+import { setPlaybackSpeed } from "../../playback-speed";
+import { getDefaultPlaybackSpeed } from "../../preferences";
+import { playNextInQueue } from "../../queue/auto-play";
 import {
   postPlayerState,
   startPlayerStatePolling,
@@ -25,7 +32,7 @@ const { core, event, mpv } = iina;
 
 let watchProgressTimer: ReturnType<typeof setInterval> | null = null;
 
-function onYouTubeFileLoaded(): void {
+async function onYouTubeFileLoaded(): Promise<void> {
   const watchUrl = getLastWatchUrl();
   if (isYouTubeWatchURL(watchUrl)) {
     const title =
@@ -37,6 +44,9 @@ function onYouTubeFileLoaded(): void {
     const thumb = videoId ? youtubeThumbnailUrl(videoId) : "";
     recordWatchStart(watchUrl, title, "", thumb);
     postSidebarPanelMessage("historyStale", {});
+    setPlaybackSpeed(getDefaultPlaybackSpeed());
+    const segments = await fetchSponsorSegments(videoId);
+    startSponsorBlockMonitor(segments);
   }
   postPlayerState();
   postShortsQueueStateFromPlayer(watchUrl);
@@ -44,14 +54,21 @@ function onYouTubeFileLoaded(): void {
 }
 
 export function registerPlaybackHooks(): void {
-  event.on("iina.file-loaded", onYouTubeFileLoaded);
+  event.on("iina.file-loaded", () => {
+    void onYouTubeFileLoaded();
+  });
 
   event.on("mpv.end-file", () => {
+    stopSponsorBlockMonitor();
     markWatchEnded();
     postPlayerState();
     if (core.status.idle) {
       exitShortsQueue();
       stopPlayerStatePolling();
+      return;
+    }
+    if (playNextInQueue()) {
+      postSidebarPanelMessage("queueStale", {});
     }
   });
 
@@ -73,4 +90,5 @@ export function stopWatchProgressPolling(): void {
     clearInterval(watchProgressTimer);
     watchProgressTimer = null;
   }
+  stopSponsorBlockMonitor();
 }

@@ -21,7 +21,9 @@ export type FeedTab =
   | "subscriptions"
   | "related"
   | "history"
-  | "search";
+  | "search"
+  | "later"
+  | "queue";
 
 export type SubsFilter = "all" | "shorts";
 

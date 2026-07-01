@@ -18,14 +18,18 @@ import {
 } from "./feed-list-helpers";
 import { applyShortsLayoutClass, getShortsLayout } from "./shorts-layout";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list-selection";
+import { applySearchDurationFilter } from "./search-filter-state";
 
 export { scrollSelectedIntoView, updateFeedSelection };
 
 export function renderFeedList(): void {
   const listEl = $("feed-list");
-  const feedItems = getFeedItems();
+  let feedItems = getFeedItems();
   const tab = getActiveTab();
   const subsFilter = getActiveSubsFilter();
+  if (tab === "search") {
+    feedItems = applySearchDurationFilter(feedItems);
+  }
   const grid = tab === "shorts" && getShortsLayout() === "grid";
   const listbox = tab === "shorts" && !grid;
 

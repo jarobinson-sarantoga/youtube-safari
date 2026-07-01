@@ -18,9 +18,9 @@ import {
 import { getSelectedHeight } from "../qualities";
 import { defaultPanelPayload } from "../sidebar-state";
 import { setRelatedPreviewReadyCheck } from "../related-preview-bridge";
-import { handlePanelProxy } from "./panel-proxy";
 import { refreshQualityUI, scheduleRefreshQualityUI, cancelScheduledRefresh } from "./refresh";
 import { switchQuality } from "./switch-quality";
+import { handlePanelProxy } from "./panel-proxy";
 
 const { event, global } = iina;
 

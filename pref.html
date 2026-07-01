@@ -77,5 +77,52 @@
       <input id="pref-browse-cache-ttl-minutes" type="text" data-pref-key="browse_cache_ttl_minutes" placeholder="30" />
     </div>
   </div>
+
+  <div class="pref-section">
+    <h2 class="pref-section-heading">Power features</h2>
+    <p class="pref-section-lead pref-help">Features YouTube’s website doesn’t offer — all local, no accounts required beyond Safari.</p>
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row" for="pref-sponsorblock-enabled">
+        <input id="pref-sponsorblock-enabled" type="checkbox" data-pref-key="sponsorblock_enabled" checked />
+        SponsorBlock — auto-skip sponsored segments
+      </label>
+    </div>
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row" for="pref-hide-shorts">
+        <input id="pref-hide-shorts" type="checkbox" data-pref-key="hide_shorts" />
+        Hide Shorts in Home &amp; Subscriptions feeds
+      </label>
+    </div>
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row" for="pref-hide-related">
+        <input id="pref-hide-related" type="checkbox" data-pref-key="hide_related" />
+        Hide Related videos panel (focus mode)
+      </label>
+    </div>
+    <div class="pref-row pref-row-checkbox">
+      <span class="pref-label" aria-hidden="true"></span>
+      <label class="pref-checkbox-label pref-checkbox-row" for="pref-auto-queue">
+        <input id="pref-auto-queue" type="checkbox" data-pref-key="auto_queue" checked />
+        Auto-play next video in queue when one ends
+      </label>
+    </div>
+    <div class="pref-row">
+      <label class="pref-label" for="pref-default-playback-speed">Default speed</label>
+      <select id="pref-default-playback-speed" data-pref-key="default_playback_speed">
+        <option value="0.5">0.5×</option>
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1× (Normal)</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option>
+        <option value="1.75">1.75×</option>
+        <option value="2">2×</option>
+        <option value="2.5">2.5×</option>
+        <option value="3">3×</option>
+      </select>
+    </div>
+  </div>
 </body>
 </html>
