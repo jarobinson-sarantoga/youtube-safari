@@ -23,17 +23,18 @@ export async function handleBrowseRefresh(
   msg: BrowseRefreshMessage,
   post: PanelPostFn,
 ): Promise<void> {
-  const { tab, query, subsFilter, force, requestId } = msg;
+  const { tab, query, subsFilter, force, requestId, continuation } = msg;
   appendLog(
     `browseRefresh: tab=${tab} filter=${subsFilter || "all"} force=${force ? "yes" : "no"} query=${query || ""} id=${requestId ?? "?"}`,
   );
 
   try {
-    const result = await fetchFeed(tab, query, subsFilter, force);
+    const result = await fetchFeed(tab, query, subsFilter, force, continuation);
     appendLog(
       `feedResult: tab=${tab} id=${requestId ?? "?"} items=${result.items.length}` +
         (result.error ? ` error=${result.error}` : "") +
-        (result.emptyHint ? ` hint=${result.emptyHint}` : ""),
+        (result.emptyHint ? ` hint=${result.emptyHint}` : "") +
+        (result.continuation ? " cont=yes" : ""),
     );
     post("feedResult", {
       tab,
@@ -43,6 +44,8 @@ export async function handleBrowseRefresh(
       subsFilter,
       requestId,
       query: tab === "search" ? query : undefined,
+      continuation: result.continuation,
+      append: msg.append,
     });
   } catch (err) {
     appendLog(`browseRefresh error: ${err}`);

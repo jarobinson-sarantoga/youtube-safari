@@ -7,6 +7,11 @@ export interface PlayVideoMessage {
   url?: string;
   /** Play audio in a hidden/minimized player window. */
   background?: boolean;
+  shortsQueue?: {
+    videoIds: string[];
+    startIndex: number;
+    source: "shorts" | "subs-shorts";
+  };
 }
 
 /** Sidebar → plugin: refresh a feed tab. */
@@ -17,6 +22,10 @@ export interface BrowseRefreshMessage {
   /** When true, bypass browse cache and fetch live from YouTube. */
   force?: boolean;
   requestId?: number;
+  /** reel_watch_sequence continuation for Shorts pagination. */
+  continuation?: string;
+  /** Append Shorts results instead of replacing the list. */
+  append?: boolean;
 }
 
 /** Plugin → sidebar: feed results. */
@@ -28,6 +37,8 @@ export interface FeedResultMessage {
   subsFilter?: SubsFilter;
   requestId?: number;
   query?: string;
+  continuation?: string;
+  append?: boolean;
 }
 
 /** Plugin → sidebar: current playback state. */
@@ -49,7 +60,8 @@ export type SidebarToPluginMessage =
   | { name: "openUrl"; data: { url?: string } }
   | { name: "requestRelatedPreview"; data: { force?: boolean; watchUrl?: string } }
   | { name: "refreshPanel"; data: Record<string, never> }
-  | { name: "syncNowPlaying"; data: Record<string, never> };
+  | { name: "syncNowPlaying"; data: Record<string, never> }
+  | { name: "appendShortsQueue"; data: { videoIds: string[] } };
 
 export type PluginToSidebarMessage =
   | { name: "feedResult"; data: FeedResultMessage }
@@ -61,12 +73,17 @@ export type PluginToSidebarMessage =
   | { name: "feedsStale"; data: Record<string, never> }
   | { name: "historyStale"; data: Record<string, never> }
   | { name: "browseReady"; data: Record<string, never> }
+  | { name: "relatedPreview"; data: {
+      videoId?: string;
+      items: FeedItem[];
+      error?: string;
+      relatedRequestId?: number;
+    } }
   | {
-      name: "relatedPreview";
+      name: "shortsQueueState";
       data: {
-        videoId?: string;
-        items: FeedItem[];
-        error?: string;
-        relatedRequestId?: number;
+        videoId: string;
+        index: number;
+        source: "shorts" | "subs-shorts";
       };
     };

@@ -7,10 +7,12 @@ export {
   getFeedItems,
   getLastFeedError,
   getSelectedIndex,
+  getShortsContinuation,
   isFeedLoading,
+  isShortsLoadingMore,
   setSelectedIndex,
 } from "./selectors";
-export { refreshCurrentFeed, requestFeed } from "./requests";
+export { refreshCurrentFeed, requestFeed, requestLoadMoreShorts } from "./requests";
 export { handleFeedResult } from "./results";
 export {
   ensureBrowseFeedLoaded,

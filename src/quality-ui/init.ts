@@ -15,6 +15,9 @@ import { getSelectedHeight } from "../qualities";
 import { defaultPanelPayload } from "../sidebar-state";
 import { setRelatedPreviewReadyCheck } from "../related-preview-bridge";
 import { openLinkedUrl, seekPlayback } from "../youtube-open";
+import type { PlayVideoMessage } from "../browse/messages";
+import { resolvePlayVideoUrl } from "../panel-handlers";
+import { openShortsQueue, appendShortsToQueue } from "../shorts-queue";
 import { refreshQualityUI, scheduleRefreshQualityUI, cancelScheduledRefresh } from "./refresh";
 import { switchQuality } from "./switch-quality";
 
@@ -72,6 +75,30 @@ export function initQualityUI(): void {
         const url = (data as { url?: string } | undefined)?.url;
         if (typeof url === "string") {
           openLinkedUrl(url);
+        }
+        break;
+      }
+      case "playVideo": {
+        const msg = data as PlayVideoMessage;
+        const url = resolvePlayVideoUrl(msg);
+        if (!url) {
+          break;
+        }
+        if (msg.shortsQueue?.videoIds.length) {
+          openShortsQueue(
+            msg.shortsQueue.videoIds,
+            msg.shortsQueue.startIndex,
+            msg.shortsQueue.source,
+          );
+          break;
+        }
+        openLinkedUrl(url);
+        break;
+      }
+      case "appendShortsQueue": {
+        const ids = (data as { videoIds?: string[] } | undefined)?.videoIds;
+        if (Array.isArray(ids) && ids.length) {
+          appendShortsToQueue(ids);
         }
         break;
       }

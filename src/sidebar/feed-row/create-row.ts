@@ -13,12 +13,13 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
     showResume = true,
     showExtra = true,
     showBackgroundPlay = false,
+    portrait = false,
     onClick,
     onBackgroundPlay,
   } = options;
 
   const row = document.createElement("div");
-  row.className = `${rowClassName}${selected ? " selected" : ""}`;
+  row.className = `${rowClassName}${selected ? " selected" : ""}${portrait || item.isShort ? " feed-row--portrait" : ""}`;
   row.setAttribute("role", "row");
   row.setAttribute("aria-selected", selected ? "true" : "false");
   row.tabIndex = -1;
@@ -35,6 +36,7 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
       showDuration,
       showResume,
       showBackgroundPlay,
+      portrait,
       onBackgroundPlay,
     }),
   );

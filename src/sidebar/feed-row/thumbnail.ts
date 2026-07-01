@@ -1,5 +1,5 @@
 import type { FeedItem } from "../../browse/types";
-import { youtubeThumbnailUrl } from "../../youtube";
+import { youtubeShortThumbnailUrl, youtubeThumbnailUrl } from "../../youtube";
 import type { FeedRowBackgroundHandler } from "./types";
 
 interface ThumbnailOptions {
@@ -8,19 +8,34 @@ interface ThumbnailOptions {
   showDuration: boolean;
   showResume: boolean;
   showBackgroundPlay: boolean;
+  portrait?: boolean;
   onBackgroundPlay?: FeedRowBackgroundHandler;
 }
 
 export function createThumbnail(options: ThumbnailOptions): HTMLElement {
-  const { item, index, showDuration, showResume, showBackgroundPlay, onBackgroundPlay } = options;
+  const {
+    item,
+    index,
+    showDuration,
+    showResume,
+    showBackgroundPlay,
+    portrait = false,
+    onBackgroundPlay,
+  } = options;
 
+  const usePortrait = portrait || !!item.isShort;
   const thumbWrap = document.createElement("div");
-  thumbWrap.className = "thumb-wrap";
+  thumbWrap.className = usePortrait ? "thumb-wrap thumb-wrap--portrait" : "thumb-wrap";
 
   const thumb = document.createElement("img");
   thumb.className = "feed-thumb";
-  const fallbackThumb = youtubeThumbnailUrl(item.videoId);
-  thumb.src = item.thumbnailUrl || fallbackThumb;
+  const landscapeThumb = youtubeThumbnailUrl(item.videoId);
+  const portraitThumb = youtubeShortThumbnailUrl(item.videoId);
+  const primaryThumb = usePortrait
+    ? item.thumbnailUrl || portraitThumb
+    : item.thumbnailUrl || landscapeThumb;
+  const fallbackThumb = usePortrait ? landscapeThumb : portraitThumb;
+  thumb.src = primaryThumb;
   thumb.alt = item.title;
   thumb.loading = "lazy";
   thumb.addEventListener("error", () => {

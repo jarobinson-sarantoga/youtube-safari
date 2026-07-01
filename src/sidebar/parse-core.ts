@@ -3,6 +3,7 @@ import type { FeedItem, FeedTab, SubsFilter } from "../browse/types";
 
 const FEED_TABS = new Set<FeedTab>([
   "home",
+  "shorts",
   "subscriptions",
   "related",
   "history",
@@ -22,7 +23,8 @@ export function isFeedItem(value: unknown): value is FeedItem {
     item.videoId.length > 0 &&
     typeof item.title === "string" &&
     typeof item.channelTitle === "string" &&
-    typeof item.thumbnailUrl === "string"
+    typeof item.thumbnailUrl === "string" &&
+    (item.isShort === undefined || typeof item.isShort === "boolean")
   );
 }
 
@@ -57,5 +59,8 @@ export function parseFeedResult(raw: unknown): FeedResultMessage | null {
     subsFilter: parsedSubsFilter,
     requestId: typeof data.requestId === "number" ? data.requestId : undefined,
     query: typeof data.query === "string" ? data.query : undefined,
+    continuation:
+      typeof data.continuation === "string" ? data.continuation : undefined,
+    append: data.append === true ? true : undefined,
   };
 }

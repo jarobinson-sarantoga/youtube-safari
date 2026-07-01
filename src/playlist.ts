@@ -3,15 +3,11 @@ import {
   normalizeMediaURL,
 } from "./youtube";
 import { setPendingSeek } from "./youtube-open";
+import { buildWatchUrlM3U } from "./m3u/build";
 import { appendLog, listYouTubePlaylist, type PlaylistEntry } from "./ytdl";
 
 const { core, mpv } = iina;
 
-function sanitizeM3UTitle(title: string): string {
-  return title.replace(/[\r\n]+/g, " ").trim() || "YouTube";
-}
-
-/** Use a single-video watch URL so playlist navigation does not re-fetch the list. */
 function videoOnlyWatchUrl(url: string): string {
   const id = getYouTubeVideoId(url);
   if (id) {
@@ -22,12 +18,12 @@ function videoOnlyWatchUrl(url: string): string {
 
 /** Build an in-memory M3U playlist (io.iina.ytdl pattern). */
 export function buildPlaylistM3U(entries: PlaylistEntry[]): string {
-  const lines = ["#EXTM3U"];
-  for (const entry of entries) {
-    lines.push(`#EXTINF:0,${sanitizeM3UTitle(entry.title)}`);
-    lines.push(videoOnlyWatchUrl(entry.url));
-  }
-  return lines.join("\n");
+  return buildWatchUrlM3U(
+    entries.map((entry) => ({
+      title: entry.title,
+      url: videoOnlyWatchUrl(entry.url),
+    })),
+  );
 }
 
 /** Redirect on_load to a memory M3U so IINA's playlist tab lists every video. */

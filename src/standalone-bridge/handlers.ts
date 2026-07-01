@@ -1,4 +1,4 @@
-import type { BrowseRefreshMessage } from "../browse/messages";
+import type { BrowseRefreshMessage, PlayVideoMessage } from "../browse/messages";
 import { openYouTubeWatchUrl } from "../open-url-global";
 import {
   buildRefreshPanelPayload,
@@ -34,11 +34,7 @@ export function registerStandaloneInboundHandlers(): void {
     void handleBrowseRefresh(data, postToStandalone);
   });
 
-  standaloneWindow.onMessage("playVideo", (data: {
-    videoId?: string;
-    url?: string;
-    background?: boolean;
-  }) => {
+  standaloneWindow.onMessage("playVideo", (data: PlayVideoMessage) => {
     const url = resolvePlayVideoUrl(data);
     if (!url) {
       appendLog("playVideo ignored (no url/videoId)");
@@ -47,6 +43,11 @@ export function registerStandaloneInboundHandlers(): void {
     const coordinator = getStandaloneCoordinator();
     if (!coordinator) {
       appendLog("playVideo ignored (no player coordinator)");
+      return;
+    }
+    if (data.shortsQueue?.videoIds.length) {
+      proxyToPlayer("playVideo", data);
+      postToStandalone("watchUrlChanged", { watchUrl: url });
       return;
     }
     openYouTubeWatchUrl(url, coordinator, {

@@ -1,6 +1,7 @@
 import type { FeedTab, SubsFilter } from "../../browse/types";
 import { $, setPanelHidden } from "../dom";
 import { createSkeletonRows } from "../feed-row";
+import { updateShortsLayoutVisibility } from "./shorts-layout";
 
 const SECTION_LABELS: Record<string, string> = {
   relevant: "Most relevant",
@@ -68,6 +69,7 @@ export function updateSubsFilterUI(activeTab: FeedTab, activeFilter: SubsFilter)
   const bar = $("subs-filter");
   const show = activeTab === "subscriptions";
   setPanelHidden(bar, !show);
+  updateShortsLayoutVisibility(activeTab);
 
   const buttons = bar.querySelectorAll<HTMLButtonElement>(".subs-filter-btn");
   buttons.forEach((btn) => {

@@ -10,6 +10,7 @@ interface FeedScriptResult {
   items?: FeedItem[];
   error?: string;
   emptyHint?: string;
+  continuation?: string;
 }
 
 function scriptPath(): string {
@@ -35,10 +36,30 @@ async function runFeedScript(args: string[]): Promise<FeedScriptResult> {
     items,
     error: payload.error,
     emptyHint: payload.emptyHint,
+    continuation: payload.continuation,
   };
 }
 
-export type YoutubeJsFeedTab = "home" | "subscriptions" | "shorts";
+export type YoutubeJsFeedTab = "home" | "subscriptions" | "subs-shorts" | "shorts";
+
+export async function fetchShortsItems(continuation = ""): Promise<{
+  items: FeedItem[];
+  emptyHint?: string;
+  error?: string;
+  continuation?: string;
+}> {
+  const args = ["--tab", "shorts"];
+  if (continuation) {
+    args.push("--continuation", continuation);
+  }
+  const result = await runFeedScript(args);
+  return {
+    items: result.items || [],
+    emptyHint: result.emptyHint,
+    error: result.error,
+    continuation: result.continuation,
+  };
+}
 
 export async function fetchTabItems(tab: YoutubeJsFeedTab): Promise<{
   items: FeedItem[];

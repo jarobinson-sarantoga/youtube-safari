@@ -51,6 +51,7 @@
 
       <div class="segmented" role="radiogroup" aria-label="Feeds">
         <button type="button" class="seg-btn active" data-tab="home" role="radio" aria-checked="true">Home</button>
+        <button type="button" class="seg-btn" data-tab="shorts" role="radio" aria-checked="false">Shorts</button>
         <button type="button" class="seg-btn" data-tab="subscriptions" role="radio" aria-checked="false" aria-label="Subscriptions">Subs</button>
         <button type="button" class="seg-btn" data-tab="related" role="radio" aria-checked="false">Related</button>
         <button type="button" class="seg-btn" data-tab="history" role="radio" aria-checked="false">History</button>
@@ -59,6 +60,11 @@
       <div class="subs-filter hidden" id="subs-filter" role="radiogroup" aria-label="Subscription filter">
         <button type="button" class="subs-filter-btn active" data-subs-filter="all" role="radio" aria-checked="true">All</button>
         <button type="button" class="subs-filter-btn" data-subs-filter="shorts" role="radio" aria-checked="false">Shorts</button>
+      </div>
+
+      <div class="shorts-layout hidden" id="shorts-layout" role="radiogroup" aria-label="Shorts layout">
+        <button type="button" class="shorts-layout-btn active" data-layout="list" role="radio" aria-checked="true">List</button>
+        <button type="button" class="shorts-layout-btn" data-layout="grid" role="radio" aria-checked="false">Grid</button>
       </div>
 
       <div class="feed-status" id="feed-status" aria-live="polite"></div>

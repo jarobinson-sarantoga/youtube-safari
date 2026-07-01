@@ -6,5 +6,6 @@ export {
   getYouTubeVideoId,
   isYouTubePlaylistURL,
   youtubeThumbnailUrl,
+  youtubeShortThumbnailUrl,
   youtubeWatchUrl,
 } from "./ids";

@@ -32,3 +32,11 @@ export function getLastFeedError(): string {
 export function getFeedEmptyHint(): string {
   return feedState.feedEmptyHint;
 }
+
+export function getShortsContinuation(): string {
+  return feedState.shortsContinuation;
+}
+
+export function isShortsLoadingMore(): boolean {
+  return feedState.shortsLoadingMore;
+}

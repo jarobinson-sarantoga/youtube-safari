@@ -6,6 +6,10 @@ import {
 import { getLastWatchUrl } from "../../preferences";
 import { postSidebarPanelMessage } from "../../panel-relay";
 import {
+  appendShortsToQueue,
+  postShortsQueueStateFromPlayer,
+} from "../../shorts-queue";
+import {
   markWatchEnded,
   recordWatchStart,
   updateWatchProgress,
@@ -34,6 +38,7 @@ function onYouTubeFileLoaded(): void {
     postSidebarPanelMessage("historyStale", {});
   }
   postPlayerState();
+  postShortsQueueStateFromPlayer(watchUrl);
   startPlayerStatePolling();
 }
 

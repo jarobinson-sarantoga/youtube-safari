@@ -25,6 +25,8 @@ export interface FeedControllerDeps {
     subsFilter?: SubsFilter;
     force?: boolean;
     requestId: number;
+    continuation?: string;
+    append?: boolean;
   }) => void;
   formatFeedCount: (n: number) => string;
 }
@@ -38,6 +40,8 @@ export interface FeedControllerState {
   feedLoading: boolean;
   feedEmptyHint: string;
   lastFeedError: string;
+  shortsContinuation: string;
+  shortsLoadingMore: boolean;
 }
 
 export const feedState: FeedControllerState = {
@@ -49,6 +53,8 @@ export const feedState: FeedControllerState = {
   feedLoading: false,
   feedEmptyHint: "",
   lastFeedError: "",
+  shortsContinuation: "",
+  shortsLoadingMore: false,
 };
 
 export const loadedTabs = new Set<string>();
