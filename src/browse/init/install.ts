@@ -2,6 +2,10 @@ import { registerBrowseSidebarHandlers } from "../bridge";
 import { invalidateBrowseSessionCaches } from "../session-invalidate";
 import { flushPendingCache } from "../store/cache";
 import { flushPendingHistory } from "../store/history";
+import { flushWatchLater } from "../store/watch-later";
+import { flushQueue } from "../store/queue";
+import { flushBlocklist } from "../store/blocklist";
+import { flushBookmarks } from "../store/bookmarks";
 import { notifyCookieHealthIfNeeded } from "../../cookie-health";
 import { isBackgroundHidePending } from "../../background-play";
 import { isIntentionalPlayerClose, markPlayerShuttingDown } from "../../lifecycle";
@@ -42,6 +46,10 @@ export function installBrowse(): void {
     cancelSeekRetries();
     flushPendingCache();
     flushPendingHistory();
+    flushWatchLater();
+    flushQueue();
+    flushBlocklist();
+    flushBookmarks();
     global.postMessage("playerClosed", {});
   });
 

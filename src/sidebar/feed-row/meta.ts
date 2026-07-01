@@ -1,13 +1,15 @@
 import type { FeedItem } from "../../browse/types";
 import { formatDuration } from "../dom";
+import { createFeedRowActions } from "./actions";
 
 interface FeedMetaOptions {
   item: FeedItem;
   showExtra: boolean;
+  showActions?: boolean;
 }
 
 export function createFeedMeta(options: FeedMetaOptions): HTMLElement {
-  const { item, showExtra } = options;
+  const { item, showExtra, showActions = true } = options;
   const meta = document.createElement("div");
   meta.className = "feed-meta";
 
@@ -36,6 +38,10 @@ export function createFeedMeta(options: FeedMetaOptions): HTMLElement {
       extra.textContent = parts.join(" · ");
       meta.appendChild(extra);
     }
+  }
+
+  if (showActions) {
+    meta.appendChild(createFeedRowActions(item));
   }
 
   return meta;

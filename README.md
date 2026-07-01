@@ -21,6 +21,16 @@ and pick quality without leaving IINA.
 - **Chapters & resume** — chapter markers from the description and resume of your last watched video.
 - **Keyboard shortcut** — open the panel with `Cmd+Shift+Y`.
 - **Listen mode** — background/audio-only playback for music and podcasts.
+- **SponsorBlock** — auto-skip sponsored segments, intros, and outros.
+- **Watch Later & Queue** — local lists with keyboard shortcuts (W / Q).
+- **Channel blocklist** — hide channels from every feed.
+- **Transcript panel** — load captions and click-to-seek.
+- **Timestamp bookmarks** — save moments in any video.
+- **Playback speed** — 0.25×–3× from the panel (beyond YouTube’s 2× cap).
+- **Sleep timer** — pause playback after a set time.
+- **Search filters** — filter results by video length.
+- **Focus mode** — hide Related recommendations.
+- **Export history** — download your local watch history as JSON.
 - **HIG-compliant UI** — system fonts, colors, dark mode, and reduced-motion support.
 
 ## Requirements

@@ -22,6 +22,7 @@ import {
   applyShortsLayoutClass,
   getShortsLayout,
 } from "./shorts-layout";
+import { applySearchDurationFilter } from "./search-filter-state";
 import {
   clearStatus,
   renderSkeleton,
@@ -64,7 +65,10 @@ function appendLoadMoreButton(listEl: HTMLElement): void {
 
 export function renderFeedList(): void {
   const listEl = $("feed-list");
-  const feedItems = getFeedItems();
+  let feedItems = getFeedItems();
+  if (getActiveTab() === "search") {
+    feedItems = applySearchDurationFilter(feedItems);
+  }
   const portrait = usePortraitRows();
   const grid = getActiveTab() === "shorts" && getShortsLayout() === "grid";
   listEl.innerHTML = "";

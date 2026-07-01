@@ -16,6 +16,7 @@ import {
   runStandaloneSidebarReadyCallback,
   setStandaloneWebViewReady,
 } from "./state";
+import { registerStandaloneLibraryHandlers } from "./library";
 
 const { global, standaloneWindow } = iina;
 
@@ -99,6 +100,8 @@ export function registerStandaloneInboundHandlers(): void {
   standaloneWindow.onMessage("openUrl", (data: { url?: string }) => {
     proxyToPlayer("openUrl", data);
   });
+
+  registerStandaloneLibraryHandlers(proxyToPlayer);
 }
 
 export function registerStandaloneReadyHandler(): void {

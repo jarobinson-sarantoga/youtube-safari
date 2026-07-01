@@ -9,6 +9,7 @@ import { appendLog } from "../ytdl";
 import { isYouTubeWatchURL } from "../youtube";
 import { registerPluginSidebarListeners } from "./listeners";
 import { postSidebarPanel, schedulePanelPush } from "./panel-post";
+import { buildPanelPrefsPayload } from "../panel-prefs";
 import { sidebarHostState, type SidebarRevealView } from "./state";
 
 const { sidebar } = iina;
@@ -53,6 +54,7 @@ function registerSidebarMessageHandlers(): void {
       registerBrowseHandlers();
       registerPluginSidebarListeners();
       postSidebarPanelMessage("browseReady", {});
+      postSidebarPanelMessage("panelPrefs", buildPanelPrefsPayload());
 
       if (sidebarHostState.lastPanelPayload) {
         postSidebarPanelMessage("panel", sidebarHostState.lastPanelPayload);

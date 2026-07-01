@@ -12,6 +12,7 @@ import {
   takePendingStandaloneFocus,
 } from "./standalone-bridge";
 import { invalidateBrowseSessionCaches } from "./browse/session-invalidate";
+import { buildPanelPrefsPayload } from "./panel-prefs";
 import { primePanelCookiesOnFirstLoad } from "./youtube-refresh";
 import { appendLog } from "./ytdl";
 
@@ -81,6 +82,7 @@ onStandaloneSidebarReady(() => {
     }
 
     postToStandalone("browseReady", {});
+    postToStandalone("panelPrefs", buildPanelPrefsPayload());
     postToStandalone("panel", defaultPanelPayload(getSelectedHeight()));
     requestActivePlayerNowPlayingSync();
 

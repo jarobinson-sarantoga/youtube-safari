@@ -1,12 +1,17 @@
 import { completePanelBoot, isPanelBooting, queueBootView } from "../boot";
-import { initFeedController } from "../feed-controller";
 import {
   handleFeedResult,
+  initFeedController,
   onBrowseReady,
   onFeedsStale,
   onHistoryStale,
+  onWatchLaterStale,
+  onQueueStale,
+  onBlocklistStale,
   onWatchUrlChanged,
   setSelectedIndex,
+  getActiveTab,
+  getFeedItems,
 } from "../feed-controller";
 import { $ } from "../dom";
 import { onPluginMessage, postToPlugin } from "../messaging";
@@ -16,6 +21,7 @@ import { setActiveView } from "../views";
 import { renderFeedList, scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
 import { setupBrowseKeyboard } from "./keyboard";
 import { setupShortsLayoutToggle } from "./shorts-layout";
+import { setupSearchFilters, syncSearchFilterVisibility } from "./search-filters";
 import { setupRefresh, setupSearch, setupSubsFilter, setupTabs, syncBrowseControls } from "./setup-controls";
 import {
   clearStatus,
@@ -29,6 +35,38 @@ import {
 
 function focusSearch(): void {
   ($("search-input") as HTMLInputElement).focus();
+}
+
+function setupHistoryExport(): void {
+  const toolbar = document.querySelector(".toolbar");
+  if (!toolbar) {
+    return;
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "icon-btn export-history-btn hidden";
+  btn.id = "export-history";
+  btn.title = "Export watch history";
+  btn.setAttribute("aria-label", "Export watch history");
+  btn.textContent = "⤓";
+  btn.addEventListener("click", () => {
+    postToPlugin("libraryAction", { action: "exportHistory" });
+  });
+  toolbar.appendChild(btn);
+
+  onPluginMessage("historyExport", (raw) => {
+    const json = (raw as { json?: string } | undefined)?.json;
+    if (!json) {
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `youtube-watch-history-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
 }
 
 export function initBrowsePanel(): void {
@@ -53,14 +91,19 @@ export function initBrowsePanel(): void {
   setupTabs();
   setupSubsFilter();
   setupShortsLayoutToggle(() => renderFeedList());
+  setupSearchFilters(() => renderFeedList());
   setupSearch();
   setupRefresh();
   setupBrowseKeyboard();
+  setupHistoryExport();
 
   onPluginMessage("feedResult", (raw) => {
     const data = parseFeedResult(raw);
     if (data) {
       handleFeedResult(data);
+      syncSearchFilterVisibility();
+      const exportBtn = document.getElementById("export-history");
+      exportBtn?.classList.toggle("hidden", getActiveTab() !== "history");
     }
   });
 
@@ -75,7 +118,13 @@ export function initBrowsePanel(): void {
 
   onPluginMessage("watchUrlChanged", onWatchUrlChanged);
   onPluginMessage("historyStale", onHistoryStale);
+  onPluginMessage("watchLaterStale", onWatchLaterStale);
+  onPluginMessage("queueStale", onQueueStale);
+  onPluginMessage("blocklistStale", onBlocklistStale);
   onPluginMessage("feedsStale", onFeedsStale);
+  onPluginMessage("libraryState", () => {
+    renderFeedList();
+  });
   onPluginMessage("shortsQueueState", (raw) => {
     const data = raw as { videoId?: string; index?: number } | null;
     if (!data || typeof data.index !== "number" || data.index < 0) {
@@ -95,5 +144,6 @@ export function initBrowsePanel(): void {
     }
     onBrowseReady();
     syncBrowseControls();
+    syncSearchFilterVisibility();
   });
 }

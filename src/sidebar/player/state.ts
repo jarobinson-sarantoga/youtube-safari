@@ -6,6 +6,7 @@ export interface PlayerUiState {
   lastAcceptedRelatedRequestId: number;
   relatedSelectedIndex: number;
   relatedLoadVideoId: string;
+  lastPosition: number;
 }
 
 export const playerState: PlayerUiState = {
@@ -16,6 +17,7 @@ export const playerState: PlayerUiState = {
   lastAcceptedRelatedRequestId: 0,
   relatedSelectedIndex: -1,
   relatedLoadVideoId: "",
+  lastPosition: 0,
 };
 
 export function resetRelatedPreviewCache(): void {

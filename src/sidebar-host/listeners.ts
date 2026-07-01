@@ -4,6 +4,7 @@ import { isYouTubeWatchURL } from "../youtube";
 import { openLinkedUrl, seekPlayback } from "../youtube-open";
 import { postRelatedPreview } from "../related-preview-bridge";
 import { pushNowPlayingUpdate } from "../quality-ui";
+import { handlePanelProxy } from "../quality-ui/panel-proxy";
 import { sidebarHostState } from "./state";
 
 const { sidebar } = iina;
@@ -58,5 +59,25 @@ export function registerPluginSidebarListeners(): void {
 
   sidebar.onMessage("syncNowPlaying", () => {
     pushNowPlayingUpdate();
+  });
+
+  sidebar.onMessage("setPlaybackSpeed", (data: { speed?: number }) => {
+    handlePanelProxy({ action: "setPlaybackSpeed", data });
+  });
+
+  sidebar.onMessage("setSleepTimer", (data: { minutes?: number }) => {
+    handlePanelProxy({ action: "setSleepTimer", data });
+  });
+
+  sidebar.onMessage("libraryAction", (data: unknown) => {
+    handlePanelProxy({ action: "libraryAction", data });
+  });
+
+  sidebar.onMessage("requestTranscript", (data: unknown) => {
+    handlePanelProxy({ action: "requestTranscript", data });
+  });
+
+  sidebar.onMessage("requestBookmarks", (data: unknown) => {
+    handlePanelProxy({ action: "requestBookmarks", data });
   });
 }

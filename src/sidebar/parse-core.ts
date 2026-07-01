@@ -8,6 +8,8 @@ const FEED_TABS = new Set<FeedTab>([
   "related",
   "history",
   "search",
+  "later",
+  "queue",
 ]);
 
 const SUBS_FILTERS = new Set<SubsFilter>(["all", "shorts"]);

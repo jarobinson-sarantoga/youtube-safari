@@ -1,7 +1,9 @@
 import { $ } from "../dom";
 import { getFeedItems, getSelectedIndex, setSelectedIndex } from "../feed-controller";
+import type { FeedItem } from "../../browse/types";
 import { playItem } from "./playback";
 import { scrollSelectedIntoView, updateFeedSelection } from "./feed-list";
+import { postToPlugin } from "../messaging";
 
 export function setupBrowseKeyboard(): void {
   const listEl = $("feed-list");
@@ -21,6 +23,30 @@ export function setupBrowseKeyboard(): void {
 
     const feedItems = getFeedItems();
     if (!feedItems.length) {
+      return;
+    }
+
+    const selected = feedItems[getSelectedIndex()];
+    if (
+      (event.key === "w" || event.key === "W") &&
+      selected &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      postToPlugin("libraryAction", { action: "toggleWatchLater", item: selected });
+      return;
+    }
+    if (
+      (event.key === "q" || event.key === "Q") &&
+      selected &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      postToPlugin("libraryAction", { action: "addQueue", item: selected });
       return;
     }
 
