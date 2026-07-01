@@ -1,0 +1,28 @@
+.shorts-layout {
+  display: flex;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-2) var(--sp-1);
+}
+
+.shorts-layout-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shorts-layout-btn.active {
+  color: inherit;
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.shorts-layout[hidden] {
+  display: none;
+}

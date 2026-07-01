@@ -1,3 +1,6 @@
+/** Plugin → sidebar Shorts queue selection sync.
+ *  @see shorts-queue-resolve.ts — pure tab/index guards
+ */
 import {
   getActiveSubsFilter,
   getActiveTab,
