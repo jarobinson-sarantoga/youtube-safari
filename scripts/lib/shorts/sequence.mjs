@@ -1,4 +1,5 @@
 import { extractContinuation } from "./continuation.mjs";
+import { mergeUniqueVideoItems } from "./merge-items.mjs";
 import { mapReelSequenceEntries } from "./map-sequence.mjs";
 import { pickSeedShortId } from "./seed.mjs";
 
@@ -22,13 +23,7 @@ async function fetchInitialSequence(yt) {
     if (bridgeParams) {
       const bridge = await executeSequence(yt, bridgeParams);
       const bridgeItems = mapReelSequenceEntries(bridge.entries);
-      const seen = new Set(items.map((entry) => entry.videoId));
-      for (const entry of bridgeItems) {
-        if (!seen.has(entry.videoId)) {
-          seen.add(entry.videoId);
-          items.push(entry);
-        }
-      }
+      items.splice(0, items.length, ...mergeUniqueVideoItems(items, bridgeItems));
       continuation = extractContinuation(bridge);
     }
   }
@@ -44,13 +39,7 @@ async function mergeUntilLimit(yt, items, continuation, limit) {
   while (token && merged.length < limit && pages < MAX_MERGE_PAGES) {
     const response = await executeSequence(yt, token);
     const batch = mapReelSequenceEntries(response.entries);
-    const seen = new Set(merged.map((item) => item.videoId));
-    for (const item of batch) {
-      if (!seen.has(item.videoId)) {
-        seen.add(item.videoId);
-        merged.push(item);
-      }
-    }
+    merged = mergeUniqueVideoItems(merged, batch);
     token = extractContinuation(response);
     pages += 1;
   }

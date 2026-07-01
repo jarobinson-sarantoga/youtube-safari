@@ -3,6 +3,7 @@ import { postPanelMessage, postSidebarPanelMessage } from "./panel-relay";
 import { getLastWatchUrl } from "./preferences";
 import { isShortsQueueActive } from "./shorts-queue";
 import { isYouTubeWatchURL } from "./youtube";
+import { shouldRunPlaybackSideEffects } from "./playback-side-effects";
 
 let sidebarReadyCheck: () => boolean = () => false;
 
@@ -31,7 +32,7 @@ export function postRelatedPreview(watchUrl: string, force = false): void {
     postRelatedPreviewClear();
     return;
   }
-  if (isShortsQueueActive() && !force) {
+  if (!shouldRunPlaybackSideEffects(isShortsQueueActive(), force)) {
     return;
   }
 

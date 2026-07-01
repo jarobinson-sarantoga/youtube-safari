@@ -2,6 +2,7 @@ import type { FeedResultMessage } from "../../browse/messages";
 import { getYouTubeVideoId } from "../../youtube";
 import { postToPlugin } from "../messaging";
 import { resolveFeedSelectionIndex } from "../browse/selection";
+import { mergeAppendFeedItems } from "./merge-feed";
 import {
   feedCacheKey,
   feedSnapshots,
@@ -37,15 +38,11 @@ export function handleFeedResult(data: FeedResultMessage): void {
       return;
     }
     feedState.lastFeedError = "";
-    const seen = new Set(feedState.feedItems.map((item) => item.videoId));
-    const added: string[] = [];
-    for (const item of data.items || []) {
-      if (!seen.has(item.videoId)) {
-        seen.add(item.videoId);
-        feedState.feedItems.push(item);
-        added.push(item.videoId);
-      }
-    }
+    const { items, added } = mergeAppendFeedItems(
+      feedState.feedItems,
+      data.items || [],
+    );
+    feedState.feedItems = items;
     feedState.shortsContinuation = data.continuation || "";
     if (added.length) {
       postToPlugin("appendShortsQueue", { videoIds: added });

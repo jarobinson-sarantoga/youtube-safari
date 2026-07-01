@@ -1,12 +1,10 @@
+import { clampQueueStartIndex } from "./clamp-index";
 import { dedupeVideoIds } from "./dedupe";
 import { openShortsQueue } from "./open";
+import { shouldSeekExistingQueue } from "./queue-match";
 import { seekShortsQueueIndex } from "./seek";
 import { getActiveShortsQueue } from "./state";
 import type { ShortsQueueSource } from "./types";
-
-function sameQueueOrder(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id, index) => id === b[index]);
-}
 
 export function playShortsQueue(
   videoIds: string[],
@@ -18,9 +16,9 @@ export function playShortsQueue(
   if (!ids.length) {
     return false;
   }
-  const index = Math.min(Math.max(startIndex, 0), ids.length - 1);
+  const index = clampQueueStartIndex(startIndex, ids.length);
   const active = getActiveShortsQueue();
-  if (active && active.source === source && sameQueueOrder(active.videoIds, ids)) {
+  if (shouldSeekExistingQueue(active, ids, source)) {
     return seekShortsQueueIndex(index);
   }
   return openShortsQueue(ids, index, source, titles);
