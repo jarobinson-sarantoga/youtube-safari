@@ -9,6 +9,7 @@ export {
   closeManagedPlayersForNewPlayback,
   flushPendingRetirePlayers,
   registerManagedPlayer,
+  retireAllBackgroundPlayersNow,
   unregisterManagedPlayer,
 } from "./managed-players";
 

@@ -8,4 +8,9 @@ export {
   setActiveShortsQueue,
 } from "./state";
 export { postShortsQueueStateFromPlayer } from "./sync";
+export {
+  hasPendingShortsPlayVideo,
+  setPendingShortsPlayVideo,
+  takePendingShortsPlayVideo,
+} from "./pending";
 export type { ShortsQueueSource } from "./types";

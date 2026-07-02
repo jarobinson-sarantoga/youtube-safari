@@ -1,7 +1,8 @@
 import { BROWSE_KEY_BINDING } from "./keybindings";
+import { revealYouTubePanel } from "./sidebar-host";
 import { appendLog } from "./ytdl";
 
-const { global, input } = iina;
+const { input } = iina;
 
 let shortcutInstalled = false;
 
@@ -16,7 +17,7 @@ export function registerPlayerPanelShortcut(): void {
     BROWSE_KEY_BINDING,
     () => {
       appendLog(`Open YouTube panel (${BROWSE_KEY_BINDING} player shortcut)`);
-      global.postMessage("openStandalonePanel");
+      revealYouTubePanel("player");
       return true;
     },
     input.PRIORITY_HIGH,

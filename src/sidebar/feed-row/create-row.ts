@@ -12,6 +12,7 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
     showDuration = true,
     showResume = true,
     showExtra = true,
+    showActions = true,
     showBackgroundPlay = false,
     portrait = false,
     listboxOption = false,
@@ -41,7 +42,7 @@ export function createFeedRow(options: FeedRowOptions): HTMLElement {
       onBackgroundPlay,
     }),
   );
-  row.appendChild(createFeedMeta({ item, showExtra }));
+  row.appendChild(createFeedMeta({ item, showExtra, showActions }));
 
   row.addEventListener("click", () => {
     onClick(item, index);

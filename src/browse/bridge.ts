@@ -37,7 +37,7 @@ export function registerBrowseSidebarHandlers(): void {
       postSidebarPanelMessage("watchUrlChanged", { watchUrl: url });
       return;
     }
-    global.postMessage("closeManagedPlayers", {});
+    global.postMessage("retireBackgroundPlayers", {});
     if (data.shortsQueue?.videoIds.length) {
       playShortsQueue(
         data.shortsQueue.videoIds,

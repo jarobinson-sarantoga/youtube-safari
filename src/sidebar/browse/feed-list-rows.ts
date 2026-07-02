@@ -12,10 +12,12 @@ interface AppendRowsOptions {
   listbox: boolean;
   portrait: boolean;
   showSectionHeaders: boolean;
+  compactShorts?: boolean;
 }
 
 export function appendFeedListRows(options: AppendRowsOptions): void {
-  const { listEl, feedItems, grid, listbox, portrait, showSectionHeaders } = options;
+  const { listEl, feedItems, grid, listbox, portrait, showSectionHeaders, compactShorts } =
+    options;
   let lastSection = "";
 
   feedItems.forEach((item, index) => {
@@ -46,10 +48,14 @@ export function appendFeedListRows(options: AppendRowsOptions): void {
         selected: index === getSelectedIndex(),
         portrait,
         listboxOption: listbox,
-        showBackgroundPlay: true,
+        showBackgroundPlay: !compactShorts,
+        showExtra: !compactShorts,
+        showActions: !compactShorts,
         onClick: (clickedItem, clickedIndex) => handleRowPlay(clickedItem, clickedIndex, listEl),
-        onBackgroundPlay: (clickedItem, clickedIndex) =>
-          handleRowPlay(clickedItem, clickedIndex, listEl, true),
+        onBackgroundPlay: compactShorts
+          ? undefined
+          : (clickedItem, clickedIndex) =>
+              handleRowPlay(clickedItem, clickedIndex, listEl, true),
       }),
     );
   });

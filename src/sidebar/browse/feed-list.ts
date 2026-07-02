@@ -56,6 +56,7 @@ export function renderFeedList(): void {
     listbox,
     portrait: usePortraitRows(tab, subsFilter),
     showSectionHeaders: tab === "subscriptions" && subsFilter === "all",
+    compactShorts: tab === "shorts",
   });
 
   appendLoadMoreButton(listEl);
