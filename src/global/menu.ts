@@ -2,7 +2,7 @@ import { BROWSE_KEY_BINDING } from "../keybindings";
 import { invalidateBrowseSessionCaches } from "../browse/session-invalidate";
 import { refreshYouTubeCookies } from "../youtube-refresh";
 import { appendLog, getLogPath } from "../ytdl";
-import { openStandalonePanel } from "../standalone-host";
+import { openYouTubePanelSmart } from "../open-panel-router";
 import { notifyPlayersCookiesRefreshed } from "./cookies";
 import { notifyStandaloneFeedsStale } from "../standalone-host";
 
@@ -21,7 +21,7 @@ export function installGlobalMenuItems(): boolean {
         "Open YouTube Panel",
         () => {
           appendLog(`Open YouTube panel (${BROWSE_KEY_BINDING} menu action)`);
-          openStandalonePanel();
+          openYouTubePanelSmart("browse");
         },
         { keyBinding: BROWSE_KEY_BINDING },
       ),

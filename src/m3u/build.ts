@@ -4,7 +4,9 @@ export function buildWatchUrlM3U(
 ): string {
   const lines = ["#EXTM3U"];
   for (const entry of entries) {
-    const title = entry.title.replace(/[\r\n]+/g, " ").trim() || "YouTube";
+    const title =
+      entry.title.replace(/[\r\n]+/g, " ").replace(/,/g, " ").replace(/\s+/g, " ").trim() ||
+      "YouTube";
     lines.push(`#EXTINF:0,${title}`);
     lines.push(entry.url);
   }

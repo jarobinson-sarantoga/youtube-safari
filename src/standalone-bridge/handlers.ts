@@ -16,9 +16,14 @@ import {
   runStandaloneSidebarReadyCallback,
   setStandaloneWebViewReady,
 } from "./state";
+import { setPendingShortsPlayVideo } from "../shorts-queue";
 import { registerStandaloneLibraryHandlers } from "./library";
 
 const { global, standaloneWindow } = iina;
+
+function retireBackgroundPlayers(): void {
+  global.postMessage("retireBackgroundPlayers", {});
+}
 
 function proxyToPlayer(action: string, data: unknown): void {
   const coordinator = getStandaloneCoordinator();
@@ -47,12 +52,20 @@ export function registerStandaloneInboundHandlers(): void {
       return;
     }
     if (data.shortsQueue?.videoIds.length) {
-      global.postMessage("closeManagedPlayers", {});
-      proxyToPlayer("playVideo", data);
+      const playerId = coordinator.getActivePlayerId();
+      if (playerId !== null && coordinator.isPlayerConfirmedReady()) {
+        retireBackgroundPlayers();
+        proxyToPlayer("playVideo", data);
+        postToStandalone("watchUrlChanged", { watchUrl: url });
+        return;
+      }
+      setPendingShortsPlayVideo(data);
+      retireBackgroundPlayers();
+      openYouTubeWatchUrl(url, coordinator);
       postToStandalone("watchUrlChanged", { watchUrl: url });
       return;
     }
-    global.postMessage("closeManagedPlayers", {});
+    retireBackgroundPlayers();
     openYouTubeWatchUrl(url, coordinator, {
       background: !!data.background,
     });

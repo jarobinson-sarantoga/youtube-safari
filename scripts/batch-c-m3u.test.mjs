@@ -37,6 +37,14 @@ describe("Batch C — buildWatchUrlM3U", () => {
     assert.match(m3u, /#EXTINF:0,YouTube/);
   });
 
+  test("commas in titles are stripped", () => {
+    const m3u = buildWatchUrlM3U([
+      { title: "Hello, World", url: "https://www.youtube.com/watch?v=abc123xyz12" },
+    ]);
+    assert.match(m3u, /#EXTINF:0,Hello World/);
+    assert.doesNotMatch(m3u, /Hello, World/);
+  });
+
   test("single entry playlist", () => {
     const lines = buildWatchUrlM3U([
       { title: "Solo", url: "https://www.youtube.com/watch?v=abc123xyz12" },

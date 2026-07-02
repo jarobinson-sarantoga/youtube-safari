@@ -8,6 +8,7 @@
 .browse-view .toolbar,
 .browse-view .segmented,
 .browse-view .subs-filter,
+.browse-view .shorts-layout,
 .browse-view .feed-status {
   flex: 0 0 auto;
 }

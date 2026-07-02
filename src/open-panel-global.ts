@@ -1,4 +1,4 @@
-import { openStandalonePanel } from "./standalone-host";
+import { openYouTubePanelSmart } from "./open-panel-router";
 import { appendLog } from "./ytdl";
 
 const { file, utils } = iina;
@@ -24,7 +24,7 @@ export function startOpenPanelQueuePoller(): void {
         file.write(path, "");
       }
       appendLog("Open YouTube panel (open-panel queue)");
-      openStandalonePanel();
+      openYouTubePanelSmart("browse");
     } catch (err) {
       appendLog(`open-panel queue error: ${err}`);
     }

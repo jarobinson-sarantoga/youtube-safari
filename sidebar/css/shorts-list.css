@@ -1,0 +1,16 @@
+.feed-list--shorts-list {
+  gap: var(--sp-05);
+}
+
+.feed-list--shorts-list .feed-row {
+  padding: var(--sp-1) var(--sp-2);
+  gap: var(--sp-2);
+}
+
+.feed-list--shorts-list .feed-meta {
+  min-width: 0;
+}
+
+.feed-list--shorts-list .feed-title {
+  -webkit-line-clamp: 2;
+}

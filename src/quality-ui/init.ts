@@ -2,6 +2,7 @@
  *  @see panel-proxy.ts — standalone panelProxy routing
  *  @see refresh.ts, switch-quality.ts — panel updates
  */
+import type { PanelFocus } from "../open-panel-router";
 import { appendLog } from "../ytdl";
 import {
   enableNativeMenuUpdates,
@@ -45,9 +46,10 @@ export function initQualityUI(): void {
     scheduleRefreshQualityUI();
   }
 
-  global.onMessage("openYouTubeBrowse", () => {
-    revealYouTubePanel("player");
-    appendLog("Open YouTube panel triggered");
+  global.onMessage("openYouTubeBrowse", (data: { focus?: PanelFocus } | undefined) => {
+    const view = data?.focus === "browse" ? "browse" : "player";
+    revealYouTubePanel(view);
+    appendLog(`Open YouTube panel triggered (${view})`);
   });
 
   global.onMessage("panelProxy", handlePanelProxy);

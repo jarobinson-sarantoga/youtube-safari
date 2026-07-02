@@ -13,6 +13,7 @@ export interface FeedRowOptions {
   showDuration?: boolean;
   showResume?: boolean;
   showExtra?: boolean;
+  showActions?: boolean;
   showBackgroundPlay?: boolean;
   portrait?: boolean;
   listboxOption?: boolean;

@@ -5,6 +5,11 @@
   align-content: start;
 }
 
+.shorts-grid-row,
+.shorts-grid-cell {
+  min-width: 0;
+}
+
 .shorts-grid-card {
   appearance: none;
   border: 1px solid transparent;
@@ -32,6 +37,7 @@
   width: 100%;
   height: auto;
   aspect-ratio: 9 / 16;
+  max-height: 11rem;
 }
 
 .shorts-grid-meta {

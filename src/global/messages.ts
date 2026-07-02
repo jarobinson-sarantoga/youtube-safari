@@ -6,13 +6,15 @@ import {
   hasPendingWatchUrl,
   openYouTubeWatchUrl,
   registerManagedPlayer,
+  retireAllBackgroundPlayersNow,
   startOpenUrlQueuePoller,
   unregisterManagedPlayer,
 } from "../open-url-global";
 import { normalizePlayerId } from "../player-id";
-import { forwardPanelRelay, openStandalonePanel } from "../standalone-host";
+import { forwardPanelRelay } from "../standalone-host";
+import { openYouTubePanelSmart } from "../open-panel-router";
 import { appendLog } from "../ytdl";
-import { exitShortsQueue } from "../shorts-queue";
+import { exitShortsQueue, takePendingShortsPlayVideo } from "../shorts-queue";
 import {
   clearActivePlayer,
   decrementLivePlayerCount,
@@ -28,7 +30,7 @@ const { global } = iina;
 export function registerGlobalMessageHandlers(): void {
   global.onMessage("openStandalonePanel", () => {
     appendLog("Open YouTube panel (global shortcut message)");
-    openStandalonePanel();
+    openYouTubePanelSmart("browse");
   });
 
   global.onMessage("playerReady", (data: { idle?: boolean; label?: string } | undefined, playerId) => {
@@ -65,6 +67,15 @@ export function registerGlobalMessageHandlers(): void {
     }
 
     drainPendingWatchUrl(normalizedId, playerCoordinator);
+
+    const pendingPlay = takePendingShortsPlayVideo();
+    if (pendingPlay?.shortsQueue?.videoIds.length) {
+      global.postMessage(normalizedId, "panelProxy", {
+        action: "playVideo",
+        data: pendingPlay,
+      });
+      appendLog("Drained pending Shorts queue play");
+    }
   });
 
   global.onMessage("playerClosed", (_data, playerId) => {
@@ -93,6 +104,10 @@ export function registerGlobalMessageHandlers(): void {
 
   global.onMessage("closeManagedPlayers", () => {
     closeManagedPlayersForNewPlayback(playerCoordinator);
+  });
+
+  global.onMessage("retireBackgroundPlayers", () => {
+    retireAllBackgroundPlayersNow(playerCoordinator);
   });
 
   global.onMessage("panelPlayVideo", (data: {
